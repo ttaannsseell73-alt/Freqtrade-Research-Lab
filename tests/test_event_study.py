@@ -9,6 +9,7 @@ from freqtrade_research_lab.event_study import (
     _directional_performance,
     _forward_contiguous,
     _forward_extreme,
+    _non_overlapping_returns,
     analyze_pair,
     analyze_signals,
     benjamini_hochberg,
@@ -156,12 +157,15 @@ def test_candidate_table_never_exposes_holdout_columns() -> None:
                 "horizon_bars": 5,
                 "holding_minutes": 5,
                 "events": events,
+                "non_overlapping_events": events,
                 "mean_net_return": mean_return,
+                "test_mean_net_return": mean_return,
                 "win_rate": 0.55,
                 "p_value": p_value,
                 "profit_factor": 1.2,
                 "mean_mfe": 0.01,
                 "mean_mae": -0.01,
+                "test_std_net_return": 0.01,
             }
         )
 
@@ -191,12 +195,15 @@ def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
                 "horizon_bars": 5,
                 "holding_minutes": 5,
                 "events": events,
+                "non_overlapping_events": events,
                 "mean_net_return": mean_return,
+                "test_mean_net_return": mean_return,
                 "win_rate": 0.45,
                 "p_value": p_value,
                 "profit_factor": 0.8,
                 "mean_mfe": 0.01,
                 "mean_mae": -0.01,
+                "test_std_net_return": 0.01,
             }
         )
 
@@ -252,12 +259,15 @@ def test_validation_fdr_covers_entire_experiment_family() -> None:
                     "horizon_bars": horizon,
                     "holding_minutes": horizon,
                     "events": 200 if period == "train" else 50,
+                    "non_overlapping_events": 200 if period == "train" else 50,
                     "mean_net_return": 0.01,
+                    "test_mean_net_return": 0.01,
                     "win_rate": 0.55,
                     "p_value": p_value,
                     "profit_factor": 1.2,
                     "mean_mfe": 0.01,
                     "mean_mae": -0.01,
+                "test_std_net_return": 0.01,
                 }
             )
 
@@ -340,3 +350,66 @@ def test_event_study_config_rejects_invalid_selection_thresholds() -> None:
         EventStudyConfig(minimum_holdout_events=0)
     with pytest.raises(ValueError, match="validation_fdr"):
         EventStudyConfig(validation_fdr=0)
+
+
+
+def test_non_overlapping_returns_keep_only_independent_forward_windows() -> None:
+    group = pd.DataFrame(
+        {
+            "signal_date": pd.to_datetime(
+                [
+                    "2026-01-01 00:00:00+00:00",
+                    "2026-01-01 00:02:00+00:00",
+                    "2026-01-01 00:05:00+00:00",
+                    "2026-01-01 00:07:00+00:00",
+                    "2026-01-01 00:10:00+00:00",
+                ],
+                utc=True,
+            ),
+            "net_return": [0.01, 0.02, 0.03, 0.04, 0.05],
+        }
+    )
+
+    selected = _non_overlapping_returns(group, holding_minutes=5)
+
+    np.testing.assert_allclose(selected, [0.01, 0.03, 0.05])
+
+
+def test_discovery_threshold_uses_non_overlapping_event_count() -> None:
+    rows = []
+    for period, events, independent, p_value in (
+        ("train", 200, 80, 0.001),
+        ("validation", 60, 20, 0.001),
+    ):
+        rows.append(
+            {
+                "pair": "TEST/USDT:USDT",
+                "direction": "long",
+                "period": period,
+                "horizon_bars": 60,
+                "holding_minutes": 60,
+                "events": events,
+                "non_overlapping_events": independent,
+                "mean_net_return": 0.01,
+                "test_mean_net_return": 0.01,
+                "win_rate": 0.60,
+                "p_value": p_value,
+                "profit_factor": 1.5,
+                "mean_mfe": 0.02,
+                "mean_mae": -0.01,
+                "test_std_net_return": 0.01,
+            }
+        )
+
+    discovery = build_discovery_table(
+        pd.DataFrame(rows),
+        EventStudyConfig(
+            minimum_train_events=100,
+            minimum_validation_events=30,
+            validation_fdr=0.10,
+        ),
+    )
+
+    assert int(discovery["events_train"].iloc[0]) == 200
+    assert int(discovery["non_overlapping_events_train"].iloc[0]) == 80
+    assert not bool(discovery["discovery_pass"].iloc[0])
