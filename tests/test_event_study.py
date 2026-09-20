@@ -16,12 +16,12 @@ from freqtrade_research_lab.event_study import (
 )
 
 
-def synthetic_frame(rows: int = 600) -> pd.DataFrame:
+def synthetic_frame(rows: int = 600, freq: str = "min") -> pd.DataFrame:
     index = np.arange(rows)
     close = 100 + 0.02 * index + 2.5 * np.sin(index / 8)
     return pd.DataFrame(
         {
-            "date": pd.date_range("2026-01-01", periods=rows, freq="min", tz="UTC"),
+            "date": pd.date_range("2026-01-01", periods=rows, freq=freq, tz="UTC"),
             "open": close - 0.01,
             "high": close + 0.10,
             "low": close - 0.10,
@@ -32,7 +32,7 @@ def synthetic_frame(rows: int = 600) -> pd.DataFrame:
 
 
 def test_event_study_outputs_both_directions_and_all_horizons() -> None:
-    frame = synthetic_frame()
+    frame = synthetic_frame(freq="15min")
     train_end = frame["date"].iloc[360]
     validation_end = frame["date"].iloc[480]
     config = EventStudyConfig(horizons_bars=(1, 5), round_trip_cost_bps=0)
