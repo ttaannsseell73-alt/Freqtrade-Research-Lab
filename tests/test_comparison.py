@@ -24,7 +24,8 @@ def candidate(
         "timeframe": timeframe,
         "pair": pair,
         "direction": direction,
-        "horizon_minutes": horizon,
+        "horizon_bars": horizon,
+        "holding_minutes": horizon * (15 if timeframe == "15m" else 5),
         "discovery_score": 0.001,
         "validation_q_value": 0.05,
     }
@@ -120,4 +121,4 @@ def test_system_coverage_counts_pairs_without_ranking_holdout() -> None:
     assert coverage["candidate_rows"].iloc[0] == 2
     assert coverage["unique_pairs"].iloc[0] == 2
     assert coverage["directions"].iloc[0] == "long,short"
-    assert coverage["horizons"].iloc[0] == "5,10"
+    assert coverage["horizon_bars"].iloc[0] == "5,10"

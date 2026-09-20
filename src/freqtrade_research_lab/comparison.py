@@ -15,7 +15,8 @@ DISCOVERY_KEY_COLUMNS = [
     *IDENTITY_COLUMNS,
     "pair",
     "direction",
-    "horizon_minutes",
+    "horizon_bars",
+    "holding_minutes",
 ]
 REQUIRED_DISCOVERY_COLUMNS = [
     *DISCOVERY_KEY_COLUMNS,
@@ -63,7 +64,7 @@ def combine_discovery_frames(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
             "Combined discovery inputs contain duplicate experiment/pair/direction/horizon rows"
         )
     return combined.sort_values(
-        ["system_id", "system_version", "timeframe", "pair", "direction", "horizon_minutes"]
+        ["system_id", "system_version", "timeframe", "pair", "direction", "horizon_bars"]
     ).reset_index(drop=True)
 
 
@@ -76,7 +77,7 @@ def build_system_coverage(combined: pd.DataFrame) -> pd.DataFrame:
                 "candidate_rows",
                 "unique_pairs",
                 "directions",
-                "horizons",
+                "horizon_bars",
             ]
         )
 
@@ -89,9 +90,9 @@ def build_system_coverage(combined: pd.DataFrame) -> pd.DataFrame:
                 "candidate_rows": int(len(group)),
                 "unique_pairs": int(group["pair"].nunique()),
                 "directions": ",".join(sorted(group["direction"].astype(str).unique())),
-                "horizons": ",".join(
+                "horizon_bars": ",".join(
                     str(value)
-                    for value in sorted(group["horizon_minutes"].astype(int).unique())
+                    for value in sorted(group["horizon_bars"].astype(int).unique())
                 ),
             }
         )
