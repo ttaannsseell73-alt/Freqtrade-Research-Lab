@@ -19,7 +19,7 @@ class ExperimentSpec:
     timeframe: str
     parameters: Mapping[str, object]
     cost_bps: float
-    horizons: tuple[int, ...]
+    horizons_bars: tuple[int, ...]
 
     def __post_init__(self) -> None:
         if not _SYSTEM_ID.fullmatch(self.system_id):
@@ -32,8 +32,8 @@ class ExperimentSpec:
             raise ValueError("timeframe cannot be empty")
         if self.cost_bps < 0:
             raise ValueError("cost_bps cannot be negative")
-        if not self.horizons or any(horizon <= 0 for horizon in self.horizons):
-            raise ValueError("horizons must contain positive integers")
+        if not self.horizons_bars or any(horizon <= 0 for horizon in self.horizons_bars):
+            raise ValueError("horizons_bars must contain positive integers")
 
     def canonical_payload(self) -> dict[str, object]:
         return {
@@ -42,7 +42,8 @@ class ExperimentSpec:
             "timeframe": self.timeframe,
             "parameters": dict(self.parameters),
             "cost_bps": float(self.cost_bps),
-            "horizons": list(self.horizons),
+            "horizons_bars": list(self.horizons_bars),
+            "horizon_semantics": "bars",
         }
 
     def experiment_id(self) -> str:
