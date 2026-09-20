@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from math import erfc, sqrt
+from math import sqrt
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
+from scipy.stats import t as student_t
 
 from .signals import SignalSet, macd_crossover_signals, validate_signal_set
 
@@ -115,10 +116,11 @@ def _directional_performance(
     return net_return, mfe, mae
 
 
-def _normal_p_value(t_stat: float) -> float:
-    if not np.isfinite(t_stat):
+def _positive_mean_p_value(t_stat: float, sample_count: int) -> float:
+    """One-sided Student-t p-value for H1: mean net return > 0."""
+    if not np.isfinite(t_stat) or sample_count <= 1:
         return 1.0
-    return erfc(abs(t_stat) / sqrt(2.0))
+    return float(student_t.sf(t_stat, df=sample_count - 1))
 
 
 def _non_overlapping_returns(
@@ -183,8 +185,8 @@ def _summarize_events(
                 "std_net_return": std,
                 "test_std_net_return": test_std,
                 "t_stat": t_stat,
-                "p_value": _normal_p_value(t_stat),
-                "p_value_method": "normal_t_non_overlapping_events",
+                "p_value": _positive_mean_p_value(t_stat, test_count),
+                "p_value_method": "student_t_one_sided_non_overlapping_events",
                 "profit_factor": profit_factor,
                 "mean_mfe": float(group["mfe"].mean()),
                 "mean_mae": float(group["mae"].mean()),
@@ -344,34 +346,46 @@ def build_discovery_table(
         "non_overlapping_events_validation",
         "mean_net_return_train",
         "mean_net_return_validation",
+        "test_mean_net_return_train",
+        "test_mean_net_return_validation",
         "p_value_validation",
     ]
     for column in required:
         if column not in discovery_wide:
             discovery_wide[column] = np.nan
 
-    discovery_wide["validation_q_value"] = benjamini_hochberg(
-        discovery_wide["p_value_validation"].fillna(1.0)
+    # Two-stage discovery: train is an independent screening set. Only hypotheses
+    # that have enough independent train events and positive independent-sample
+    # expectancy enter the validation FDR family. Train-rejected hypotheses must
+    # not inflate the validation multiple-testing denominator.
+    discovery_wide["train_eligible"] = (
+        (discovery_wide["non_overlapping_events_train"] >= config.minimum_train_events)
+        & (discovery_wide["test_mean_net_return_train"] > 0)
     )
-    discovery_wide["fdr_family_size"] = int(len(discovery_wide))
-    discovery_wide["fdr_scope"] = "experiment_all_pair_direction_horizon"
+    discovery_wide["validation_q_value"] = np.nan
+    eligible = discovery_wide["train_eligible"].fillna(False).astype(bool)
+    if eligible.any():
+        discovery_wide.loc[eligible, "validation_q_value"] = benjamini_hochberg(
+            discovery_wide.loc[eligible, "p_value_validation"].fillna(1.0)
+        )
+    discovery_wide["fdr_family_size"] = int(eligible.sum())
+    discovery_wide["fdr_scope"] = "train_screened_validation_pair_direction_horizon"
     discovery_wide["minimum_train_events"] = config.minimum_train_events
     discovery_wide["minimum_validation_events"] = config.minimum_validation_events
     discovery_wide["experiment_validation_fdr"] = config.validation_fdr
 
     discovery_wide["discovery_pass"] = (
-        (discovery_wide["non_overlapping_events_train"] >= config.minimum_train_events)
+        discovery_wide["train_eligible"]
         & (
             discovery_wide["non_overlapping_events_validation"]
             >= config.minimum_validation_events
         )
-        & (discovery_wide["mean_net_return_train"] > 0)
-        & (discovery_wide["mean_net_return_validation"] > 0)
+        & (discovery_wide["test_mean_net_return_validation"] > 0)
         & (discovery_wide["validation_q_value"] <= config.validation_fdr)
     )
     discovery_wide["discovery_score"] = np.minimum(
-        discovery_wide["mean_net_return_train"],
-        discovery_wide["mean_net_return_validation"],
+        discovery_wide["test_mean_net_return_train"],
+        discovery_wide["test_mean_net_return_validation"],
     )
     return discovery_wide
 
@@ -425,13 +439,15 @@ def build_candidate_tables(
         holdout["non_overlapping_events_holdout"] = np.nan
     if "mean_net_return_holdout" not in holdout:
         holdout["mean_net_return_holdout"] = np.nan
+    if "test_mean_net_return_holdout" not in holdout:
+        holdout["test_mean_net_return_holdout"] = np.nan
 
     holdout["holdout_pass"] = (
         (
             holdout["non_overlapping_events_holdout"]
             >= config.minimum_holdout_events
         )
-        & (holdout["mean_net_return_holdout"] > 0)
+        & (holdout["test_mean_net_return_holdout"] > 0)
     )
     holdout = holdout.sort_values(
         ["holdout_pass", "mean_net_return_holdout"], ascending=[False, False]
