@@ -88,6 +88,7 @@ Outputs:
 - `candidates_train_validation.csv`: candidates selected without holdout data.
 - `holdout_report.csv`: holdout results only for the already-frozen candidate set.
 - `errors.csv`: new listings, missing data, or unreadable files.
+- `result_summary.json`: compact machine-readable outcome counts and status.
 - `run_manifest.json`: exact settings, split boundaries, and limitations.
 - `SHA256SUMS.txt`: integrity hashes for every result file.
 
