@@ -34,10 +34,18 @@ def test_event_study_outputs_both_directions_and_all_horizons() -> None:
     frame = synthetic_frame()
     train_end = frame["date"].iloc[360]
     validation_end = frame["date"].iloc[480]
-    config = EventStudyConfig(horizons=(1, 5), round_trip_cost_bps=0)
-    result = analyze_pair(frame, "TEST/USDT:USDT", config, train_end, validation_end)
+    config = EventStudyConfig(horizons_bars=(1, 5), round_trip_cost_bps=0)
+    result = analyze_pair(
+        frame,
+        "TEST/USDT:USDT",
+        config,
+        train_end,
+        validation_end,
+        bar_minutes=15,
+    )
     assert set(result["direction"]) == {"long", "short"}
-    assert set(result["horizon_minutes"]) == {1, 5}
+    assert set(result["horizon_bars"]) == {1, 5}
+    assert set(result["holding_minutes"]) == {15, 75}
     assert set(result["period"]) == {"train", "validation", "holdout"}
 
 
@@ -83,7 +91,7 @@ def test_period_boundaries_drop_cross_split_events() -> None:
     train_end = frame["date"].iloc[360]
     validation_end = frame["date"].iloc[480]
     horizon = 60
-    config = EventStudyConfig(horizons=(horizon,), round_trip_cost_bps=0)
+    config = EventStudyConfig(horizons_bars=(horizon,), round_trip_cost_bps=0)
     result = analyze_pair(frame, "TEST/USDT:USDT", config, train_end, validation_end)
 
     close = frame["close"]
@@ -122,7 +130,7 @@ def test_period_boundaries_drop_cross_split_events() -> None:
             rows = result.loc[
                 (result["direction"] == direction)
                 & (result["period"] == period)
-                & (result["horizon_minutes"] == horizon),
+                & (result["horizon_bars"] == horizon),
                 "events",
             ]
             actual = int(rows.iloc[0]) if not rows.empty else 0
@@ -141,7 +149,8 @@ def test_candidate_table_never_exposes_holdout_columns() -> None:
                 "pair": "TEST/USDT:USDT",
                 "direction": "long",
                 "period": period,
-                "horizon_minutes": 5,
+                "horizon_bars": 5,
+                "holding_minutes": 5,
                 "events": events,
                 "mean_net_return": mean_return,
                 "win_rate": 0.55,
@@ -175,7 +184,7 @@ def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
                 "pair": "TEST/USDT:USDT",
                 "direction": "long",
                 "period": period,
-                "horizon_minutes": 5,
+                "horizon_bars": 5,
                 "events": events,
                 "mean_net_return": mean_return,
                 "win_rate": 0.45,
