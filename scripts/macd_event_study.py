@@ -205,7 +205,7 @@ def main() -> int:
     )
 
     result_summary = {
-        "schema_version": 4,
+        "schema_version": 5,
         "study": "macd_crossover_event_study",
         "experiment_id": experiment.experiment_id(),
         "system_id": experiment.system_id,
@@ -218,6 +218,11 @@ def main() -> int:
         "horizons_bars": list(config.horizons_bars),
         "holding_minutes": [bar_minutes * value for value in config.horizons_bars],
         "hypotheses_tested": int(len(discovery_tests)),
+        "train_eligible_hypotheses": (
+            int(discovery_tests["train_eligible"].fillna(False).astype(bool).sum())
+            if "train_eligible" in discovery_tests.columns
+            else 0
+        ),
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
         "candidate_rows": int(len(candidates)),
@@ -234,7 +239,7 @@ def main() -> int:
     )
 
     manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "study": "macd_crossover_event_study",
         "experiment": experiment.manifest(),
@@ -246,8 +251,8 @@ def main() -> int:
         "timeframe": args.timeframe,
         "bar_minutes": bar_minutes,
         "horizon_semantics": "bars",
-        "fdr_scope": "experiment_all_pair_direction_horizon",
-        "significance_method": "normal_t_non_overlapping_events",
+        "fdr_scope": "train_screened_validation_pair_direction_horizon",
+        "significance_method": "student_t_one_sided_non_overlapping_events",
         "event_count_threshold_basis": "non_overlapping_events",
         "catalog": str(args.catalog) if args.catalog is not None else None,
         "pairs_before_catalog_gate": pairs_before_catalog,
@@ -262,6 +267,8 @@ def main() -> int:
         ),
         "limitations": [
             "Current active-contract universe can contain survivorship bias.",
+            "This event study measures fixed-horizon signal response, not complete strategy P&L.",
+            "Stop-loss, take-profit, trailing exits, leverage, and funding are not modeled here.",
             "Funding is not included in the event study; execution backtests add it later.",
             "Cost model is a fixed round-trip fee plus slippage assumption.",
             "Holdout results must not be used to retune the same model.",
