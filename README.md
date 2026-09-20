@@ -55,8 +55,8 @@ First build the canonical coverage and quality catalog:
 
 ```powershell
 docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/build_dataset_catalog.py `
-  --data-dir /freqtrade/user_data/data/binance `
-  --output-dir /freqtrade/user_data/research/catalog_20250919_20260920 `
+  --data-dir /freqtrade/user_data/data/binance/futures `
+  --output-dir /freqtrade/user_data/research/catalog_20250920_20260920 `
   --start 2025-09-20 `
   --end 2026-09-20 `
   --timeframes 1m 5m 15m 1h 4h 1d
@@ -75,7 +75,7 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
   --data-dir /freqtrade/user_data/data/binance/futures `
   --catalog /freqtrade/user_data/research/catalog_20250920_20260920/dataset_catalog.csv `
   --output-dir /freqtrade/user_data/research/results/macd_1m_20250920_20260920 `
-  --start 2025-09-19 `
+  --start 2025-09-20 `
   --end 2026-09-20 `
   --timeframe 1m `
   --cost-bps 14
