@@ -31,6 +31,7 @@ added.
 - Long and short are measured separately.
 - Forward horizons: 1, 3, 5, 10, 20, and 60 **bars**. On 1m these equal minutes; on 15m/4h the output also records the true `holding_minutes`.
 - Metrics include net return, win rate, profit factor, MAE, and MFE.
+- Descriptive metrics use every valid event, but p-values and minimum event-count thresholds use a deterministic non-overlapping event subset for each horizon so overlapping forward windows are not treated as independent samples.
 - Default round-trip cost is 14 bps: 10 bps fee + 4 bps slippage assumption.
 - The 365-day range is split chronologically 60% / 20% / 20%.
 - Benjamini-Hochberg false-discovery control is applied once across the full validation hypothesis family: every coin × direction × horizon tested in the experiment.
@@ -108,9 +109,10 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
 ```
 
 The event-count thresholds and FDR level are explicit CLI parameters and are
-included in the experiment fingerprint/manifest. This is important on slower
-timeframes such as 4h: changing a threshold creates a different experiment
-instead of silently changing selection behavior.
+included in the experiment fingerprint/manifest. Thresholds apply to
+`non_overlapping_events`, not the raw event count. This is important on slower
+timeframes and long horizons: a dense cluster of overlapping signals cannot
+manufacture statistical sample size.
 
 The output directory must be new or empty. A non-empty directory causes a
 fail-closed stop so an earlier research run cannot be overwritten.
