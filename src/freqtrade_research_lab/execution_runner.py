@@ -107,11 +107,10 @@ def build_backtest_command(
         "trades",
         "--backtest-directory",
         str(backtest_dir),
-        "--pairs",
-        *pairs,
     ]
     if config.timeframe_detail:
         command.extend(["--timeframe-detail", config.timeframe_detail])
+    command.extend(["--pairs", *pairs])
     return command
 
 
@@ -143,11 +142,10 @@ def build_lookahead_command(
         str(config.targeted_trade_amount),
         "--lookahead-analysis-exportfilename",
         str(export_csv),
-        "--pairs",
-        *pairs,
     ]
     if config.timeframe_detail:
         command.extend(["--timeframe-detail", config.timeframe_detail])
+    command.extend(["--pairs", *pairs])
     return command
 
 
