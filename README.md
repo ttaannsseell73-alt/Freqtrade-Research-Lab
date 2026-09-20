@@ -173,3 +173,18 @@ Examples with the default bar horizons:
 
 This prevents a 5-bar event on 15m data from being incorrectly reported as a
 5-minute hold.
+
+
+## Generic signal engine
+
+Signal generation and statistical evaluation are separate contracts. A strategy
+produces a `SignalSet(long, short)` aligned to the closed-candle OHLCV frame;
+`analyze_signals(...)` then applies the same next-open entry, costs, gap checks,
+split isolation, horizons, MAE/MFE, and discovery statistics to every strategy.
+
+`analyze_pair(...)` remains the MACD compatibility wrapper and is regression
+tested to produce the same output as
+`analyze_signals(..., macd_crossover_signals(...))`. New Kıvanç-style,
+liquidity-sweep, breakout/retest, price-action, or hybrid signal generators
+therefore plug into one canonical evaluator instead of duplicating research
+logic.
