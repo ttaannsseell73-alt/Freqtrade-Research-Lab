@@ -155,7 +155,7 @@ def main() -> int:
     )
 
     result_summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "study": "macd_crossover_event_study",
         "experiment_id": experiment.experiment_id(),
         "system_id": experiment.system_id,
@@ -179,7 +179,7 @@ def main() -> int:
     )
 
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "study": "macd_crossover_event_study",
         "experiment": experiment.manifest(),
