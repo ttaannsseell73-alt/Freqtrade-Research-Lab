@@ -33,7 +33,7 @@ added.
 - Metrics include net return, win rate, profit factor, MAE, and MFE.
 - Default round-trip cost is 14 bps: 10 bps fee + 4 bps slippage assumption.
 - The 365-day range is split chronologically 60% / 20% / 20%.
-- Benjamini-Hochberg false-discovery control is applied across the coin universe.
+- Benjamini-Hochberg false-discovery control is applied once across the full validation hypothesis family: every coin × direction × horizon tested in the experiment.
 
 The MACD benchmark is a control group, not a production signal.
 
@@ -91,7 +91,8 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
 Outputs:
 
 - `dataset_coverage.csv`: candles and date coverage for every contract.
-- `summary_discovery.csv`: train + validation statistics only; no holdout rows; tagged with experiment identity.
+- `summary_discovery.csv`: long-form train + validation statistics only; no holdout rows.
+- `discovery_tests.csv`: every train+validation hypothesis in wide form, including experiment-wide FDR q-values and pass/fail status.
 - `candidates_train_validation.csv`: candidates selected without holdout data.
 - `holdout_report.csv`: holdout results only for the already-frozen candidate set.
 - `errors.csv`: new listings, missing data, or unreadable files.
@@ -131,9 +132,10 @@ independent discovery first, and execution backtests follow on frozen batches.
 
 ## Multi-system discovery comparison
 
-Each signal/timeframe experiment is run independently first. Candidate tables can
-then be combined with `scripts/compare_discovery.py` to measure which systems
-produce validated candidates on which contracts.
+Each signal/timeframe experiment is run independently first. The full
+`discovery_tests.csv` preserves all tested hypotheses before candidate filtering;
+this is the canonical input for later cross-system multiplicity control. Candidate
+tables remain convenient per-experiment outputs.
 
 This comparison stage is deliberately **train + validation only**. If any input
 contains a column with `holdout` in its name, the comparison fails closed.
