@@ -50,19 +50,21 @@ def main() -> int:
         end,
         minimum_coverage=args.minimum_coverage,
         minimum_candles=args.minimum_candles,
+        include_source_sha256=True,
     )
     if catalog.empty:
         raise SystemExit("No matching futures OHLCV files were found")
 
     catalog = catalog.sort_values(["timeframe", "pair"]).reset_index(drop=True)
     summary = {
-        "schema_version": 2,
+        "schema_version": 3,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "start_inclusive": start.isoformat(),
         "end_exclusive": end.isoformat(),
         "timeframes": args.timeframes,
         "minimum_coverage": args.minimum_coverage,
         "minimum_candles": args.minimum_candles,
+        "source_sha256": True,
         "files": int(len(catalog)),
         "unique_pairs": int(catalog["pair"].nunique()),
         "research_ready_files": int(catalog["research_ready"].sum()),
