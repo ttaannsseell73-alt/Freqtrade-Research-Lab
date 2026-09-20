@@ -77,7 +77,7 @@ def build_system_coverage(combined: pd.DataFrame) -> pd.DataFrame:
                 "candidate_rows",
                 "unique_pairs",
                 "directions",
-                "horizons",
+                "horizon_bars",
             ]
         )
 
