@@ -5,6 +5,8 @@ import pandas as pd
 
 from freqtrade_research_lab.event_study import (
     EventStudyConfig,
+    _directional_performance,
+    _forward_extreme,
     analyze_pair,
     benjamini_hochberg,
     split_boundaries,
@@ -52,3 +54,23 @@ def test_split_boundaries_are_60_20_20() -> None:
     assert (train_end - pd.Timestamp(start)).days == 60
     assert (validation_end - train_end).days == 20
 
+
+def test_forward_extreme_uses_only_candles_after_signal() -> None:
+    values = np.array([10.0, 12.0, 11.0, 15.0, 14.0])
+    result = _forward_extreme(values, 2, "max")
+    np.testing.assert_allclose(result[:3], [12.0, 15.0, 15.0])
+    assert np.isnan(result[3:]).all()
+
+
+def test_short_return_uses_linear_futures_pnl_denominator() -> None:
+    net, mfe, mae = _directional_performance(
+        entry=np.array([100.0]),
+        exit_price=np.array([90.0]),
+        max_high=np.array([105.0]),
+        min_low=np.array([85.0]),
+        direction="short",
+        cost_rate=0.001,
+    )
+    np.testing.assert_allclose(net, [0.099])
+    np.testing.assert_allclose(mfe, [0.15])
+    np.testing.assert_allclose(mae, [-0.05])

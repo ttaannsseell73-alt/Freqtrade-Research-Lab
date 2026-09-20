@@ -60,13 +60,31 @@ def _period_labels(
 
 
 def _forward_extreme(values: np.ndarray, horizon: int, reducer: str) -> np.ndarray:
-    shifted = np.empty(values.shape, dtype=float)
-    shifted[:-1] = values[1:]
-    shifted[-1] = np.nan
-    reversed_series = pd.Series(shifted[::-1])
-    rolling = reversed_series.rolling(horizon, min_periods=horizon)
+    future = pd.Series(values, dtype=float).shift(-1)
+    rolling = future.rolling(horizon, min_periods=horizon)
     reduced = rolling.max() if reducer == "max" else rolling.min()
-    return reduced.to_numpy()[::-1]
+    return reduced.shift(-(horizon - 1)).to_numpy()
+
+
+def _directional_performance(
+    entry: np.ndarray,
+    exit_price: np.ndarray,
+    max_high: np.ndarray,
+    min_low: np.ndarray,
+    direction: str,
+    cost_rate: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if direction == "long":
+        net_return = (exit_price - entry) / entry - cost_rate
+        mfe = (max_high - entry) / entry
+        mae = (min_low - entry) / entry
+    elif direction == "short":
+        net_return = (entry - exit_price) / entry - cost_rate
+        mfe = (entry - min_low) / entry
+        mae = (entry - max_high) / entry
+    else:
+        raise ValueError(f"Unsupported direction: {direction}")
+    return net_return, mfe, mae
 
 
 def _normal_p_value(t_stat: float) -> float:
@@ -132,34 +150,39 @@ def analyze_pair(
     lows = data["low"].to_numpy(dtype=float)
     closes = data["close"].to_numpy(dtype=float)
     dates = data["date"]
-    periods = _period_labels(dates, train_end, validation_end)
+    entry_dates = dates.shift(-1)
+    entry_periods = _period_labels(entry_dates, train_end, validation_end)
     cost_rate = config.round_trip_cost_bps / 10_000.0
     summary_rows: list[dict[str, object]] = []
 
     for horizon in config.horizons:
         exit_price = pd.Series(closes).shift(-horizon).to_numpy(dtype=float)
+        exit_dates = dates.shift(-horizon)
+        exit_periods = _period_labels(exit_dates, train_end, validation_end)
         max_high = _forward_extreme(highs, horizon, "max")
         min_low = _forward_extreme(lows, horizon, "min")
 
         for direction, mask in (("long", long_signal), ("short", short_signal)):
             valid = mask.to_numpy() & np.isfinite(entry) & np.isfinite(exit_price)
             valid &= np.isfinite(max_high) & np.isfinite(min_low)
+            valid &= entry_dates.notna().to_numpy() & exit_dates.notna().to_numpy()
+            valid &= entry_periods == exit_periods
             if not valid.any():
                 continue
 
-            if direction == "long":
-                net_return = exit_price[valid] / entry[valid] - 1.0 - cost_rate
-                mfe = max_high[valid] / entry[valid] - 1.0
-                mae = min_low[valid] / entry[valid] - 1.0
-            else:
-                net_return = entry[valid] / exit_price[valid] - 1.0 - cost_rate
-                mfe = entry[valid] / min_low[valid] - 1.0
-                mae = entry[valid] / max_high[valid] - 1.0
+            net_return, mfe, mae = _directional_performance(
+                entry[valid],
+                exit_price[valid],
+                max_high[valid],
+                min_low[valid],
+                direction,
+                cost_rate,
+            )
 
             events = pd.DataFrame(
                 {
                     "direction": direction,
-                    "period": periods[valid],
+                    "period": entry_periods[valid],
                     "net_return": net_return,
                     "mfe": mfe,
                     "mae": mae,
@@ -248,4 +271,3 @@ def build_candidate_tables(
         ["holdout_pass", "mean_net_return_holdout"], ascending=[False, False]
     )
     return candidates.reset_index(drop=True), holdout.reset_index(drop=True)
-

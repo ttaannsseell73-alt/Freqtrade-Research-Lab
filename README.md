@@ -50,6 +50,23 @@ container at `/freqtrade/user_data/research_lab`.
 
 Run only after the 1-minute download is complete:
 
+First build the canonical coverage and quality catalog:
+
+```powershell
+docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/build_dataset_catalog.py `
+  --data-dir /freqtrade/user_data/data/binance `
+  --output-dir /freqtrade/user_data/research/catalog_20250919_20260920 `
+  --start 2025-09-19 `
+  --end 2026-09-20 `
+  --timeframes 1m 5m 15m 1h 4h 1d
+```
+
+The catalog marks files as `ready`, `partial_coverage`, `too_short`,
+`invalid_ohlc`, or `empty`. Newly listed contracts remain visible instead of
+being silently mixed with full-history contracts.
+
+Then run the 1-minute benchmark:
+
 ```powershell
 docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/macd_event_study.py `
   --data-dir /freqtrade/user_data/data/binance `
@@ -98,4 +115,3 @@ independent discovery first, and execution backtests follow on frozen batches.
 - A fixed slippage assumption is a benchmark, not an execution guarantee.
 - Invite-only TradingView scripts cannot be reconstructed; they require forward
   testing from recorded alerts.
-
