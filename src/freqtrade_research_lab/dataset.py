@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
+import hashlib
+import json
 from pathlib import Path
 import re
 
@@ -20,6 +22,33 @@ class MarketFile:
     pair: str
     timeframe: str
     extension: str
+
+
+@dataclass(frozen=True)
+class CatalogSelection:
+    pairs: frozenset[str]
+    fingerprint_basis: str
+    entries: tuple[tuple[str, str], ...]
+
+    def fingerprint_for_pairs(self, pairs: set[str] | frozenset[str] | None = None) -> str:
+        selected = self.pairs if pairs is None else frozenset(pairs)
+        unknown = selected.difference(self.pairs)
+        if unknown:
+            raise ValueError(f"Pairs are not present in catalog selection: {sorted(unknown)[:5]}")
+        payload = "\n".join(
+            f"{pair}|{value}"
+            for pair, value in self.entries
+            if pair in selected
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _decode_pair(encoded: str) -> str:
@@ -98,6 +127,7 @@ def assess_market_file(
     *,
     minimum_coverage: float = 0.80,
     minimum_candles: int = 1_000,
+    include_source_sha256: bool = True,
 ) -> dict[str, object]:
     if not 0 < minimum_coverage <= 1:
         raise ValueError("minimum_coverage must be in (0, 1]")
@@ -160,6 +190,7 @@ def assess_market_file(
         "file": item.path.name,
         "extension": item.extension,
         "size_bytes": item.path.stat().st_size,
+        "source_sha256": sha256_file(item.path) if include_source_sha256 else None,
         "candles": candles,
         "expected_candles": expected_candles,
         "coverage_ratio": coverage_ratio,
@@ -181,6 +212,7 @@ def build_dataset_catalog(
     *,
     minimum_coverage: float = 0.80,
     minimum_candles: int = 1_000,
+    include_source_sha256: bool = True,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for timeframe in timeframes:
@@ -192,12 +224,13 @@ def build_dataset_catalog(
                     end,
                     minimum_coverage=minimum_coverage,
                     minimum_candles=minimum_candles,
+                    include_source_sha256=include_source_sha256,
                 )
             )
     return pd.DataFrame(rows)
 
 
-def load_ready_pairs_from_catalog(catalog_path: Path, timeframe: str) -> set[str]:
+def _ready_rows(catalog_path: Path, timeframe: str) -> pd.DataFrame:
     catalog = pd.read_csv(catalog_path)
     required = {"pair", "timeframe", "research_ready"}
     missing = required.difference(catalog.columns)
@@ -216,8 +249,103 @@ def load_ready_pairs_from_catalog(catalog_path: Path, timeframe: str) -> set[str
     if ready_values.isna().any():
         raise ValueError(f"{catalog_path} contains invalid research_ready values")
 
-    selected = catalog.loc[
-        (catalog["timeframe"].astype(str) == timeframe) & ready_values,
-        "pair",
-    ]
-    return set(selected.astype(str))
+    return catalog.loc[
+        (catalog["timeframe"].astype(str) == timeframe) & ready_values
+    ].copy()
+
+
+def _row_metadata_fingerprint(row: pd.Series) -> str:
+    excluded = {"source_sha256"}
+    values = {
+        str(column): None if pd.isna(value) else str(value)
+        for column, value in row.items()
+        if column not in excluded
+    }
+    payload = json.dumps(values, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def load_catalog_selection(
+    catalog_path: Path,
+    timeframe: str,
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+) -> CatalogSelection:
+    summary_path = catalog_path.with_name("dataset_catalog_summary.json")
+    if not summary_path.is_file():
+        raise ValueError(
+            f"Catalog summary is required for provenance validation: {summary_path}"
+        )
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    requested_start = pd.Timestamp(start)
+    requested_end = pd.Timestamp(end)
+    requested_start = (
+        requested_start.tz_localize("UTC")
+        if requested_start.tzinfo is None
+        else requested_start.tz_convert("UTC")
+    )
+    requested_end = (
+        requested_end.tz_localize("UTC")
+        if requested_end.tzinfo is None
+        else requested_end.tz_convert("UTC")
+    )
+    catalog_start = pd.Timestamp(summary.get("start_inclusive"))
+    catalog_end = pd.Timestamp(summary.get("end_exclusive"))
+    catalog_start = (
+        catalog_start.tz_localize("UTC")
+        if catalog_start.tzinfo is None
+        else catalog_start.tz_convert("UTC")
+    )
+    catalog_end = (
+        catalog_end.tz_localize("UTC")
+        if catalog_end.tzinfo is None
+        else catalog_end.tz_convert("UTC")
+    )
+    if catalog_start != requested_start or catalog_end != requested_end:
+        raise ValueError(
+            "Catalog date range does not match requested study range: "
+            f"catalog=[{catalog_start.isoformat()}, {catalog_end.isoformat()}) "
+            f"requested=[{requested_start.isoformat()}, {requested_end.isoformat()})"
+        )
+    if timeframe not in {str(value) for value in summary.get("timeframes", [])}:
+        raise ValueError(f"Catalog summary does not include timeframe {timeframe}")
+
+    selected = _ready_rows(catalog_path, timeframe).sort_values("pair")
+    if selected.empty:
+        return CatalogSelection(frozenset(), "empty_catalog_selection_v1", tuple())
+
+    has_source_hash = (
+        "source_sha256" in selected.columns
+        and selected["source_sha256"].notna().all()
+        and selected["source_sha256"].astype(str).str.len().eq(64).all()
+    )
+    if has_source_hash:
+        basis = "source_sha256_v1"
+        entries = tuple(
+            (str(row["pair"]), str(row["source_sha256"]))
+            for _, row in selected.iterrows()
+        )
+    else:
+        basis = "catalog_metadata_fallback_v1"
+        entries = tuple(
+            (str(row["pair"]), _row_metadata_fingerprint(row))
+            for _, row in selected.iterrows()
+        )
+    return CatalogSelection(
+        pairs=frozenset(pair for pair, _ in entries),
+        fingerprint_basis=basis,
+        entries=entries,
+    )
+
+
+def fingerprint_market_files(market_files: list[MarketFile]) -> str:
+    payload = "\n".join(
+        f"{item.pair}|{item.path.name}|{item.path.stat().st_size}"
+        for item in sorted(market_files, key=lambda value: value.pair)
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def load_ready_pairs_from_catalog(catalog_path: Path, timeframe: str) -> set[str]:
+    return set(_ready_rows(catalog_path, timeframe)["pair"].astype(str))
