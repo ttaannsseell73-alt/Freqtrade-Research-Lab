@@ -150,6 +150,7 @@ def analyze_pair(
     lows = data["low"].to_numpy(dtype=float)
     closes = data["close"].to_numpy(dtype=float)
     dates = data["date"]
+    signal_periods = _period_labels(dates, train_end, validation_end)
     entry_dates = dates.shift(-1)
     entry_periods = _period_labels(entry_dates, train_end, validation_end)
     cost_rate = config.round_trip_cost_bps / 10_000.0
@@ -166,7 +167,8 @@ def analyze_pair(
             valid = mask.to_numpy() & np.isfinite(entry) & np.isfinite(exit_price)
             valid &= np.isfinite(max_high) & np.isfinite(min_low)
             valid &= entry_dates.notna().to_numpy() & exit_dates.notna().to_numpy()
-            valid &= entry_periods == exit_periods
+            valid &= signal_periods == entry_periods
+            valid &= signal_periods == exit_periods
             if not valid.any():
                 continue
 
@@ -182,7 +184,7 @@ def analyze_pair(
             events = pd.DataFrame(
                 {
                     "direction": direction,
-                    "period": entry_periods[valid],
+                    "period": signal_periods[valid],
                     "net_return": net_return,
                     "mfe": mfe,
                     "mae": mae,
@@ -224,50 +226,76 @@ def build_candidate_tables(
         "mean_mfe",
         "mean_mae",
     ]
-    wide = summary.pivot(index=keys, columns="period", values=metric_columns)
-    wide.columns = [f"{metric}_{period}" for metric, period in wide.columns]
-    wide = wide.reset_index()
+
+    discovery_summary = summary.loc[summary["period"].isin(["train", "validation"])].copy()
+    discovery_wide = discovery_summary.pivot(
+        index=keys, columns="period", values=metric_columns
+    )
+    discovery_wide.columns = [
+        f"{metric}_{period}" for metric, period in discovery_wide.columns
+    ]
+    discovery_wide = discovery_wide.reset_index()
 
     required = [
         "events_train",
         "events_validation",
-        "events_holdout",
         "mean_net_return_train",
         "mean_net_return_validation",
-        "mean_net_return_holdout",
         "p_value_validation",
     ]
     for column in required:
-        if column not in wide:
-            wide[column] = np.nan
+        if column not in discovery_wide:
+            discovery_wide[column] = np.nan
 
-    wide["validation_q_value"] = 1.0
-    for (_, _), indexes in wide.groupby(["direction", "horizon_minutes"]).groups.items():
+    discovery_wide["validation_q_value"] = 1.0
+    for (_, _), indexes in discovery_wide.groupby(
+        ["direction", "horizon_minutes"]
+    ).groups.items():
         index_list = list(indexes)
-        wide.loc[index_list, "validation_q_value"] = benjamini_hochberg(
-            wide.loc[index_list, "p_value_validation"].fillna(1.0)
+        discovery_wide.loc[index_list, "validation_q_value"] = benjamini_hochberg(
+            discovery_wide.loc[index_list, "p_value_validation"].fillna(1.0)
         )
 
-    wide["discovery_pass"] = (
-        (wide["events_train"] >= config.minimum_train_events)
-        & (wide["events_validation"] >= config.minimum_validation_events)
-        & (wide["mean_net_return_train"] > 0)
-        & (wide["mean_net_return_validation"] > 0)
-        & (wide["validation_q_value"] <= config.validation_fdr)
+    discovery_wide["discovery_pass"] = (
+        (discovery_wide["events_train"] >= config.minimum_train_events)
+        & (discovery_wide["events_validation"] >= config.minimum_validation_events)
+        & (discovery_wide["mean_net_return_train"] > 0)
+        & (discovery_wide["mean_net_return_validation"] > 0)
+        & (discovery_wide["validation_q_value"] <= config.validation_fdr)
     )
-    wide["holdout_pass"] = (
-        wide["discovery_pass"]
-        & (wide["events_holdout"] >= config.minimum_holdout_events)
-        & (wide["mean_net_return_holdout"] > 0)
-    )
-    wide["discovery_score"] = np.minimum(
-        wide["mean_net_return_train"], wide["mean_net_return_validation"]
+    discovery_wide["discovery_score"] = np.minimum(
+        discovery_wide["mean_net_return_train"],
+        discovery_wide["mean_net_return_validation"],
     )
 
-    candidates = wide.loc[wide["discovery_pass"]].sort_values(
+    candidates = discovery_wide.loc[discovery_wide["discovery_pass"]].sort_values(
         ["discovery_score", "validation_q_value"], ascending=[False, True]
     )
-    holdout = candidates.sort_values(
+    candidates = candidates.reset_index(drop=True)
+
+    if candidates.empty:
+        return candidates, pd.DataFrame()
+
+    holdout_summary = summary.loc[summary["period"] == "holdout"].copy()
+    holdout_wide = holdout_summary.pivot(
+        index=keys, columns="period", values=metric_columns
+    )
+    holdout_wide.columns = [
+        f"{metric}_{period}" for metric, period in holdout_wide.columns
+    ]
+    holdout_wide = holdout_wide.reset_index()
+
+    holdout = candidates.merge(holdout_wide, on=keys, how="left")
+    if "events_holdout" not in holdout:
+        holdout["events_holdout"] = np.nan
+    if "mean_net_return_holdout" not in holdout:
+        holdout["mean_net_return_holdout"] = np.nan
+
+    holdout["holdout_pass"] = (
+        (holdout["events_holdout"] >= config.minimum_holdout_events)
+        & (holdout["mean_net_return_holdout"] > 0)
+    )
+    holdout = holdout.sort_values(
         ["holdout_pass", "mean_net_return_holdout"], ascending=[False, False]
     )
-    return candidates.reset_index(drop=True), holdout.reset_index(drop=True)
+    return candidates, holdout.reset_index(drop=True)
