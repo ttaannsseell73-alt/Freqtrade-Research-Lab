@@ -133,15 +133,23 @@ independent discovery first, and execution backtests follow on frozen batches.
 ## Multi-system discovery comparison
 
 Each signal/timeframe experiment is run independently first. The full
-`discovery_tests.csv` preserves all tested hypotheses before candidate filtering;
-this is the canonical input for later cross-system multiplicity control. Candidate
-tables remain convenient per-experiment outputs.
+`discovery_tests.csv` preserves all tested hypotheses before candidate filtering.
+Those full tables—not prefiltered candidate files—are the canonical inputs to
+`scripts/compare_discovery.py`. The comparison recomputes Benjamini-Hochberg
+across every hypothesis from every supplied system/timeframe, producing
+`global_validation_q_value` and `global_discovery_pass`.
 
 This comparison stage is deliberately **train + validation only**. If any input
 contains a column with `holdout` in its name, the comparison fails closed.
-Holdout remains untouched until the system/candidate set is frozen. This is the
-basis for comparing one universal system, different systems per coin, or later
-hybrid systems without using holdout as an optimizer.
+Each row also carries its experiment's minimum train/validation event thresholds,
+so global selection cannot silently loosen a stricter experiment. Holdout remains
+untouched until the global candidate set is frozen. This is the basis for
+comparing one universal system, different systems per coin, or later hybrid
+systems without using holdout as an optimizer.
+
+Cross-system outputs are `combined_discovery_tests.csv`,
+`global_candidates_train_validation.csv`, `system_coverage.csv`, and
+`comparison_manifest.json`.
 
 
 ### Timeframe-safe horizon semantics
