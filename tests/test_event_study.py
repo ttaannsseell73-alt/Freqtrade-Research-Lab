@@ -7,6 +7,7 @@ import pandas as pd
 from freqtrade_research_lab.event_study import (
     EventStudyConfig,
     _directional_performance,
+    _forward_contiguous,
     _forward_extreme,
     analyze_pair,
     benjamini_hochberg,
@@ -15,12 +16,12 @@ from freqtrade_research_lab.event_study import (
 )
 
 
-def synthetic_frame(rows: int = 600) -> pd.DataFrame:
+def synthetic_frame(rows: int = 600, freq: str = "min") -> pd.DataFrame:
     index = np.arange(rows)
     close = 100 + 0.02 * index + 2.5 * np.sin(index / 8)
     return pd.DataFrame(
         {
-            "date": pd.date_range("2026-01-01", periods=rows, freq="min", tz="UTC"),
+            "date": pd.date_range("2026-01-01", periods=rows, freq=freq, tz="UTC"),
             "open": close - 0.01,
             "high": close + 0.10,
             "low": close - 0.10,
@@ -31,7 +32,7 @@ def synthetic_frame(rows: int = 600) -> pd.DataFrame:
 
 
 def test_event_study_outputs_both_directions_and_all_horizons() -> None:
-    frame = synthetic_frame()
+    frame = synthetic_frame(freq="15min")
     train_end = frame["date"].iloc[360]
     validation_end = frame["date"].iloc[480]
     config = EventStudyConfig(horizons_bars=(1, 5), round_trip_cost_bps=0)
@@ -208,3 +209,25 @@ def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
     reread = pd.read_csv(StringIO(csv_text))
     assert reread.empty
     assert "holdout_pass" in reread.columns
+
+
+
+def test_forward_contiguous_rejects_windows_crossing_missing_candle() -> None:
+    dates = pd.Series(
+        pd.to_datetime(
+            [
+                "2026-01-01 00:00:00+00:00",
+                "2026-01-01 00:01:00+00:00",
+                "2026-01-01 00:02:00+00:00",
+                "2026-01-01 00:04:00+00:00",
+                "2026-01-01 00:05:00+00:00",
+            ],
+            utc=True,
+        )
+    )
+
+    one_bar = _forward_contiguous(dates, horizon_bars=1, bar_minutes=1)
+    two_bars = _forward_contiguous(dates, horizon_bars=2, bar_minutes=1)
+
+    assert one_bar.tolist() == [True, True, False, True, False]
+    assert two_bars.tolist() == [True, False, False, False, False]

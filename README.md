@@ -27,6 +27,7 @@ added.
 - Signal is calculated on a closed candle.
 - Entry is the next candle's open (no same-candle fill or lookahead).
 - Events whose signal/entry/exit cross a train/validation/holdout boundary are dropped.
+- Events whose forward window crosses a missing candle/gap are also dropped; bar horizons must be truly contiguous.
 - Long and short are measured separately.
 - Forward horizons: 1, 3, 5, 10, 20, and 60 **bars**. On 1m these equal minutes; on 15m/4h the output also records the true `holding_minutes`.
 - Metrics include net return, win rate, profit factor, MAE, and MFE.
