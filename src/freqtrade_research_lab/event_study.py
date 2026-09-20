@@ -274,7 +274,11 @@ def build_candidate_tables(
     candidates = candidates.reset_index(drop=True)
 
     if candidates.empty:
-        return candidates, pd.DataFrame()
+        holdout = candidates.copy()
+        for metric in metric_columns:
+            holdout[f"{metric}_holdout"] = pd.Series(dtype=float)
+        holdout["holdout_pass"] = pd.Series(dtype=bool)
+        return candidates, holdout
 
     holdout_summary = summary.loc[summary["period"] == "holdout"].copy()
     holdout_wide = holdout_summary.pivot(
