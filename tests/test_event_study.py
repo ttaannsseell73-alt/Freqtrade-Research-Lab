@@ -12,6 +12,7 @@ from freqtrade_research_lab.event_study import (
     analyze_pair,
     benjamini_hochberg,
     build_candidate_tables,
+    build_discovery_table,
     split_boundaries,
 )
 
@@ -231,3 +232,40 @@ def test_forward_contiguous_rejects_windows_crossing_missing_candle() -> None:
 
     assert one_bar.tolist() == [True, True, False, True, False]
     assert two_bars.tolist() == [True, False, False, False, False]
+
+
+
+def test_validation_fdr_covers_entire_experiment_family() -> None:
+    rows = []
+    for pair, direction, horizon, validation_p in (
+        ("A/USDT:USDT", "long", 5, 0.04),
+        ("B/USDT:USDT", "short", 10, 0.20),
+    ):
+        for period, p_value in (("train", 0.50), ("validation", validation_p)):
+            rows.append(
+                {
+                    "pair": pair,
+                    "direction": direction,
+                    "period": period,
+                    "horizon_bars": horizon,
+                    "holding_minutes": horizon,
+                    "events": 200 if period == "train" else 50,
+                    "mean_net_return": 0.01,
+                    "win_rate": 0.55,
+                    "p_value": p_value,
+                    "profit_factor": 1.2,
+                    "mean_mfe": 0.01,
+                    "mean_mae": -0.01,
+                }
+            )
+
+    discovery = build_discovery_table(
+        pd.DataFrame(rows),
+        EventStudyConfig(validation_fdr=0.05),
+    )
+
+    first = discovery.loc[discovery["pair"] == "A/USDT:USDT"].iloc[0]
+    assert abs(first["validation_q_value"] - 0.08) < 1e-12
+    assert first["fdr_family_size"] == 2
+    assert first["fdr_scope"] == "experiment_all_pair_direction_horizon"
+    assert not bool(first["discovery_pass"])

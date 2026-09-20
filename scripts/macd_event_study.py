@@ -25,6 +25,7 @@ from freqtrade_research_lab.event_study import (  # noqa: E402
     EventStudyConfig,
     analyze_pair,
     build_candidate_tables,
+    build_discovery_table,
     split_boundaries,
 )
 from freqtrade_research_lab.experiment import ExperimentSpec, tag_result_frame  # noqa: E402
@@ -141,12 +142,15 @@ def main() -> int:
             print(f"Processed {index}/{len(market_files)} pairs in {elapsed:.1f}s", flush=True)
 
     summary = pd.concat(summaries, ignore_index=True) if summaries else pd.DataFrame()
+    discovery_tests = build_discovery_table(summary, config)
     candidates, holdout = build_candidate_tables(summary, config)
     discovery_summary = summary.loc[summary["period"].isin(["train", "validation"])].copy()
     discovery_summary = tag_result_frame(discovery_summary, experiment)
+    discovery_tests = tag_result_frame(discovery_tests, experiment)
     candidates = tag_result_frame(candidates, experiment)
     holdout = tag_result_frame(holdout, experiment)
     discovery_summary.to_csv(args.output_dir / "summary_discovery.csv", index=False)
+    discovery_tests.to_csv(args.output_dir / "discovery_tests.csv", index=False)
     candidates.to_csv(args.output_dir / "candidates_train_validation.csv", index=False)
     holdout.to_csv(args.output_dir / "holdout_report.csv", index=False)
     pd.DataFrame(coverage).to_csv(args.output_dir / "dataset_coverage.csv", index=False)
@@ -163,6 +167,7 @@ def main() -> int:
         "bar_minutes": bar_minutes,
         "horizons_bars": list(config.horizons_bars),
         "holding_minutes": [bar_minutes * value for value in config.horizons_bars],
+        "hypotheses_tested": int(len(discovery_tests)),
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
         "candidate_rows": int(len(candidates)),
@@ -191,6 +196,7 @@ def main() -> int:
         "timeframe": args.timeframe,
         "bar_minutes": bar_minutes,
         "horizon_semantics": "bars",
+        "fdr_scope": "experiment_all_pair_direction_horizon",
         "catalog": str(args.catalog) if args.catalog is not None else None,
         "pairs_before_catalog_gate": pairs_before_catalog,
         "pairs_discovered": len(market_files),
