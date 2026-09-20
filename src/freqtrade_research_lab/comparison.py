@@ -28,6 +28,8 @@ REQUIRED_DISCOVERY_COLUMNS = [
     "non_overlapping_events_validation",
     "mean_net_return_train",
     "mean_net_return_validation",
+    "test_mean_net_return_train",
+    "test_mean_net_return_validation",
     "p_value_validation",
     "minimum_train_events",
     "minimum_validation_events",
@@ -87,20 +89,25 @@ def apply_global_fdr(
         raise ValueError("global_fdr must be in (0, 1]")
 
     result = combined.copy()
-    result["global_validation_q_value"] = benjamini_hochberg(
-        result["p_value_validation"].fillna(1.0)
-    )
-    result["global_fdr_family_size"] = int(len(result))
-    result["global_fdr_threshold"] = float(global_fdr)
-    result["global_fdr_scope"] = "all_experiments_pair_direction_horizon"
-    result["global_discovery_pass"] = (
+    train_eligible = (
         (result["non_overlapping_events_train"] >= result["minimum_train_events"])
+        & (result["test_mean_net_return_train"] > 0)
+    )
+    result["global_validation_q_value"] = float("nan")
+    if train_eligible.any():
+        result.loc[train_eligible, "global_validation_q_value"] = benjamini_hochberg(
+            result.loc[train_eligible, "p_value_validation"].fillna(1.0)
+        )
+    result["global_fdr_family_size"] = int(train_eligible.sum())
+    result["global_fdr_threshold"] = float(global_fdr)
+    result["global_fdr_scope"] = "all_experiments_train_screened_validation_family"
+    result["global_discovery_pass"] = (
+        train_eligible
         & (
             result["non_overlapping_events_validation"]
             >= result["minimum_validation_events"]
         )
-        & (result["mean_net_return_train"] > 0)
-        & (result["mean_net_return_validation"] > 0)
+        & (result["test_mean_net_return_validation"] > 0)
         & (result["global_validation_q_value"] <= global_fdr)
     )
     return result
