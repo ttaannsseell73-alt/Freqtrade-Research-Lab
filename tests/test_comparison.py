@@ -31,6 +31,8 @@ def hypothesis(
         "holding_minutes": horizon * bar_minutes,
         "events_train": 200,
         "events_validation": 50,
+        "non_overlapping_events_train": 120,
+        "non_overlapping_events_validation": 40,
         "mean_net_return_train": 0.01,
         "mean_net_return_validation": 0.005,
         "p_value_validation": validation_p,
@@ -150,7 +152,7 @@ def test_global_discovery_uses_each_experiments_event_thresholds() -> None:
         pair="A/USDT:USDT",
         validation_p=0.001,
     )
-    row["minimum_validation_events"] = 60
+    row["minimum_validation_events"] = 45
     corrected = apply_global_fdr(pd.DataFrame([row]), global_fdr=0.10)
     assert not bool(corrected["global_discovery_pass"].iloc[0])
 

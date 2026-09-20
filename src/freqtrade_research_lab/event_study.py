@@ -121,6 +121,24 @@ def _normal_p_value(t_stat: float) -> float:
     return erfc(abs(t_stat) / sqrt(2.0))
 
 
+def _non_overlapping_returns(
+    group: pd.DataFrame,
+    holding_minutes: int,
+) -> np.ndarray:
+    if holding_minutes <= 0:
+        raise ValueError("holding_minutes must be positive")
+    ordered = group.sort_values("signal_date")
+    holding = pd.Timedelta(minutes=holding_minutes)
+    blocked_until: pd.Timestamp | None = None
+    selected: list[float] = []
+    for row in ordered.itertuples(index=False):
+        signal_date = pd.Timestamp(row.signal_date)
+        if blocked_until is None or signal_date >= blocked_until:
+            selected.append(float(row.net_return))
+            blocked_until = signal_date + holding
+    return np.asarray(selected, dtype=float)
+
+
 def _summarize_events(
     events: pd.DataFrame,
     pair: str,
@@ -134,7 +152,18 @@ def _summarize_events(
         count = int(returns.size)
         mean = float(np.mean(returns)) if count else np.nan
         std = float(np.std(returns, ddof=1)) if count > 1 else np.nan
-        t_stat = mean / (std / sqrt(count)) if count > 1 and std > 0 else np.nan
+
+        test_returns = _non_overlapping_returns(group, holding_minutes)
+        test_count = int(test_returns.size)
+        test_mean = float(np.mean(test_returns)) if test_count else np.nan
+        test_std = (
+            float(np.std(test_returns, ddof=1)) if test_count > 1 else np.nan
+        )
+        t_stat = (
+            test_mean / (test_std / sqrt(test_count))
+            if test_count > 1 and test_std > 0
+            else np.nan
+        )
         gross_wins = returns[returns > 0].sum()
         gross_losses = -returns[returns < 0].sum()
         profit_factor = float(gross_wins / gross_losses) if gross_losses > 0 else np.inf
@@ -146,12 +175,16 @@ def _summarize_events(
                 "horizon_bars": horizon_bars,
                 "holding_minutes": holding_minutes,
                 "events": count,
+                "non_overlapping_events": test_count,
                 "mean_net_return": mean,
+                "test_mean_net_return": test_mean,
                 "median_net_return": float(np.median(returns)) if count else np.nan,
                 "win_rate": float(np.mean(returns > 0)) if count else np.nan,
                 "std_net_return": std,
+                "test_std_net_return": test_std,
                 "t_stat": t_stat,
                 "p_value": _normal_p_value(t_stat),
+                "p_value_method": "normal_t_non_overlapping_events",
                 "profit_factor": profit_factor,
                 "mean_mfe": float(group["mfe"].mean()),
                 "mean_mae": float(group["mae"].mean()),
@@ -219,6 +252,7 @@ def analyze_signals(
                 {
                     "direction": direction,
                     "period": signal_periods[valid],
+                    "signal_date": dates[valid].to_numpy(),
                     "net_return": net_return,
                     "mfe": mfe,
                     "mae": mae,
@@ -281,12 +315,15 @@ def build_discovery_table(
     keys = ["pair", "direction", "horizon_bars", "holding_minutes"]
     metric_columns = [
         "events",
+        "non_overlapping_events",
         "mean_net_return",
+        "test_mean_net_return",
         "win_rate",
         "p_value",
         "profit_factor",
         "mean_mfe",
         "mean_mae",
+        "test_std_net_return",
     ]
 
     discovery_summary = summary.loc[
@@ -303,6 +340,8 @@ def build_discovery_table(
     required = [
         "events_train",
         "events_validation",
+        "non_overlapping_events_train",
+        "non_overlapping_events_validation",
         "mean_net_return_train",
         "mean_net_return_validation",
         "p_value_validation",
@@ -321,8 +360,11 @@ def build_discovery_table(
     discovery_wide["experiment_validation_fdr"] = config.validation_fdr
 
     discovery_wide["discovery_pass"] = (
-        (discovery_wide["events_train"] >= config.minimum_train_events)
-        & (discovery_wide["events_validation"] >= config.minimum_validation_events)
+        (discovery_wide["non_overlapping_events_train"] >= config.minimum_train_events)
+        & (
+            discovery_wide["non_overlapping_events_validation"]
+            >= config.minimum_validation_events
+        )
         & (discovery_wide["mean_net_return_train"] > 0)
         & (discovery_wide["mean_net_return_validation"] > 0)
         & (discovery_wide["validation_q_value"] <= config.validation_fdr)
@@ -343,12 +385,15 @@ def build_candidate_tables(
     keys = ["pair", "direction", "horizon_bars", "holding_minutes"]
     metric_columns = [
         "events",
+        "non_overlapping_events",
         "mean_net_return",
+        "test_mean_net_return",
         "win_rate",
         "p_value",
         "profit_factor",
         "mean_mfe",
         "mean_mae",
+        "test_std_net_return",
     ]
 
     discovery_wide = build_discovery_table(summary, config)
@@ -376,11 +421,16 @@ def build_candidate_tables(
     holdout = candidates.merge(holdout_wide, on=keys, how="left")
     if "events_holdout" not in holdout:
         holdout["events_holdout"] = np.nan
+    if "non_overlapping_events_holdout" not in holdout:
+        holdout["non_overlapping_events_holdout"] = np.nan
     if "mean_net_return_holdout" not in holdout:
         holdout["mean_net_return_holdout"] = np.nan
 
     holdout["holdout_pass"] = (
-        (holdout["events_holdout"] >= config.minimum_holdout_events)
+        (
+            holdout["non_overlapping_events_holdout"]
+            >= config.minimum_holdout_events
+        )
         & (holdout["mean_net_return_holdout"] > 0)
     )
     holdout = holdout.sort_values(

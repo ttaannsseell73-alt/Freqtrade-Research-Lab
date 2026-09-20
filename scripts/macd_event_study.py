@@ -205,7 +205,7 @@ def main() -> int:
     )
 
     result_summary = {
-        "schema_version": 3,
+        "schema_version": 4,
         "study": "macd_crossover_event_study",
         "experiment_id": experiment.experiment_id(),
         "system_id": experiment.system_id,
@@ -247,6 +247,8 @@ def main() -> int:
         "bar_minutes": bar_minutes,
         "horizon_semantics": "bars",
         "fdr_scope": "experiment_all_pair_direction_horizon",
+        "significance_method": "normal_t_non_overlapping_events",
+        "event_count_threshold_basis": "non_overlapping_events",
         "catalog": str(args.catalog) if args.catalog is not None else None,
         "pairs_before_catalog_gate": pairs_before_catalog,
         "pairs_discovered": len(market_files),
