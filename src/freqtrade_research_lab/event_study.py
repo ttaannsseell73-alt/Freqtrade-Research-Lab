@@ -66,6 +66,24 @@ def _forward_extreme(values: np.ndarray, horizon_bars: int, reducer: str) -> np.
     return reduced.shift(-(horizon_bars - 1)).to_numpy()
 
 
+def _forward_contiguous(
+    dates: pd.Series,
+    horizon_bars: int,
+    bar_minutes: int,
+) -> np.ndarray:
+    if horizon_bars <= 0:
+        raise ValueError("horizon_bars must be positive")
+    if bar_minutes <= 0:
+        raise ValueError("bar_minutes must be positive")
+
+    interval = pd.Timedelta(minutes=bar_minutes)
+    edge_ok = dates.diff().eq(interval).astype(float)
+    future_edges = edge_ok.shift(-1)
+    rolling = future_edges.rolling(horizon_bars, min_periods=horizon_bars).min()
+    forward = rolling.shift(-(horizon_bars - 1))
+    return forward.fillna(0.0).astype(bool).to_numpy()
+
+
 def _directional_performance(
     entry: np.ndarray,
     exit_price: np.ndarray,
@@ -174,10 +192,12 @@ def analyze_pair(
         exit_periods = _period_labels(exit_dates, train_end, validation_end)
         max_high = _forward_extreme(highs, horizon_bars, "max")
         min_low = _forward_extreme(lows, horizon_bars, "min")
+        contiguous = _forward_contiguous(dates, horizon_bars, bar_minutes)
 
         for direction, mask in (("long", long_signal), ("short", short_signal)):
             valid = mask.to_numpy() & np.isfinite(entry) & np.isfinite(exit_price)
             valid &= np.isfinite(max_high) & np.isfinite(min_low)
+            valid &= contiguous
             valid &= entry_dates.notna().to_numpy() & exit_dates.notna().to_numpy()
             valid &= signal_periods == entry_periods
             valid &= signal_periods == exit_periods
