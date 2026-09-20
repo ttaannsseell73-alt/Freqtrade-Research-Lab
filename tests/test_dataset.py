@@ -5,6 +5,7 @@ import pandas as pd
 from freqtrade_research_lab.dataset import (
     assess_market_file,
     discover_market_files,
+    load_ready_pairs_from_catalog,
     parse_market_file,
     timeframe_delta,
 )
@@ -62,3 +63,17 @@ def test_assess_market_file_marks_complete_data_ready(tmp_path: Path) -> None:
     assert result["coverage_ratio"] == 1.0
     assert result["gap_count"] == 0
     assert result["status"] == "ready"
+
+
+def test_load_ready_pairs_from_catalog_filters_timeframe_and_readiness(tmp_path: Path) -> None:
+    path = tmp_path / "dataset_catalog.csv"
+    pd.DataFrame(
+        [
+            {"pair": "BTC/USDT:USDT", "timeframe": "1m", "research_ready": True},
+            {"pair": "ETH/USDT:USDT", "timeframe": "1m", "research_ready": False},
+            {"pair": "BTC/USDT:USDT", "timeframe": "15m", "research_ready": True},
+        ]
+    ).to_csv(path, index=False)
+
+    ready = load_ready_pairs_from_catalog(path, "1m")
+    assert ready == {"BTC/USDT:USDT"}
