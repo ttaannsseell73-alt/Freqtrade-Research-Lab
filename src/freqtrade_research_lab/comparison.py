@@ -24,6 +24,8 @@ REQUIRED_DISCOVERY_COLUMNS = [
     *DISCOVERY_KEY_COLUMNS,
     "events_train",
     "events_validation",
+    "non_overlapping_events_train",
+    "non_overlapping_events_validation",
     "mean_net_return_train",
     "mean_net_return_validation",
     "p_value_validation",
@@ -92,8 +94,11 @@ def apply_global_fdr(
     result["global_fdr_threshold"] = float(global_fdr)
     result["global_fdr_scope"] = "all_experiments_pair_direction_horizon"
     result["global_discovery_pass"] = (
-        (result["events_train"] >= result["minimum_train_events"])
-        & (result["events_validation"] >= result["minimum_validation_events"])
+        (result["non_overlapping_events_train"] >= result["minimum_train_events"])
+        & (
+            result["non_overlapping_events_validation"]
+            >= result["minimum_validation_events"]
+        )
         & (result["mean_net_return_train"] > 0)
         & (result["mean_net_return_validation"] > 0)
         & (result["global_validation_q_value"] <= global_fdr)
