@@ -91,8 +91,20 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
   --end 2026-09-20 `
   --timeframe 1m `
   --horizon-bars 1 3 5 10 20 60 `
-  --cost-bps 14
+  --cost-bps 14 `
+  --min-train-events 100 `
+  --min-validation-events 30 `
+  --min-holdout-events 30 `
+  --validation-fdr 0.10
 ```
+
+The event-count thresholds and FDR level are explicit CLI parameters and are
+included in the experiment fingerprint/manifest. This is important on slower
+timeframes such as 4h: changing a threshold creates a different experiment
+instead of silently changing selection behavior.
+
+The output directory must be new or empty. A non-empty directory causes a
+fail-closed stop so an earlier research run cannot be overwritten.
 
 Outputs:
 

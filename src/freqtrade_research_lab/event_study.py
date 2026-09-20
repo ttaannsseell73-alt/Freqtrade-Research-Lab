@@ -32,6 +32,14 @@ class EventStudyConfig:
             raise ValueError("horizons_bars must contain positive integers")
         if self.round_trip_cost_bps < 0:
             raise ValueError("round_trip_cost_bps cannot be negative")
+        if self.minimum_train_events <= 0:
+            raise ValueError("minimum_train_events must be positive")
+        if self.minimum_validation_events <= 0:
+            raise ValueError("minimum_validation_events must be positive")
+        if self.minimum_holdout_events <= 0:
+            raise ValueError("minimum_holdout_events must be positive")
+        if not 0 < self.validation_fdr <= 1:
+            raise ValueError("validation_fdr must be in (0, 1]")
 
 
 def split_boundaries(start: datetime, end: datetime) -> tuple[pd.Timestamp, pd.Timestamp]:
