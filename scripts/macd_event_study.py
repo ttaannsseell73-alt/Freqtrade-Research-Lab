@@ -19,6 +19,7 @@ from freqtrade_research_lab.dataset import (  # noqa: E402
     discover_market_files,
     load_ohlcv,
     load_ready_pairs_from_catalog,
+    timeframe_delta,
 )
 from freqtrade_research_lab.event_study import (  # noqa: E402
     EventStudyConfig,
@@ -44,6 +45,13 @@ def parse_args() -> argparse.Namespace:
         help="Optional dataset_catalog.csv; when provided only research_ready pairs are scanned.",
     )
     parser.add_argument("--cost-bps", type=float, default=14.0)
+    parser.add_argument(
+        "--horizon-bars",
+        type=int,
+        nargs="+",
+        default=[1, 3, 5, 10, 20, 60],
+        help="Forward holding horizons in candles/bars, not minutes.",
+    )
     parser.add_argument("--max-files", type=int)
     return parser.parse_args()
 
@@ -61,14 +69,18 @@ def main() -> int:
     start = pd.Timestamp(args.start, tz="UTC")
     end = pd.Timestamp(args.end, tz="UTC")
     train_end, validation_end = split_boundaries(start.to_pydatetime(), end.to_pydatetime())
-    config = EventStudyConfig(round_trip_cost_bps=args.cost_bps)
+    bar_minutes = int(timeframe_delta(args.timeframe).total_seconds() // 60)
+    config = EventStudyConfig(
+        round_trip_cost_bps=args.cost_bps,
+        horizons_bars=tuple(args.horizon_bars),
+    )
     experiment = ExperimentSpec(
         system_id="macd_crossover",
         system_version="1",
         timeframe=args.timeframe,
         parameters=asdict(config),
         cost_bps=args.cost_bps,
-        horizons=config.horizons,
+        horizons_bars=config.horizons_bars,
     )
     market_files = discover_market_files(args.data_dir, args.timeframe)
     pairs_before_catalog = len(market_files)
@@ -111,7 +123,16 @@ def main() -> int:
                     "size_bytes": item.path.stat().st_size,
                 }
             )
-            summaries.append(analyze_pair(frame, item.pair, config, train_end, validation_end))
+            summaries.append(
+                analyze_pair(
+                    frame,
+                    item.pair,
+                    config,
+                    train_end,
+                    validation_end,
+                    bar_minutes=bar_minutes,
+                )
+            )
         except Exception as exc:  # One bad/newly-listed pair must not abort the universe run.
             errors.append({"pair": item.pair, "file": item.path.name, "error": str(exc)})
 
@@ -139,6 +160,9 @@ def main() -> int:
         "experiment_id": experiment.experiment_id(),
         "system_id": experiment.system_id,
         "timeframe": args.timeframe,
+        "bar_minutes": bar_minutes,
+        "horizons_bars": list(config.horizons_bars),
+        "holding_minutes": [bar_minutes * value for value in config.horizons_bars],
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
         "candidate_rows": int(len(candidates)),
@@ -165,6 +189,8 @@ def main() -> int:
         "train_end": train_end.isoformat(),
         "validation_end": validation_end.isoformat(),
         "timeframe": args.timeframe,
+        "bar_minutes": bar_minutes,
+        "horizon_semantics": "bars",
         "catalog": str(args.catalog) if args.catalog is not None else None,
         "pairs_before_catalog_gate": pairs_before_catalog,
         "pairs_discovered": len(market_files),
