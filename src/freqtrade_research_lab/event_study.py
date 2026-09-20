@@ -244,11 +244,11 @@ def benjamini_hochberg(p_values: Iterable[float]) -> np.ndarray:
     return result
 
 
-def build_candidate_tables(
+def build_discovery_table(
     summary: pd.DataFrame, config: EventStudyConfig
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> pd.DataFrame:
     if summary.empty:
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
 
     keys = ["pair", "direction", "horizon_bars", "holding_minutes"]
     metric_columns = [
@@ -261,7 +261,9 @@ def build_candidate_tables(
         "mean_mae",
     ]
 
-    discovery_summary = summary.loc[summary["period"].isin(["train", "validation"])].copy()
+    discovery_summary = summary.loc[
+        summary["period"].isin(["train", "validation"])
+    ].copy()
     discovery_wide = discovery_summary.pivot(
         index=keys, columns="period", values=metric_columns
     )
@@ -281,14 +283,11 @@ def build_candidate_tables(
         if column not in discovery_wide:
             discovery_wide[column] = np.nan
 
-    discovery_wide["validation_q_value"] = 1.0
-    for (_, _), indexes in discovery_wide.groupby(
-        ["direction", "horizon_bars"]
-    ).groups.items():
-        index_list = list(indexes)
-        discovery_wide.loc[index_list, "validation_q_value"] = benjamini_hochberg(
-            discovery_wide.loc[index_list, "p_value_validation"].fillna(1.0)
-        )
+    discovery_wide["validation_q_value"] = benjamini_hochberg(
+        discovery_wide["p_value_validation"].fillna(1.0)
+    )
+    discovery_wide["fdr_family_size"] = int(len(discovery_wide))
+    discovery_wide["fdr_scope"] = "experiment_all_pair_direction_horizon"
 
     discovery_wide["discovery_pass"] = (
         (discovery_wide["events_train"] >= config.minimum_train_events)
@@ -301,7 +300,27 @@ def build_candidate_tables(
         discovery_wide["mean_net_return_train"],
         discovery_wide["mean_net_return_validation"],
     )
+    return discovery_wide
 
+
+def build_candidate_tables(
+    summary: pd.DataFrame, config: EventStudyConfig
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if summary.empty:
+        return pd.DataFrame(), pd.DataFrame()
+
+    keys = ["pair", "direction", "horizon_bars", "holding_minutes"]
+    metric_columns = [
+        "events",
+        "mean_net_return",
+        "win_rate",
+        "p_value",
+        "profit_factor",
+        "mean_mfe",
+        "mean_mae",
+    ]
+
+    discovery_wide = build_discovery_table(summary, config)
     candidates = discovery_wide.loc[discovery_wide["discovery_pass"]].sort_values(
         ["discovery_score", "validation_q_value"], ascending=[False, True]
     )
