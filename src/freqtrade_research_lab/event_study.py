@@ -14,7 +14,7 @@ class EventStudyConfig:
     fast_period: int = 12
     slow_period: int = 26
     signal_period: int = 9
-    horizons: tuple[int, ...] = (1, 3, 5, 10, 20, 60)
+    horizons_bars: tuple[int, ...] = (1, 3, 5, 10, 20, 60)
     round_trip_cost_bps: float = 14.0
     minimum_train_events: int = 100
     minimum_validation_events: int = 30
@@ -26,8 +26,8 @@ class EventStudyConfig:
             raise ValueError("MACD periods must satisfy 0 < fast < slow")
         if self.signal_period <= 0:
             raise ValueError("signal_period must be positive")
-        if not self.horizons or any(horizon <= 0 for horizon in self.horizons):
-            raise ValueError("horizons must contain positive integers")
+        if not self.horizons_bars or any(horizon <= 0 for horizon in self.horizons_bars):
+            raise ValueError("horizons_bars must contain positive integers")
         if self.round_trip_cost_bps < 0:
             raise ValueError("round_trip_cost_bps cannot be negative")
 
@@ -59,11 +59,11 @@ def _period_labels(
     )
 
 
-def _forward_extreme(values: np.ndarray, horizon: int, reducer: str) -> np.ndarray:
+def _forward_extreme(values: np.ndarray, horizon_bars: int, reducer: str) -> np.ndarray:
     future = pd.Series(values, dtype=float).shift(-1)
-    rolling = future.rolling(horizon, min_periods=horizon)
+    rolling = future.rolling(horizon_bars, min_periods=horizon_bars)
     reduced = rolling.max() if reducer == "max" else rolling.min()
-    return reduced.shift(-(horizon - 1)).to_numpy()
+    return reduced.shift(-(horizon_bars - 1)).to_numpy()
 
 
 def _directional_performance(
@@ -93,8 +93,14 @@ def _normal_p_value(t_stat: float) -> float:
     return erfc(abs(t_stat) / sqrt(2.0))
 
 
-def _summarize_events(events: pd.DataFrame, pair: str, horizon: int) -> list[dict[str, object]]:
+def _summarize_events(
+    events: pd.DataFrame,
+    pair: str,
+    horizon_bars: int,
+    bar_minutes: int,
+) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
+    holding_minutes = horizon_bars * bar_minutes
     for (direction, period), group in events.groupby(["direction", "period"], observed=True):
         returns = group["net_return"].to_numpy(dtype=float)
         count = int(returns.size)
@@ -109,7 +115,8 @@ def _summarize_events(events: pd.DataFrame, pair: str, horizon: int) -> list[dic
                 "pair": pair,
                 "direction": str(direction),
                 "period": str(period),
-                "horizon_minutes": horizon,
+                "horizon_bars": horizon_bars,
+                "holding_minutes": holding_minutes,
                 "events": count,
                 "mean_net_return": mean,
                 "median_net_return": float(np.median(returns)) if count else np.nan,
@@ -131,7 +138,12 @@ def analyze_pair(
     config: EventStudyConfig,
     train_end: pd.Timestamp,
     validation_end: pd.Timestamp,
+    *,
+    bar_minutes: int = 1,
 ) -> pd.DataFrame:
+    if bar_minutes <= 0:
+        raise ValueError("bar_minutes must be positive")
+
     data = frame.copy()
     close = data["close"]
     fast = close.ewm(span=config.fast_period, adjust=False, min_periods=config.fast_period).mean()
@@ -156,12 +168,12 @@ def analyze_pair(
     cost_rate = config.round_trip_cost_bps / 10_000.0
     summary_rows: list[dict[str, object]] = []
 
-    for horizon in config.horizons:
-        exit_price = pd.Series(closes).shift(-horizon).to_numpy(dtype=float)
-        exit_dates = dates.shift(-horizon)
+    for horizon_bars in config.horizons_bars:
+        exit_price = pd.Series(closes).shift(-horizon_bars).to_numpy(dtype=float)
+        exit_dates = dates.shift(-horizon_bars)
         exit_periods = _period_labels(exit_dates, train_end, validation_end)
-        max_high = _forward_extreme(highs, horizon, "max")
-        min_low = _forward_extreme(lows, horizon, "min")
+        max_high = _forward_extreme(highs, horizon_bars, "max")
+        min_low = _forward_extreme(lows, horizon_bars, "min")
 
         for direction, mask in (("long", long_signal), ("short", short_signal)):
             valid = mask.to_numpy() & np.isfinite(entry) & np.isfinite(exit_price)
@@ -190,7 +202,9 @@ def analyze_pair(
                     "mae": mae,
                 }
             )
-            summary_rows.extend(_summarize_events(events, pair, horizon))
+            summary_rows.extend(
+                _summarize_events(events, pair, horizon_bars, bar_minutes)
+            )
 
     return pd.DataFrame(summary_rows)
 
@@ -216,7 +230,7 @@ def build_candidate_tables(
     if summary.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    keys = ["pair", "direction", "horizon_minutes"]
+    keys = ["pair", "direction", "horizon_bars", "holding_minutes"]
     metric_columns = [
         "events",
         "mean_net_return",
@@ -249,7 +263,7 @@ def build_candidate_tables(
 
     discovery_wide["validation_q_value"] = 1.0
     for (_, _), indexes in discovery_wide.groupby(
-        ["direction", "horizon_minutes"]
+        ["direction", "horizon_bars"]
     ).groups.items():
         index_list = list(indexes)
         discovery_wide.loc[index_list, "validation_q_value"] = benjamini_hochberg(
