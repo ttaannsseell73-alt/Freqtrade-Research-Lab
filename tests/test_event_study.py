@@ -326,3 +326,17 @@ def test_generic_engine_accepts_non_macd_signal_set() -> None:
 
     assert set(result["direction"]) == {"long"}
     assert int(result["events"].sum()) == 5
+
+
+
+def test_event_study_config_rejects_invalid_selection_thresholds() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="minimum_train_events"):
+        EventStudyConfig(minimum_train_events=0)
+    with pytest.raises(ValueError, match="minimum_validation_events"):
+        EventStudyConfig(minimum_validation_events=0)
+    with pytest.raises(ValueError, match="minimum_holdout_events"):
+        EventStudyConfig(minimum_holdout_events=0)
+    with pytest.raises(ValueError, match="validation_fdr"):
+        EventStudyConfig(validation_fdr=0)
