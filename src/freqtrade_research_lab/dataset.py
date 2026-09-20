@@ -195,3 +195,29 @@ def build_dataset_catalog(
                 )
             )
     return pd.DataFrame(rows)
+
+
+def load_ready_pairs_from_catalog(catalog_path: Path, timeframe: str) -> set[str]:
+    catalog = pd.read_csv(catalog_path)
+    required = {"pair", "timeframe", "research_ready"}
+    missing = required.difference(catalog.columns)
+    if missing:
+        raise ValueError(
+            f"{catalog_path} is missing catalog columns: {', '.join(sorted(missing))}"
+        )
+
+    ready_values = catalog["research_ready"]
+    if ready_values.dtype != bool:
+        ready_values = (
+            ready_values.astype(str).str.strip().str.lower().map(
+                {"true": True, "1": True, "yes": True, "false": False, "0": False, "no": False}
+            )
+        )
+    if ready_values.isna().any():
+        raise ValueError(f"{catalog_path} contains invalid research_ready values")
+
+    selected = catalog.loc[
+        (catalog["timeframe"].astype(str) == timeframe) & ready_values,
+        "pair",
+    ]
+    return set(selected.astype(str))
