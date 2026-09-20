@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from io import StringIO
 
 import numpy as np
 import pandas as pd
@@ -159,3 +160,41 @@ def test_candidate_table_never_exposes_holdout_columns() -> None:
     assert "holdout_pass" not in candidates.columns
     assert "mean_net_return_holdout" in holdout.columns
     assert not bool(holdout["holdout_pass"].iloc[0])
+
+
+
+def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
+    rows = []
+    for period, events, mean_return, p_value in (
+        ("train", 200, -0.010, 0.20),
+        ("validation", 50, -0.005, 0.50),
+        ("holdout", 40, 0.020, 0.10),
+    ):
+        rows.append(
+            {
+                "pair": "TEST/USDT:USDT",
+                "direction": "long",
+                "period": period,
+                "horizon_minutes": 5,
+                "events": events,
+                "mean_net_return": mean_return,
+                "win_rate": 0.45,
+                "p_value": p_value,
+                "profit_factor": 0.8,
+                "mean_mfe": 0.01,
+                "mean_mae": -0.01,
+            }
+        )
+
+    candidates, holdout = build_candidate_tables(
+        pd.DataFrame(rows), EventStudyConfig(validation_fdr=0.10)
+    )
+    assert candidates.empty
+    assert holdout.empty
+    assert "holdout_pass" in holdout.columns
+    assert "mean_net_return_holdout" in holdout.columns
+
+    csv_text = holdout.to_csv(index=False)
+    reread = pd.read_csv(StringIO(csv_text))
+    assert reread.empty
+    assert "holdout_pass" in reread.columns
