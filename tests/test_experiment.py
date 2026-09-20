@@ -12,6 +12,10 @@ def make_spec(**overrides) -> ExperimentSpec:
         "parameters": {"fast": 12, "slow": 26, "signal": 9},
         "cost_bps": 14.0,
         "horizons_bars": (1, 3, 5, 10, 20, 60),
+        "data_start": "2025-09-20T00:00:00+00:00",
+        "data_end": "2026-09-20T00:00:00+00:00",
+        "universe_fingerprint": "a" * 64,
+        "universe_fingerprint_basis": "source_sha256_v1",
     }
     values.update(overrides)
     return ExperimentSpec(**values)
@@ -56,3 +60,21 @@ def test_experiment_manifest_declares_bar_horizon_semantics() -> None:
     manifest = make_spec(timeframe="4h").manifest()
     assert manifest["horizons_bars"] == [1, 3, 5, 10, 20, 60]
     assert manifest["horizon_semantics"] == "bars"
+
+
+
+def test_experiment_id_changes_with_data_range_or_universe() -> None:
+    baseline = make_spec()
+    changed_range = make_spec(data_start="2025-09-21T00:00:00+00:00")
+    changed_universe = make_spec(universe_fingerprint="b" * 64)
+
+    assert baseline.experiment_id() != changed_range.experiment_id()
+    assert baseline.experiment_id() != changed_universe.experiment_id()
+
+
+def test_experiment_manifest_records_data_provenance() -> None:
+    manifest = make_spec().manifest()
+    assert manifest["data_start"] == "2025-09-20T00:00:00+00:00"
+    assert manifest["data_end"] == "2026-09-20T00:00:00+00:00"
+    assert manifest["universe_fingerprint"] == "a" * 64
+    assert manifest["universe_fingerprint_basis"] == "source_sha256_v1"
