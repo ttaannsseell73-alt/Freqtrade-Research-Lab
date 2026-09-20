@@ -15,7 +15,11 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from freqtrade_research_lab.dataset import discover_market_files, load_ohlcv  # noqa: E402
+from freqtrade_research_lab.dataset import (  # noqa: E402
+    discover_market_files,
+    load_ohlcv,
+    load_ready_pairs_from_catalog,
+)
 from freqtrade_research_lab.event_study import (  # noqa: E402
     EventStudyConfig,
     analyze_pair,
@@ -33,6 +37,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start", required=True, help="Inclusive ISO date, e.g. 2025-09-19")
     parser.add_argument("--end", required=True, help="Exclusive ISO date, e.g. 2026-09-20")
     parser.add_argument("--timeframe", default="1m")
+    parser.add_argument(
+        "--catalog",
+        type=Path,
+        help="Optional dataset_catalog.csv; when provided only research_ready pairs are scanned.",
+    )
     parser.add_argument("--cost-bps", type=float, default=14.0)
     parser.add_argument("--max-files", type=int)
     return parser.parse_args()
@@ -53,6 +62,19 @@ def main() -> int:
     train_end, validation_end = split_boundaries(start.to_pydatetime(), end.to_pydatetime())
     config = EventStudyConfig(round_trip_cost_bps=args.cost_bps)
     market_files = discover_market_files(args.data_dir, args.timeframe)
+    pairs_before_catalog = len(market_files)
+    if args.catalog is not None:
+        ready_pairs = load_ready_pairs_from_catalog(args.catalog, args.timeframe)
+        market_files = [item for item in market_files if item.pair in ready_pairs]
+        if not market_files:
+            raise SystemExit(
+                f"Catalog {args.catalog} selected no research-ready {args.timeframe} pairs"
+            )
+        print(
+            f"Catalog gate selected {len(market_files)}/{pairs_before_catalog} "
+            f"{args.timeframe} pairs",
+            flush=True,
+        )
     if args.max_files is not None:
         market_files = market_files[: args.max_files]
     if not market_files:
@@ -109,6 +131,8 @@ def main() -> int:
         "train_end": train_end.isoformat(),
         "validation_end": validation_end.isoformat(),
         "timeframe": args.timeframe,
+        "catalog": str(args.catalog) if args.catalog is not None else None,
+        "pairs_before_catalog_gate": pairs_before_catalog,
         "pairs_discovered": len(market_files),
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
