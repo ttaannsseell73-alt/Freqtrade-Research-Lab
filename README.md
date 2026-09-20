@@ -28,7 +28,7 @@ added.
 - Entry is the next candle's open (no same-candle fill or lookahead).
 - Events whose signal/entry/exit cross a train/validation/holdout boundary are dropped.
 - Long and short are measured separately.
-- Forward horizons: 1, 3, 5, 10, 20, and 60 minutes.
+- Forward horizons: 1, 3, 5, 10, 20, and 60 **bars**. On 1m these equal minutes; on 15m/4h the output also records the true `holding_minutes`.
 - Metrics include net return, win rate, profit factor, MAE, and MFE.
 - Default round-trip cost is 14 bps: 10 bps fee + 4 bps slippage assumption.
 - The 365-day range is split chronologically 60% / 20% / 20%.
@@ -37,7 +37,7 @@ added.
 The MACD benchmark is a control group, not a production signal.
 
 Every research run now carries a deterministic `experiment_id` built from
-`system_id + system_version + timeframe + parameters + costs + horizons`.
+`system_id + system_version + timeframe + parameters + costs + horizon bars`.
 This lets later single-system, per-coin system, and hybrid experiments coexist
 without mixing incompatible results.
 
@@ -83,6 +83,7 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
   --start 2025-09-20 `
   --end 2026-09-20 `
   --timeframe 1m `
+  --horizon-bars 1 3 5 10 20 60 `
   --cost-bps 14
 ```
 
@@ -138,3 +139,20 @@ contains a column with `holdout` in its name, the comparison fails closed.
 Holdout remains untouched until the system/candidate set is frozen. This is the
 basis for comparing one universal system, different systems per coin, or later
 hybrid systems without using holdout as an optimizer.
+
+
+### Timeframe-safe horizon semantics
+
+Event-study horizons are candle counts, never mislabeled as minutes. The output
+always contains both `horizon_bars` and the derived `holding_minutes`.
+
+Examples with the default bar horizons:
+
+| Timeframe | 1 bar | 3 bars | 5 bars | 10 bars | 20 bars | 60 bars |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1m | 1m | 3m | 5m | 10m | 20m | 60m |
+| 15m | 15m | 45m | 75m | 150m | 300m | 900m |
+| 4h | 240m | 720m | 1200m | 2400m | 4800m | 14400m |
+
+This prevents a 5-bar event on 15m data from being incorrectly reported as a
+5-minute hold.
