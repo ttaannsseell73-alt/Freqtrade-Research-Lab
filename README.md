@@ -57,21 +57,24 @@ First build the canonical coverage and quality catalog:
 docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/build_dataset_catalog.py `
   --data-dir /freqtrade/user_data/data/binance `
   --output-dir /freqtrade/user_data/research/catalog_20250919_20260920 `
-  --start 2025-09-19 `
+  --start 2025-09-20 `
   --end 2026-09-20 `
   --timeframes 1m 5m 15m 1h 4h 1d
 ```
 
 The catalog marks files as `ready`, `partial_coverage`, `too_short`,
 `invalid_ohlc`, or `empty`. Newly listed contracts remain visible instead of
-being silently mixed with full-history contracts.
+being silently mixed with full-history contracts. Passing `--catalog` to the
+event study makes the quality gate executable: only rows with
+`research_ready=true` for the requested timeframe enter discovery.
 
 Then run the 1-minute benchmark:
 
 ```powershell
 docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/macd_event_study.py `
-  --data-dir /freqtrade/user_data/data/binance `
-  --output-dir /freqtrade/user_data/research/results/macd_1m_20250919_20260919 `
+  --data-dir /freqtrade/user_data/data/binance/futures `
+  --catalog /freqtrade/user_data/research/catalog_20250920_20260920/dataset_catalog.csv `
+  --output-dir /freqtrade/user_data/research/results/macd_1m_20250920_20260920 `
   --start 2025-09-19 `
   --end 2026-09-20 `
   --timeframe 1m `
