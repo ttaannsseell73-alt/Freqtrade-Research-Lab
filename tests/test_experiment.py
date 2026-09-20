@@ -11,7 +11,7 @@ def make_spec(**overrides) -> ExperimentSpec:
         "timeframe": "1m",
         "parameters": {"fast": 12, "slow": 26, "signal": 9},
         "cost_bps": 14.0,
-        "horizons": (1, 3, 5, 10, 20, 60),
+        "horizons_bars": (1, 3, 5, 10, 20, 60),
     }
     values.update(overrides)
     return ExperimentSpec(**values)
@@ -49,3 +49,10 @@ def test_tag_result_frame_adds_canonical_identity_columns() -> None:
 def test_invalid_system_id_is_rejected() -> None:
     with pytest.raises(ValueError):
         make_spec(system_id="MACD Cross")
+
+
+
+def test_experiment_manifest_declares_bar_horizon_semantics() -> None:
+    manifest = make_spec(timeframe="4h").manifest()
+    assert manifest["horizons_bars"] == [1, 3, 5, 10, 20, 60]
+    assert manifest["horizon_semantics"] == "bars"
