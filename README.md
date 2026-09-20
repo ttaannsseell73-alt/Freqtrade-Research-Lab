@@ -36,6 +36,11 @@ added.
 
 The MACD benchmark is a control group, not a production signal.
 
+Every research run now carries a deterministic `experiment_id` built from
+`system_id + system_version + timeframe + parameters + costs + horizons`.
+This lets later single-system, per-coin system, and hybrid experiments coexist
+without mixing incompatible results.
+
 ## Install beside Freqtrade
 
 From the official Freqtrade repository root in PowerShell:
@@ -84,7 +89,7 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
 Outputs:
 
 - `dataset_coverage.csv`: candles and date coverage for every contract.
-- `summary_discovery.csv`: train + validation statistics only; no holdout rows.
+- `summary_discovery.csv`: train + validation statistics only; no holdout rows; tagged with experiment identity.
 - `candidates_train_validation.csv`: candidates selected without holdout data.
 - `holdout_report.csv`: holdout results only for the already-frozen candidate set.
 - `errors.csv`: new listings, missing data, or unreadable files.
