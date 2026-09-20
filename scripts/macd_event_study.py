@@ -90,7 +90,8 @@ def main() -> int:
 
     summary = pd.concat(summaries, ignore_index=True) if summaries else pd.DataFrame()
     candidates, holdout = build_candidate_tables(summary, config)
-    summary.to_csv(args.output_dir / "summary_all_periods.csv", index=False)
+    discovery_summary = summary.loc[summary["period"].isin(["train", "validation"])].copy()
+    discovery_summary.to_csv(args.output_dir / "summary_discovery.csv", index=False)
     candidates.to_csv(args.output_dir / "candidates_train_validation.csv", index=False)
     holdout.to_csv(args.output_dir / "holdout_report.csv", index=False)
     pd.DataFrame(coverage).to_csv(args.output_dir / "dataset_coverage.csv", index=False)
@@ -112,6 +113,11 @@ def main() -> int:
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
         "config": asdict(config),
+        "holdout_policy": (
+            "Candidate selection uses train+validation only. Full-universe holdout rows "
+            "are not written; holdout_report.csv contains holdout metrics only for the "
+            "already-frozen candidate set."
+        ),
         "limitations": [
             "Current active-contract universe can contain survivorship bias.",
             "Funding is not included in the event study; execution backtests add it later.",
