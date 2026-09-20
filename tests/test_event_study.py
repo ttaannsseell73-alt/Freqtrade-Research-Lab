@@ -10,11 +10,13 @@ from freqtrade_research_lab.event_study import (
     _forward_contiguous,
     _forward_extreme,
     analyze_pair,
+    analyze_signals,
     benjamini_hochberg,
     build_candidate_tables,
     build_discovery_table,
     split_boundaries,
 )
+from freqtrade_research_lab.signals import SignalSet, macd_crossover_signals
 
 
 def synthetic_frame(rows: int = 600, freq: str = "min") -> pd.DataFrame:
@@ -272,3 +274,55 @@ def test_validation_fdr_covers_entire_experiment_family() -> None:
     assert first["minimum_validation_events"] == 30
     assert first["experiment_validation_fdr"] == 0.05
     assert not bool(first["discovery_pass"])
+
+
+
+def test_macd_wrapper_matches_generic_signal_engine() -> None:
+    data = synthetic_frame()
+    train_end = data["date"].iloc[360]
+    validation_end = data["date"].iloc[480]
+    config = EventStudyConfig(horizons_bars=(1, 5), round_trip_cost_bps=14)
+
+    wrapped = analyze_pair(
+        data,
+        "TEST/USDT:USDT",
+        config,
+        train_end,
+        validation_end,
+    )
+    generic = analyze_signals(
+        data,
+        "TEST/USDT:USDT",
+        macd_crossover_signals(
+            data,
+            fast_period=config.fast_period,
+            slow_period=config.slow_period,
+            signal_period=config.signal_period,
+        ),
+        config,
+        train_end,
+        validation_end,
+    )
+
+    pd.testing.assert_frame_equal(wrapped, generic)
+
+
+def test_generic_engine_accepts_non_macd_signal_set() -> None:
+    data = synthetic_frame()
+    train_end = data["date"].iloc[360]
+    validation_end = data["date"].iloc[480]
+    long_signal = pd.Series(False, index=data.index)
+    short_signal = pd.Series(False, index=data.index)
+    long_signal.iloc[[100, 200, 300, 400, 500]] = True
+
+    result = analyze_signals(
+        data,
+        "CUSTOM/USDT:USDT",
+        SignalSet(long=long_signal, short=short_signal),
+        EventStudyConfig(horizons_bars=(1,), round_trip_cost_bps=0),
+        train_end,
+        validation_end,
+    )
+
+    assert set(result["direction"]) == {"long"}
+    assert int(result["events"].sum()) == 5

@@ -8,6 +8,8 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from .signals import SignalSet, macd_crossover_signals, validate_signal_set
+
 
 @dataclass(frozen=True)
 class EventStudyConfig:
@@ -150,9 +152,10 @@ def _summarize_events(
     return rows
 
 
-def analyze_pair(
+def analyze_signals(
     frame: pd.DataFrame,
     pair: str,
+    signals: SignalSet,
     config: EventStudyConfig,
     train_end: pd.Timestamp,
     validation_end: pd.Timestamp,
@@ -163,18 +166,10 @@ def analyze_pair(
         raise ValueError("bar_minutes must be positive")
 
     data = frame.copy()
-    close = data["close"]
-    fast = close.ewm(span=config.fast_period, adjust=False, min_periods=config.fast_period).mean()
-    slow = close.ewm(span=config.slow_period, adjust=False, min_periods=config.slow_period).mean()
-    macd = fast - slow
-    signal = macd.ewm(
-        span=config.signal_period,
-        adjust=False,
-        min_periods=config.signal_period,
-    ).mean()
+    checked = validate_signal_set(data, signals)
+    long_signal = checked.long
+    short_signal = checked.short
 
-    long_signal = (macd > signal) & (macd.shift(1) <= signal.shift(1)) & (data["volume"] > 0)
-    short_signal = (macd < signal) & (macd.shift(1) >= signal.shift(1)) & (data["volume"] > 0)
     entry = data["open"].shift(-1).to_numpy(dtype=float)
     highs = data["high"].to_numpy(dtype=float)
     lows = data["low"].to_numpy(dtype=float)
@@ -212,7 +207,6 @@ def analyze_pair(
                 direction,
                 cost_rate,
             )
-
             events = pd.DataFrame(
                 {
                     "direction": direction,
@@ -227,6 +221,32 @@ def analyze_pair(
             )
 
     return pd.DataFrame(summary_rows)
+
+
+def analyze_pair(
+    frame: pd.DataFrame,
+    pair: str,
+    config: EventStudyConfig,
+    train_end: pd.Timestamp,
+    validation_end: pd.Timestamp,
+    *,
+    bar_minutes: int = 1,
+) -> pd.DataFrame:
+    signals = macd_crossover_signals(
+        frame,
+        fast_period=config.fast_period,
+        slow_period=config.slow_period,
+        signal_period=config.signal_period,
+    )
+    return analyze_signals(
+        frame,
+        pair,
+        signals,
+        config,
+        train_end,
+        validation_end,
+        bar_minutes=bar_minutes,
+    )
 
 
 def benjamini_hochberg(p_values: Iterable[float]) -> np.ndarray:
