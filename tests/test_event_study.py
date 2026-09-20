@@ -7,6 +7,7 @@ import pandas as pd
 from freqtrade_research_lab.event_study import (
     EventStudyConfig,
     _directional_performance,
+    _forward_contiguous,
     _forward_extreme,
     analyze_pair,
     benjamini_hochberg,
@@ -208,3 +209,25 @@ def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
     reread = pd.read_csv(StringIO(csv_text))
     assert reread.empty
     assert "holdout_pass" in reread.columns
+
+
+
+def test_forward_contiguous_rejects_windows_crossing_missing_candle() -> None:
+    dates = pd.Series(
+        pd.to_datetime(
+            [
+                "2026-01-01 00:00:00+00:00",
+                "2026-01-01 00:01:00+00:00",
+                "2026-01-01 00:02:00+00:00",
+                "2026-01-01 00:04:00+00:00",
+                "2026-01-01 00:05:00+00:00",
+            ],
+            utc=True,
+        )
+    )
+
+    one_bar = _forward_contiguous(dates, horizon_bars=1, bar_minutes=1)
+    two_bars = _forward_contiguous(dates, horizon_bars=2, bar_minutes=1)
+
+    assert one_bar.tolist() == [True, True, False, True, False]
+    assert two_bars.tolist() == [True, False, False, False, False]
