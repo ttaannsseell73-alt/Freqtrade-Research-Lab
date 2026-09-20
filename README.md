@@ -131,22 +131,64 @@ Outputs:
 
 ## Freqtrade execution benchmark
 
-After the event study freezes a shortlist, use the included strategy with
-Freqtrade's normal backtester:
+The event study is an exploratory signal-response tool only. Promotion decisions
+must use Freqtrade's trade-level backtester and bias checks.
+
+The canonical execution runner:
+
+1. Loads only `research_ready` pairs from the dataset catalog.
+2. Runs one Freqtrade futures backtest across that fixed pair universe with
+   `max_open_trades=pair_count`, a large static wallet, and fixed stake sizing
+   so portfolio slot competition does not suppress otherwise valid pair trades.
+3. Uses `--cache none` and a fixed per-side fee.
+4. Uses a smaller detail timeframe when supplied (15m research -> 1m detail;
+   4h research -> 15m detail).
+5. Reads the exported Freqtrade ZIP and writes per-pair trade metrics.
+6. Applies the explicit extra round-trip slippage assumption to exported trade
+   returns after Freqtrade's fee/funding accounting.
+7. Runs Freqtrade `lookahead-analysis` unless explicitly disabled.
+
+For the canonical 15m MACD execution control:
 
 ```powershell
-docker compose run --rm freqtrade backtesting `
-  --config user_data/config.json `
-  --strategy-path user_data/research_lab/strategies `
-  --strategy BenchmarkMacd1m `
-  --timeframe 1m `
-  --timerange 20250919-20260920 `
-  --cache none
+docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/run_execution_benchmark.py `
+  --config /freqtrade/user_data/config.json `
+  --data-dir /freqtrade/user_data/data/binance `
+  --catalog /freqtrade/user_data/research/catalog_15m4h_full_20250920_20260920/dataset_catalog.csv `
+  --output-dir /freqtrade/user_data/research/execution/macd_15m_v1 `
+  --strategy BenchmarkMacdExecution `
+  --timeframe 15m `
+  --timeframe-detail 1m `
+  --start 2025-09-20 `
+  --end 2026-09-20 `
+  --fee-per-side 0.0005 `
+  --slippage-bps-round-trip 4
 ```
 
-Do not run this across all 725 pairs with `max_open_trades=3`; portfolio slot
-competition would contaminate the per-coin comparison. The event study performs
-independent discovery first, and execution backtests follow on frozen batches.
+The MACD execution control enters on a 12/26/9 crossover and exits on the
+opposite crossover. ROI and stop exits are effectively disabled for this control
+so its trade-level result measures the crossover rule rather than a tuned risk
+overlay. It uses 1x leverage.
+
+Canonical outputs include:
+
+- `backtest/`: Freqtrade's reproducible ZIP result bundle.
+- `metrics/pair_metrics.csv`: pair-level trades, adjusted expectancy, profit
+  factor, win rate, sequential pair drawdown, long/short counts, duration, and
+  funding-fee totals when present.
+- `metrics/overall_metrics.json`: aggregate trade statistics. A synthetic
+  multi-pair drawdown is intentionally not invented; Freqtrade remains the
+  portfolio-level drawdown source.
+- `metrics/exit_reason_metrics.csv`: exit-reason counts and expectancy.
+- `lookahead.csv`: Freqtrade lookahead-bias analysis.
+- `pairs.txt`: exact fixed research universe.
+- `run_manifest.json`: costs, timeframe/detail timeframe, pair fingerprint,
+  source ZIP, and run settings.
+
+The 5 bps `--fee-per-side` value is applied by Freqtrade on both entry and
+exit (10 bps round trip). The additional 4 bps round-trip slippage assumption is
+kept separate and visible in the research metrics instead of being hidden inside
+the strategy.
 
 ## Known research limitations
 
