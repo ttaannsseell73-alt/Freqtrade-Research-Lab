@@ -125,3 +125,16 @@ independent discovery first, and execution backtests follow on frozen batches.
 - A fixed slippage assumption is a benchmark, not an execution guarantee.
 - Invite-only TradingView scripts cannot be reconstructed; they require forward
   testing from recorded alerts.
+
+
+## Multi-system discovery comparison
+
+Each signal/timeframe experiment is run independently first. Candidate tables can
+then be combined with `scripts/compare_discovery.py` to measure which systems
+produce validated candidates on which contracts.
+
+This comparison stage is deliberately **train + validation only**. If any input
+contains a column with `holdout` in its name, the comparison fails closed.
+Holdout remains untouched until the system/candidate set is frozen. This is the
+basis for comparing one universal system, different systems per coin, or later
+hybrid systems without using holdout as an optimizer.
