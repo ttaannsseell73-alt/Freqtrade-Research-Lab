@@ -1,0 +1,104 @@
+name: upstream-grid-benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/upstream-grid-benchmark.yml'
+      - 'research/upstream-grid/**'
+
+permissions:
+  contents: read
+
+jobs:
+  passivbot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Passivbot v8.1.0
+        uses: actions/checkout@v4
+        with:
+          repository: enarjord/passivbot
+          ref: v8.1.0
+          path: upstream/passivbot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Passivbot research profile
+        working-directory: upstream/passivbot
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[full]"
+
+      - name: CLI smoke
+        working-directory: upstream/passivbot
+        run: |
+          passivbot -h
+          passivbot backtest -h
+          passivbot optimize -h
+
+      - name: Upstream tests
+        working-directory: upstream/passivbot
+        run: pytest -q
+
+  grid-trading-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout jordantete/grid_trading_bot
+        uses: actions/checkout@v4
+        with:
+          repository: jordantete/grid_trading_bot
+          ref: master
+          path: upstream/grid_trading_bot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        working-directory: upstream/grid_trading_bot
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: CLI smoke
+        working-directory: upstream/grid_trading_bot
+        run: grid_trading_bot --help
+
+      - name: Upstream tests
+        working-directory: upstream/grid_trading_bot
+        run: pytest -q
+
+  legacy-binance-grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - name: Checkout 51bitquant/binance_grid_trader
+        uses: actions/checkout@v4
+        with:
+          repository: 51bitquant/binance_grid_trader
+          ref: master
+          path: upstream/binance_grid_trader
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Dependency compatibility probe
+        working-directory: upstream/binance_grid_trader
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Syntax/import probe
+        working-directory: upstream/binance_grid_trader
+        run: |
+          python -m compileall -q gridtrader main_futures_script.py
