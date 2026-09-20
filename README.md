@@ -34,9 +34,9 @@ added.
 - Descriptive metrics use every valid event, but p-values and minimum event-count thresholds use a deterministic non-overlapping event subset for each horizon so overlapping forward windows are not treated as independent samples.
 - Default round-trip cost is 14 bps: 10 bps fee + 4 bps slippage assumption.
 - The 365-day range is split chronologically 60% / 20% / 20%.
-- Benjamini-Hochberg false-discovery control is applied once across the full validation hypothesis family: every coin × direction × horizon tested in the experiment.
+- Discovery is two-stage: train screens hypotheses using independent-event count and positive independent-sample expectancy; Benjamini-Hochberg is then applied only to that pre-screened validation family.
 
-The MACD benchmark is a control group, not a production signal.
+The MACD benchmark is a control group, not a production signal. The event study measures fixed-horizon response after a signal; it is not a complete strategy P&L backtest and does not model stop/TP/trailing exits, leverage, funding, or order-book execution.
 
 Every research run now carries a deterministic `experiment_id` built from
 `system_id + system_version + timeframe + parameters + costs + horizon bars +
@@ -166,7 +166,7 @@ Each signal/timeframe experiment is run independently first. The full
 Those full tables—not prefiltered candidate files—are the canonical inputs to
 `scripts/compare_discovery.py`. The comparison recomputes Benjamini-Hochberg
 across every hypothesis from every supplied system/timeframe, producing
-`global_validation_q_value` and `global_discovery_pass`.
+`global_validation_q_value` and `global_discovery_pass`. Cross-system FDR is also applied only to hypotheses that independently passed the train screen, so train-rejected rows cannot inflate the validation family.
 
 This comparison stage is deliberately **train + validation only**. If any input
 contains a column with `holdout` in its name, the comparison fails closed.

@@ -35,6 +35,8 @@ def hypothesis(
         "non_overlapping_events_validation": 40,
         "mean_net_return_train": 0.01,
         "mean_net_return_validation": 0.005,
+        "test_mean_net_return_train": 0.01,
+        "test_mean_net_return_validation": 0.005,
         "p_value_validation": validation_p,
         "minimum_train_events": 100,
         "minimum_validation_events": 30,
@@ -187,3 +189,31 @@ def test_system_coverage_counts_only_global_candidates() -> None:
     assert coverage["unique_candidate_pairs"].iloc[0] == 1
     assert coverage["directions"].iloc[0] == "long"
     assert coverage["horizon_bars"].iloc[0] == "5"
+
+
+def test_global_fdr_excludes_train_rejected_hypotheses_from_family() -> None:
+    eligible = hypothesis(
+        experiment_id="exp1",
+        system_id="system_a",
+        timeframe="15m",
+        pair="A/USDT:USDT",
+        validation_p=0.04,
+    )
+    rejected = hypothesis(
+        experiment_id="exp1",
+        system_id="system_a",
+        timeframe="15m",
+        pair="B/USDT:USDT",
+        validation_p=0.20,
+        direction="short",
+    )
+    rejected["test_mean_net_return_train"] = -0.01
+
+    corrected = apply_global_fdr(pd.DataFrame([eligible, rejected]), global_fdr=0.05)
+
+    a = corrected.loc[corrected["pair"] == "A/USDT:USDT"].iloc[0]
+    b = corrected.loc[corrected["pair"] == "B/USDT:USDT"].iloc[0]
+    assert abs(a["global_validation_q_value"] - 0.04) < 1e-12
+    assert pd.isna(b["global_validation_q_value"])
+    assert a["global_fdr_family_size"] == 1
+    assert a["global_fdr_scope"] == "all_experiments_train_screened_validation_family"
