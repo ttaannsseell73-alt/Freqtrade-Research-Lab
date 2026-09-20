@@ -185,6 +185,7 @@ def test_empty_candidate_holdout_csv_keeps_readable_schema() -> None:
                 "direction": "long",
                 "period": period,
                 "horizon_bars": 5,
+                "holding_minutes": 5,
                 "events": events,
                 "mean_net_return": mean_return,
                 "win_rate": 0.45,
