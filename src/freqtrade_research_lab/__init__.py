@@ -11,6 +11,7 @@ from .event_study import (
     build_discovery_table,
 )
 from .experiment import ExperimentSpec, tag_result_frame
+from .run_io import prepare_fresh_output_dir
 from .signals import SignalSet, macd_crossover_signals, validate_signal_set
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "discover_market_files",
     "load_ohlcv",
     "macd_crossover_signals",
+    "prepare_fresh_output_dir",
     "tag_result_frame",
     "validate_signal_set",
     "write_catalog_bundle",
