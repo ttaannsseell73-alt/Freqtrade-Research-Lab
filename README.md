@@ -14,7 +14,7 @@ bot and it never contains exchange credentials or downloaded market data.
 2. Audit every signal for repainting and future-data leakage.
 3. Run an event study across the whole contract universe.
 4. Select candidates using train + validation only.
-5. Open the untouched holdout report once selection is frozen.
+5. Freeze the candidate set from train + validation, then expose holdout metrics only for those candidates.
 6. Run Freqtrade execution backtests on the surviving candidates.
 7. Promote only stable candidates to dry-run/paper trading.
 
@@ -26,6 +26,8 @@ added.
 
 - Signal is calculated on a closed candle.
 - Entry is the next candle's open (no same-candle fill or lookahead).
+- Events whose signal/entry/exit cross a train/validation/holdout boundary are dropped.
+- Long and short PnL both use linear futures return relative to entry price.
 - Long and short are measured separately.
 - Forward horizons: 1, 3, 5, 10, 20, and 60 minutes.
 - Metrics include net return, win rate, profit factor, MAE, and MFE.
@@ -63,9 +65,9 @@ docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/resea
 Outputs:
 
 - `dataset_coverage.csv`: candles and date coverage for every contract.
-- `summary_all_periods.csv`: all pair/direction/horizon/period statistics.
+- `summary_discovery.csv`: train + validation statistics only; no holdout columns.
 - `candidates_train_validation.csv`: candidates selected without holdout data.
-- `holdout_report.csv`: final untouched-period results for those candidates.
+- `holdout_report.csv`: holdout results only for the already-frozen candidate set.
 - `errors.csv`: new listings, missing data, or unreadable files.
 - `run_manifest.json`: exact settings, split boundaries, and limitations.
 - `SHA256SUMS.txt`: integrity hashes for every result file.
