@@ -12,6 +12,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from freqtrade_research_lab.catalog_io import write_catalog_bundle  # noqa: E402
 from freqtrade_research_lab.dataset import build_dataset_catalog  # noqa: E402
 
 
@@ -30,6 +31,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--minimum-coverage", type=float, default=0.80)
     parser.add_argument("--minimum-candles", type=int, default=1_000)
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Explicitly replace an existing catalog bundle in --output-dir.",
+    )
     return parser.parse_args()
 
 
@@ -48,15 +54,15 @@ def main() -> int:
     if catalog.empty:
         raise SystemExit("No matching futures OHLCV files were found")
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     catalog = catalog.sort_values(["timeframe", "pair"]).reset_index(drop=True)
-    catalog.to_csv(args.output_dir / "dataset_catalog.csv", index=False)
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "start_inclusive": start.isoformat(),
         "end_exclusive": end.isoformat(),
         "timeframes": args.timeframes,
+        "minimum_coverage": args.minimum_coverage,
+        "minimum_candles": args.minimum_candles,
         "files": int(len(catalog)),
         "unique_pairs": int(catalog["pair"].nunique()),
         "research_ready_files": int(catalog["research_ready"].sum()),
@@ -64,9 +70,15 @@ def main() -> int:
             str(key): int(value) for key, value in catalog["status"].value_counts().items()
         },
     }
-    (args.output_dir / "dataset_catalog_summary.json").write_text(
-        json.dumps(summary, indent=2), encoding="utf-8"
-    )
+    try:
+        write_catalog_bundle(
+            catalog,
+            summary,
+            args.output_dir,
+            replace=args.replace,
+        )
+    except FileExistsError as exc:
+        raise SystemExit(str(exc)) from exc
     print(json.dumps(summary, indent=2))
     return 0
 

@@ -1,5 +1,6 @@
 """Canonical research utilities for the Freqtrade Strategy Lab."""
 
+from .catalog_io import write_catalog_bundle
 from .comparison import apply_global_fdr, build_system_coverage, combine_discovery_frames
 from .dataset import MarketFile, discover_market_files, load_ohlcv
 from .event_study import (
@@ -23,5 +24,6 @@ __all__ = [
     "discover_market_files",
     "load_ohlcv",
     "tag_result_frame",
+    "write_catalog_bundle",
 ]
 

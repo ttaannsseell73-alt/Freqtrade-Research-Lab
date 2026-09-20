@@ -74,6 +74,12 @@ being silently mixed with full-history contracts. Passing `--catalog` to the
 event study makes the quality gate executable: only rows with
 `research_ready=true` for the requested timeframe enter discovery.
 
+Catalog writes are fail-closed: if `dataset_catalog.csv` or its summary already
+exists in the target directory, the builder stops instead of overwriting it.
+Use a new output directory for a different timeframe set. `--replace` exists
+only for an intentional full replacement and the summary records the coverage
+and minimum-candle thresholds used.
+
 Then run the 1-minute benchmark:
 
 ```powershell
