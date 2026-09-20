@@ -26,6 +26,7 @@ from freqtrade_research_lab.event_study import (  # noqa: E402
     build_candidate_tables,
     split_boundaries,
 )
+from freqtrade_research_lab.experiment import ExperimentSpec, tag_result_frame  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,6 +62,14 @@ def main() -> int:
     end = pd.Timestamp(args.end, tz="UTC")
     train_end, validation_end = split_boundaries(start.to_pydatetime(), end.to_pydatetime())
     config = EventStudyConfig(round_trip_cost_bps=args.cost_bps)
+    experiment = ExperimentSpec(
+        system_id="macd_crossover",
+        system_version="1",
+        timeframe=args.timeframe,
+        parameters=asdict(config),
+        cost_bps=args.cost_bps,
+        horizons=config.horizons,
+    )
     market_files = discover_market_files(args.data_dir, args.timeframe)
     pairs_before_catalog = len(market_files)
     if args.catalog is not None:
@@ -113,6 +122,9 @@ def main() -> int:
     summary = pd.concat(summaries, ignore_index=True) if summaries else pd.DataFrame()
     candidates, holdout = build_candidate_tables(summary, config)
     discovery_summary = summary.loc[summary["period"].isin(["train", "validation"])].copy()
+    discovery_summary = tag_result_frame(discovery_summary, experiment)
+    candidates = tag_result_frame(candidates, experiment)
+    holdout = tag_result_frame(holdout, experiment)
     discovery_summary.to_csv(args.output_dir / "summary_discovery.csv", index=False)
     candidates.to_csv(args.output_dir / "candidates_train_validation.csv", index=False)
     holdout.to_csv(args.output_dir / "holdout_report.csv", index=False)
@@ -124,6 +136,8 @@ def main() -> int:
     result_summary = {
         "schema_version": 1,
         "study": "macd_crossover_event_study",
+        "experiment_id": experiment.experiment_id(),
+        "system_id": experiment.system_id,
         "timeframe": args.timeframe,
         "pairs_analyzed": len(coverage),
         "pairs_failed": len(errors),
@@ -144,6 +158,7 @@ def main() -> int:
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "study": "macd_crossover_event_study",
+        "experiment": experiment.manifest(),
         "entry_rule": "Signal on closed candle; entry at next candle open",
         "start_inclusive": start.isoformat(),
         "end_exclusive": end.isoformat(),
