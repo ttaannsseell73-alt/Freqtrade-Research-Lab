@@ -29,6 +29,7 @@ from freqtrade_research_lab.event_study import (  # noqa: E402
     split_boundaries,
 )
 from freqtrade_research_lab.experiment import ExperimentSpec, tag_result_frame  # noqa: E402
+from freqtrade_research_lab.run_io import prepare_fresh_output_dir  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +54,10 @@ def parse_args() -> argparse.Namespace:
         default=[1, 3, 5, 10, 20, 60],
         help="Forward holding horizons in candles/bars, not minutes.",
     )
+    parser.add_argument("--min-train-events", type=int, default=100)
+    parser.add_argument("--min-validation-events", type=int, default=30)
+    parser.add_argument("--min-holdout-events", type=int, default=30)
+    parser.add_argument("--validation-fdr", type=float, default=0.10)
     parser.add_argument("--max-files", type=int)
     return parser.parse_args()
 
@@ -74,6 +79,10 @@ def main() -> int:
     config = EventStudyConfig(
         round_trip_cost_bps=args.cost_bps,
         horizons_bars=tuple(args.horizon_bars),
+        minimum_train_events=args.min_train_events,
+        minimum_validation_events=args.min_validation_events,
+        minimum_holdout_events=args.min_holdout_events,
+        validation_fdr=args.validation_fdr,
     )
     experiment = ExperimentSpec(
         system_id="macd_crossover",
@@ -102,7 +111,11 @@ def main() -> int:
     if not market_files:
         raise SystemExit(f"No {args.timeframe} futures files found in {args.data_dir}")
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        prepare_fresh_output_dir(args.output_dir)
+    except FileExistsError as exc:
+        raise SystemExit(str(exc)) from exc
+
     summaries: list[pd.DataFrame] = []
     errors: list[dict[str, str]] = []
     coverage: list[dict[str, object]] = []
