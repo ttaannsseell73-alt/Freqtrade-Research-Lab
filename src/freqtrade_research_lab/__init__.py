@@ -1,6 +1,6 @@
 """Canonical research utilities for the Freqtrade Strategy Lab."""
 
-from .comparison import build_system_coverage, combine_discovery_frames
+from .comparison import apply_global_fdr, build_system_coverage, combine_discovery_frames
 from .dataset import MarketFile, discover_market_files, load_ohlcv
 from .event_study import (
     EventStudyConfig,
@@ -15,6 +15,7 @@ __all__ = [
     "ExperimentSpec",
     "MarketFile",
     "analyze_pair",
+    "apply_global_fdr",
     "build_candidate_tables",
     "build_discovery_table",
     "build_system_coverage",
