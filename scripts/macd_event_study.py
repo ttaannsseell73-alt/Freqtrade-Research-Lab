@@ -17,8 +17,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from freqtrade_research_lab.dataset import (  # noqa: E402
     discover_market_files,
+    fingerprint_market_files,
+    load_catalog_selection,
     load_ohlcv,
-    load_ready_pairs_from_catalog,
     timeframe_delta,
 )
 from freqtrade_research_lab.event_study import (  # noqa: E402
@@ -84,19 +85,30 @@ def main() -> int:
         minimum_holdout_events=args.min_holdout_events,
         validation_fdr=args.validation_fdr,
     )
-    experiment = ExperimentSpec(
-        system_id="macd_crossover",
-        system_version="1",
-        timeframe=args.timeframe,
-        parameters=asdict(config),
-        cost_bps=args.cost_bps,
-        horizons_bars=config.horizons_bars,
-    )
     market_files = discover_market_files(args.data_dir, args.timeframe)
     pairs_before_catalog = len(market_files)
+    catalog_selection = None
     if args.catalog is not None:
-        ready_pairs = load_ready_pairs_from_catalog(args.catalog, args.timeframe)
-        market_files = [item for item in market_files if item.pair in ready_pairs]
+        try:
+            catalog_selection = load_catalog_selection(
+                args.catalog,
+                args.timeframe,
+                start=start,
+                end=end,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        discovered_pairs = {item.pair for item in market_files}
+        missing_ready = catalog_selection.pairs.difference(discovered_pairs)
+        if missing_ready:
+            preview = ", ".join(sorted(missing_ready)[:5])
+            raise SystemExit(
+                f"Catalog is stale: {len(missing_ready)} research-ready pairs "
+                f"are missing from the data directory ({preview})"
+            )
+        market_files = [
+            item for item in market_files if item.pair in catalog_selection.pairs
+        ]
         if not market_files:
             raise SystemExit(
                 f"Catalog {args.catalog} selected no research-ready {args.timeframe} pairs"
@@ -110,6 +122,27 @@ def main() -> int:
         market_files = market_files[: args.max_files]
     if not market_files:
         raise SystemExit(f"No {args.timeframe} futures files found in {args.data_dir}")
+
+    actual_pairs = {item.pair for item in market_files}
+    if catalog_selection is not None:
+        universe_fingerprint = catalog_selection.fingerprint_for_pairs(actual_pairs)
+        universe_fingerprint_basis = catalog_selection.fingerprint_basis
+    else:
+        universe_fingerprint = fingerprint_market_files(market_files)
+        universe_fingerprint_basis = "market_file_metadata_v1"
+
+    experiment = ExperimentSpec(
+        system_id="macd_crossover",
+        system_version="1",
+        timeframe=args.timeframe,
+        parameters=asdict(config),
+        cost_bps=args.cost_bps,
+        horizons_bars=config.horizons_bars,
+        data_start=start.isoformat(),
+        data_end=end.isoformat(),
+        universe_fingerprint=universe_fingerprint,
+        universe_fingerprint_basis=universe_fingerprint_basis,
+    )
 
     try:
         prepare_fresh_output_dir(args.output_dir)
@@ -172,11 +205,15 @@ def main() -> int:
     )
 
     result_summary = {
-        "schema_version": 2,
+        "schema_version": 3,
         "study": "macd_crossover_event_study",
         "experiment_id": experiment.experiment_id(),
         "system_id": experiment.system_id,
         "timeframe": args.timeframe,
+        "data_start": experiment.data_start,
+        "data_end": experiment.data_end,
+        "universe_fingerprint": experiment.universe_fingerprint,
+        "universe_fingerprint_basis": experiment.universe_fingerprint_basis,
         "bar_minutes": bar_minutes,
         "horizons_bars": list(config.horizons_bars),
         "holding_minutes": [bar_minutes * value for value in config.horizons_bars],

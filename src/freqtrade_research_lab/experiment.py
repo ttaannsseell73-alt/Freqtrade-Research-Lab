@@ -20,6 +20,10 @@ class ExperimentSpec:
     parameters: Mapping[str, object]
     cost_bps: float
     horizons_bars: tuple[int, ...]
+    data_start: str
+    data_end: str
+    universe_fingerprint: str
+    universe_fingerprint_basis: str
 
     def __post_init__(self) -> None:
         if not _SYSTEM_ID.fullmatch(self.system_id):
@@ -34,6 +38,20 @@ class ExperimentSpec:
             raise ValueError("cost_bps cannot be negative")
         if not self.horizons_bars or any(horizon <= 0 for horizon in self.horizons_bars):
             raise ValueError("horizons_bars must contain positive integers")
+        if not self.data_start or not self.data_end:
+            raise ValueError("data_start and data_end cannot be empty")
+        start = pd.Timestamp(self.data_start)
+        end = pd.Timestamp(self.data_end)
+        if end <= start:
+            raise ValueError("data_end must be later than data_start")
+        if len(self.universe_fingerprint) != 64:
+            raise ValueError("universe_fingerprint must be a SHA-256 hex digest")
+        try:
+            int(self.universe_fingerprint, 16)
+        except ValueError as exc:
+            raise ValueError("universe_fingerprint must be hexadecimal") from exc
+        if not self.universe_fingerprint_basis:
+            raise ValueError("universe_fingerprint_basis cannot be empty")
 
     def canonical_payload(self) -> dict[str, object]:
         return {
@@ -44,6 +62,10 @@ class ExperimentSpec:
             "cost_bps": float(self.cost_bps),
             "horizons_bars": list(self.horizons_bars),
             "horizon_semantics": "bars",
+            "data_start": self.data_start,
+            "data_end": self.data_end,
+            "universe_fingerprint": self.universe_fingerprint,
+            "universe_fingerprint_basis": self.universe_fingerprint_basis,
         }
 
     def experiment_id(self) -> str:

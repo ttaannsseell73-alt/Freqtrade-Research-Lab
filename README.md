@@ -38,7 +38,9 @@ added.
 The MACD benchmark is a control group, not a production signal.
 
 Every research run now carries a deterministic `experiment_id` built from
-`system_id + system_version + timeframe + parameters + costs + horizon bars`.
+`system_id + system_version + timeframe + parameters + costs + horizon bars +
+study date range + actual research universe fingerprint`. The same strategy on
+a different date range or coin universe is therefore a different experiment.
 This lets later single-system, per-coin system, and hybrid experiments coexist
 without mixing incompatible results.
 
@@ -79,6 +81,13 @@ exists in the target directory, the builder stops instead of overwriting it.
 Use a new output directory for a different timeframe set. `--replace` exists
 only for an intentional full replacement and the summary records the coverage
 and minimum-candle thresholds used.
+
+Canonical catalogs also SHA-256 hash every source futures OHLCV file. Event
+studies validate that the catalog's start/end range and timeframe match the
+requested run, fail if a catalog-ready pair is missing from disk, and bind the
+selected universe fingerprint into `experiment_id`. Legacy catalogs without
+source hashes remain readable through an explicitly labeled metadata-fingerprint
+fallback so the existing 1m baseline is not destroyed.
 
 Then run the 1-minute benchmark:
 
