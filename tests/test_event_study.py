@@ -268,4 +268,7 @@ def test_validation_fdr_covers_entire_experiment_family() -> None:
     assert abs(first["validation_q_value"] - 0.08) < 1e-12
     assert first["fdr_family_size"] == 2
     assert first["fdr_scope"] == "experiment_all_pair_direction_horizon"
+    assert first["minimum_train_events"] == 100
+    assert first["minimum_validation_events"] == 30
+    assert first["experiment_validation_fdr"] == 0.05
     assert not bool(first["discovery_pass"])
