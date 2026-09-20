@@ -121,6 +121,25 @@ def main() -> int:
         args.output_dir / "errors.csv", index=False
     )
 
+    result_summary = {
+        "schema_version": 1,
+        "study": "macd_crossover_event_study",
+        "timeframe": args.timeframe,
+        "pairs_analyzed": len(coverage),
+        "pairs_failed": len(errors),
+        "candidate_rows": int(len(candidates)),
+        "holdout_rows": int(len(holdout)),
+        "holdout_passed": (
+            int(holdout["holdout_pass"].fillna(False).astype(bool).sum())
+            if "holdout_pass" in holdout.columns
+            else 0
+        ),
+        "status": "candidates_found" if len(candidates) else "no_candidates",
+    }
+    (args.output_dir / "result_summary.json").write_text(
+        json.dumps(result_summary, indent=2), encoding="utf-8"
+    )
+
     manifest = {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
