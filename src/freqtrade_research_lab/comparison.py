@@ -4,6 +4,8 @@ from collections.abc import Iterable
 
 import pandas as pd
 
+from .event_study import benjamini_hochberg
+
 
 IDENTITY_COLUMNS = [
     "experiment_id",
@@ -20,8 +22,13 @@ DISCOVERY_KEY_COLUMNS = [
 ]
 REQUIRED_DISCOVERY_COLUMNS = [
     *DISCOVERY_KEY_COLUMNS,
-    "discovery_score",
-    "validation_q_value",
+    "events_train",
+    "events_validation",
+    "mean_net_return_train",
+    "mean_net_return_validation",
+    "p_value_validation",
+    "minimum_train_events",
+    "minimum_validation_events",
 ]
 
 
@@ -68,31 +75,63 @@ def combine_discovery_frames(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
+def apply_global_fdr(
+    combined: pd.DataFrame,
+    *,
+    global_fdr: float = 0.10,
+) -> pd.DataFrame:
+    validate_discovery_frame(combined)
+    if not 0 < global_fdr <= 1:
+        raise ValueError("global_fdr must be in (0, 1]")
+
+    result = combined.copy()
+    result["global_validation_q_value"] = benjamini_hochberg(
+        result["p_value_validation"].fillna(1.0)
+    )
+    result["global_fdr_family_size"] = int(len(result))
+    result["global_fdr_threshold"] = float(global_fdr)
+    result["global_fdr_scope"] = "all_experiments_pair_direction_horizon"
+    result["global_discovery_pass"] = (
+        (result["events_train"] >= result["minimum_train_events"])
+        & (result["events_validation"] >= result["minimum_validation_events"])
+        & (result["mean_net_return_train"] > 0)
+        & (result["mean_net_return_validation"] > 0)
+        & (result["global_validation_q_value"] <= global_fdr)
+    )
+    return result
+
+
 def build_system_coverage(combined: pd.DataFrame) -> pd.DataFrame:
     validate_discovery_frame(combined)
     if combined.empty:
         return pd.DataFrame(
             columns=[
                 *IDENTITY_COLUMNS,
-                "candidate_rows",
-                "unique_pairs",
+                "hypotheses_tested",
+                "global_candidate_rows",
+                "unique_candidate_pairs",
                 "directions",
                 "horizon_bars",
             ]
         )
+    if "global_discovery_pass" not in combined.columns:
+        raise ValueError("Global FDR must be applied before building system coverage")
 
-    group_columns = IDENTITY_COLUMNS
     rows: list[dict[str, object]] = []
-    for keys, group in combined.groupby(group_columns, sort=True, observed=True):
-        row = dict(zip(group_columns, keys, strict=True))
+    for keys, group in combined.groupby(IDENTITY_COLUMNS, sort=True, observed=True):
+        selected = group.loc[group["global_discovery_pass"]].copy()
+        row = dict(zip(IDENTITY_COLUMNS, keys, strict=True))
         row.update(
             {
-                "candidate_rows": int(len(group)),
-                "unique_pairs": int(group["pair"].nunique()),
-                "directions": ",".join(sorted(group["direction"].astype(str).unique())),
+                "hypotheses_tested": int(len(group)),
+                "global_candidate_rows": int(len(selected)),
+                "unique_candidate_pairs": int(selected["pair"].nunique()),
+                "directions": ",".join(
+                    sorted(selected["direction"].astype(str).unique())
+                ),
                 "horizon_bars": ",".join(
                     str(value)
-                    for value in sorted(group["horizon_bars"].astype(int).unique())
+                    for value in sorted(selected["horizon_bars"].astype(int).unique())
                 ),
             }
         )

@@ -288,6 +288,9 @@ def build_discovery_table(
     )
     discovery_wide["fdr_family_size"] = int(len(discovery_wide))
     discovery_wide["fdr_scope"] = "experiment_all_pair_direction_horizon"
+    discovery_wide["minimum_train_events"] = config.minimum_train_events
+    discovery_wide["minimum_validation_events"] = config.minimum_validation_events
+    discovery_wide["experiment_validation_fdr"] = config.validation_fdr
 
     discovery_wide["discovery_pass"] = (
         (discovery_wide["events_train"] >= config.minimum_train_events)
