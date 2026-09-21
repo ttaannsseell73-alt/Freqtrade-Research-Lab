@@ -34,6 +34,7 @@ class ExecutionRunConfig:
     minimum_trade_amount: int = 20
     targeted_trade_amount: int = 100
     max_pairs: int | None = None
+    pair_offset: int = 0
 
     def __post_init__(self) -> None:
         if self.fee_per_side < 0:
@@ -46,6 +47,8 @@ class ExecutionRunConfig:
             raise ValueError("lookahead trade amounts must be positive")
         if self.max_pairs is not None and self.max_pairs <= 0:
             raise ValueError("max_pairs must be positive")
+        if self.pair_offset < 0:
+            raise ValueError("pair_offset cannot be negative")
 
 
 def _timerange(start: str, end: str) -> str:
@@ -66,6 +69,7 @@ def select_pairs(config: ExecutionRunConfig) -> list[str]:
         end=end,
     )
     pairs = sorted(selection.pairs)
+    pairs = pairs[config.pair_offset :]
     if config.max_pairs is not None:
         pairs = pairs[: config.max_pairs]
     if not pairs:
@@ -221,6 +225,7 @@ def run_execution_benchmark(config: ExecutionRunConfig) -> dict[str, object]:
         "end_exclusive": pd.Timestamp(config.end, tz="UTC").isoformat(),
         "catalog": str(config.catalog_path),
         "pair_count": len(pairs),
+        "pair_offset": config.pair_offset,
         "pair_fingerprint": pair_fingerprint,
         "fee_per_side": config.fee_per_side,
         "fee_round_trip_bps": config.fee_per_side * 2 * 10_000,
