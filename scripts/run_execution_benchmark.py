@@ -55,6 +55,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--targeted-trade-amount", type=int, default=100)
     parser.add_argument("--max-pairs", type=int)
     parser.add_argument(
+        "--pair-offset",
+        type=int,
+        default=0,
+        help="Skip this many alphabetically sorted research-ready pairs before max-pairs.",
+    )
+    parser.add_argument(
         "--skip-lookahead",
         action="store_true",
         help="Skip Freqtrade lookahead-analysis for this run.",
@@ -82,6 +88,7 @@ def main() -> int:
         minimum_trade_amount=args.minimum_trade_amount,
         targeted_trade_amount=args.targeted_trade_amount,
         max_pairs=args.max_pairs,
+        pair_offset=args.pair_offset,
     )
     manifest = run_execution_benchmark(config)
     print(
