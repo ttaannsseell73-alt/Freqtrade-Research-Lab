@@ -51,6 +51,14 @@ class ExecutionRunConfig:
             raise ValueError("pair_offset cannot be negative")
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _timerange(start: str, end: str) -> str:
     start_ts = pd.Timestamp(start, tz="UTC")
     end_ts = pd.Timestamp(end, tz="UTC")
@@ -193,6 +201,11 @@ def run_execution_benchmark(config: ExecutionRunConfig) -> dict[str, object]:
     metrics_dir.mkdir()
 
     pairs = select_pairs(config)
+    strategy_file = config.strategy_path / f"{config.strategy_name}.py"
+    if not strategy_file.is_file():
+        raise FileNotFoundError(f"Strategy file not found: {strategy_file}")
+    strategy_sha256 = _file_sha256(strategy_file)
+
     pairs_text = "\n".join(pairs) + "\n"
     (config.output_dir / "pairs.txt").write_text(pairs_text, encoding="utf-8")
     pair_fingerprint = hashlib.sha256(pairs_text.encode("utf-8")).hexdigest()
@@ -219,6 +232,8 @@ def run_execution_benchmark(config: ExecutionRunConfig) -> dict[str, object]:
         "schema_version": 1,
         "study": "freqtrade_execution_benchmark",
         "strategy": config.strategy_name,
+        "strategy_file": str(strategy_file),
+        "strategy_sha256": strategy_sha256,
         "timeframe": config.timeframe,
         "timeframe_detail": config.timeframe_detail,
         "start_inclusive": pd.Timestamp(config.start, tz="UTC").isoformat(),
