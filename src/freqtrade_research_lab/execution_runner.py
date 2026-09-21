@@ -34,6 +34,7 @@ class ExecutionRunConfig:
     minimum_trade_amount: int = 20
     targeted_trade_amount: int = 100
     max_pairs: int | None = None
+    pair_offset: int = 0
 
     def __post_init__(self) -> None:
         if self.fee_per_side < 0:
@@ -46,6 +47,16 @@ class ExecutionRunConfig:
             raise ValueError("lookahead trade amounts must be positive")
         if self.max_pairs is not None and self.max_pairs <= 0:
             raise ValueError("max_pairs must be positive")
+        if self.pair_offset < 0:
+            raise ValueError("pair_offset cannot be negative")
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _timerange(start: str, end: str) -> str:
@@ -66,6 +77,7 @@ def select_pairs(config: ExecutionRunConfig) -> list[str]:
         end=end,
     )
     pairs = sorted(selection.pairs)
+    pairs = pairs[config.pair_offset :]
     if config.max_pairs is not None:
         pairs = pairs[: config.max_pairs]
     if not pairs:
@@ -189,6 +201,11 @@ def run_execution_benchmark(config: ExecutionRunConfig) -> dict[str, object]:
     metrics_dir.mkdir()
 
     pairs = select_pairs(config)
+    strategy_file = config.strategy_path / f"{config.strategy_name}.py"
+    if not strategy_file.is_file():
+        raise FileNotFoundError(f"Strategy file not found: {strategy_file}")
+    strategy_sha256 = _file_sha256(strategy_file)
+
     pairs_text = "\n".join(pairs) + "\n"
     (config.output_dir / "pairs.txt").write_text(pairs_text, encoding="utf-8")
     pair_fingerprint = hashlib.sha256(pairs_text.encode("utf-8")).hexdigest()
@@ -215,12 +232,15 @@ def run_execution_benchmark(config: ExecutionRunConfig) -> dict[str, object]:
         "schema_version": 1,
         "study": "freqtrade_execution_benchmark",
         "strategy": config.strategy_name,
+        "strategy_file": str(strategy_file),
+        "strategy_sha256": strategy_sha256,
         "timeframe": config.timeframe,
         "timeframe_detail": config.timeframe_detail,
         "start_inclusive": pd.Timestamp(config.start, tz="UTC").isoformat(),
         "end_exclusive": pd.Timestamp(config.end, tz="UTC").isoformat(),
         "catalog": str(config.catalog_path),
         "pair_count": len(pairs),
+        "pair_offset": config.pair_offset,
         "pair_fingerprint": pair_fingerprint,
         "fee_per_side": config.fee_per_side,
         "fee_round_trip_bps": config.fee_per_side * 2 * 10_000,

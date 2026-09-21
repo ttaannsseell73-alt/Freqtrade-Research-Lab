@@ -190,6 +190,39 @@ exit (10 bps round trip). The additional 4 bps round-trip slippage assumption is
 kept separate and visible in the research metrics instead of being hidden inside
 the strategy.
 
+## Liquidity Sweep -> Reclaim scalping benchmark
+
+The first locked production-direction research candidate is
+`LiquiditySweepReclaimScalp`, intended for **1m and 5m Binance Futures
+scalping research**.
+
+The v1 signal is pre-registered before results are inspected:
+
+- prior liquidity level = previous 20 completed candles' rolling low/high,
+- minimum sweep depth = 5 bps beyond that prior level,
+- reclaim must close back through the swept level,
+- long closes in the upper 60% of the rejection candle; short closes in the
+  lower 40%,
+- signal candle must have non-zero volume,
+- Freqtrade enters on the next candle, not inside the signal candle.
+
+The v1 execution profile is also frozen before results:
+
+- 1x leverage for edge isolation,
+- +0.8% gross ROI target,
+- -0.5% stop,
+- maximum holding time 30 minutes,
+- 5 bps fee per side plus the explicit 4 bps round-trip slippage stress already
+  applied by the execution metrics layer.
+
+Do not tune these values on the same sample after seeing results. If a later
+parameter search is required, it must use a separate development window and an
+untouched final test.
+
+Large universes are run in deterministic alphabetical batches with
+`--pair-offset` and `--max-pairs`. The selected pair list and the SHA-256 of
+the exact strategy source are written into the run manifest.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;

@@ -7,6 +7,7 @@ from freqtrade_research_lab.execution_runner import (
     _timerange,
     build_backtest_command,
     build_lookahead_command,
+    select_pairs,
 )
 
 
@@ -67,3 +68,25 @@ def test_execution_config_rejects_invalid_costs(tmp_path: Path) -> None:
         config(tmp_path, fee_per_side=-0.1)
     with pytest.raises(ValueError, match="slippage"):
         config(tmp_path, slippage_bps_round_trip=-1)
+
+
+
+def test_execution_config_rejects_negative_pair_offset(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="pair_offset"):
+        config(tmp_path, pair_offset=-1)
+
+
+def test_select_pairs_applies_offset_before_batch_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Selection:
+        pairs = ["C/USDT:USDT", "A/USDT:USDT", "B/USDT:USDT"]
+
+    monkeypatch.setattr(
+        "freqtrade_research_lab.execution_runner.load_catalog_selection",
+        lambda *args, **kwargs: Selection(),
+    )
+    cfg = config(tmp_path, pair_offset=1, max_pairs=1)
+
+    assert select_pairs(cfg) == ["B/USDT:USDT"]
