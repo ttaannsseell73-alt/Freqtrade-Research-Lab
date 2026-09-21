@@ -3,6 +3,7 @@ import pytest
 
 from freqtrade_research_lab.signals import (
     SignalSet,
+    breakout_retest_signals,
     liquidity_sweep_reclaim_signals,
     macd_crossover_signals,
     validate_signal_set,
@@ -120,3 +121,82 @@ def test_liquidity_sweep_reclaim_validates_parameters() -> None:
         liquidity_sweep_reclaim_signals(data, min_sweep_bps=-1)
     with pytest.raises(ValueError, match="rejection_close_fraction"):
         liquidity_sweep_reclaim_signals(data, rejection_close_fraction=0.5)
+
+
+
+def test_breakout_retest_detects_long() -> None:
+    data = pd.DataFrame(
+        {
+            "high": [101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 106.0],
+            "low": [99.0, 100.0, 101.0, 102.0, 103.0, 104.8, 105.0],
+            "close": [100.0, 101.0, 102.0, 103.0, 104.0, 105.2, 105.8],
+            "volume": [1.0] * 7,
+        }
+    )
+    signals = validate_signal_set(
+        data,
+        breakout_retest_signals(
+            data,
+            lookback=5,
+            breakout_buffer_bps=5.0,
+            retest_tolerance_bps=10.0,
+            close_strength_fraction=0.55,
+        ),
+    )
+    assert bool(signals.long.iloc[6])
+    assert not bool(signals.short.iloc[6])
+
+
+def test_breakout_retest_detects_short() -> None:
+    data = pd.DataFrame(
+        {
+            "high": [111.0, 110.0, 109.0, 108.0, 107.0, 105.2, 105.0],
+            "low": [109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 104.0],
+            "close": [110.0, 109.0, 108.0, 107.0, 106.0, 104.8, 104.2],
+            "volume": [1.0] * 7,
+        }
+    )
+    signals = validate_signal_set(
+        data,
+        breakout_retest_signals(
+            data,
+            lookback=5,
+            breakout_buffer_bps=5.0,
+            retest_tolerance_bps=10.0,
+            close_strength_fraction=0.55,
+        ),
+    )
+    assert bool(signals.short.iloc[6])
+    assert not bool(signals.long.iloc[6])
+
+
+def test_breakout_retest_rejects_breakout_without_retest() -> None:
+    data = pd.DataFrame(
+        {
+            "high": [101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0],
+            "low": [99.0, 100.0, 101.0, 102.0, 103.0, 104.8, 106.0],
+            "close": [100.0, 101.0, 102.0, 103.0, 104.0, 105.2, 106.8],
+            "volume": [1.0] * 7,
+        }
+    )
+    signals = breakout_retest_signals(data, lookback=5)
+    assert not bool(signals.long.iloc[6])
+
+
+def test_breakout_retest_validates_parameters() -> None:
+    data = pd.DataFrame(
+        {
+            "high": [101.0] * 7,
+            "low": [99.0] * 7,
+            "close": [100.0] * 7,
+            "volume": [1.0] * 7,
+        }
+    )
+    with pytest.raises(ValueError, match="lookback"):
+        breakout_retest_signals(data, lookback=1)
+    with pytest.raises(ValueError, match="breakout_buffer_bps"):
+        breakout_retest_signals(data, breakout_buffer_bps=-1)
+    with pytest.raises(ValueError, match="retest_tolerance_bps"):
+        breakout_retest_signals(data, retest_tolerance_bps=-1)
+    with pytest.raises(ValueError, match="close_strength_fraction"):
+        breakout_retest_signals(data, close_strength_fraction=1.0)

@@ -116,3 +116,93 @@ def liquidity_sweep_reclaim_signals(
         & tradable
     )
     return SignalSet(long=long_signal, short=short_signal)
+
+
+def breakout_retest_signals(
+    frame: pd.DataFrame,
+    *,
+    lookback: int = 20,
+    breakout_buffer_bps: float = 5.0,
+    retest_tolerance_bps: float = 10.0,
+    close_strength_fraction: float = 0.55,
+) -> SignalSet:
+    """Immediate-next-candle breakout/retest signals without future leakage.
+
+    Long setup:
+    - previous candle closed above its prior `lookback`-bar high by at least
+      `breakout_buffer_bps`,
+    - current candle retests that broken level within
+      `retest_tolerance_bps`,
+    - current close holds back above the broken level,
+    - current close finishes in the upper `close_strength_fraction` of its
+      candle range.
+
+    Short is the mirrored rule around the prior rolling low.
+    """
+    if lookback < 2:
+        raise ValueError("lookback must be at least 2")
+    if breakout_buffer_bps < 0:
+        raise ValueError("breakout_buffer_bps cannot be negative")
+    if retest_tolerance_bps < 0:
+        raise ValueError("retest_tolerance_bps cannot be negative")
+    if not 0.5 <= close_strength_fraction < 1.0:
+        raise ValueError("close_strength_fraction must be in [0.5, 1.0)")
+
+    required = {"high", "low", "close", "volume"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError("OHLCV frame missing columns: " + ", ".join(missing))
+
+    prior_high = (
+        frame["high"]
+        .rolling(lookback, min_periods=lookback)
+        .max()
+        .shift(1)
+    )
+    prior_low = (
+        frame["low"]
+        .rolling(lookback, min_periods=lookback)
+        .min()
+        .shift(1)
+    )
+
+    breakout_buffer = breakout_buffer_bps / 10_000.0
+    retest_tolerance = retest_tolerance_bps / 10_000.0
+
+    previous_long_breakout = (
+        frame["close"].shift(1)
+        >= prior_high.shift(1) * (1.0 + breakout_buffer)
+    )
+    previous_short_breakout = (
+        frame["close"].shift(1)
+        <= prior_low.shift(1) * (1.0 - breakout_buffer)
+    )
+    long_level = prior_high.shift(1)
+    short_level = prior_low.shift(1)
+
+    candle_range = (frame["high"] - frame["low"]).where(
+        frame["high"] > frame["low"]
+    )
+    close_location = (frame["close"] - frame["low"]) / candle_range
+    tradable = frame["volume"] > 0
+
+    long_signal = (
+        previous_long_breakout
+        & long_level.notna()
+        & (frame["low"] <= long_level * (1.0 + retest_tolerance))
+        & (frame["low"] >= long_level * (1.0 - retest_tolerance))
+        & (frame["close"] > long_level)
+        & (close_location >= close_strength_fraction)
+        & tradable
+    )
+    short_signal = (
+        previous_short_breakout
+        & short_level.notna()
+        & (frame["high"] >= short_level * (1.0 - retest_tolerance))
+        & (frame["high"] <= short_level * (1.0 + retest_tolerance))
+        & (frame["close"] < short_level)
+        & (close_location <= 1.0 - close_strength_fraction)
+        & tradable
+    )
+
+    return SignalSet(long=long_signal, short=short_signal)
