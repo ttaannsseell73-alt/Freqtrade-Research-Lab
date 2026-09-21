@@ -223,6 +223,28 @@ Large universes are run in deterministic alphabetical batches with
 `--pair-offset` and `--max-pairs`. The selected pair list and the SHA-256 of
 the exact strategy source are written into the run manifest.
 
+## Breakout -> Retest scalping benchmark
+
+The second locked production-direction research candidate is
+`BreakoutRetestScalp`, also tested on **1m and 5m Binance Futures scalping**
+under the same execution overlay as the liquidity-sweep benchmark.
+
+The v1 rule is frozen before results are inspected:
+
+- prior range = previous 20 completed candles,
+- breakout candle = previous candle closes at least 5 bps beyond that range,
+- retest candle = immediately following candle revisits the broken level within
+  a 10 bps tolerance,
+- retest must close back on the breakout side,
+- long retest closes in the upper 55% of its candle; short retest closes in the
+  lower 45%,
+- entry occurs on the candle after the completed retest signal.
+
+Execution remains unchanged for comparability: 1x leverage, +0.8% gross ROI
+target, -0.5% stop, 30-minute maximum hold, the same Freqtrade fee, and the same
+post-backtest slippage stress. Do not tune these values on the same sample after
+seeing results.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;
