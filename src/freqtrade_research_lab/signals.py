@@ -50,3 +50,69 @@ def macd_crossover_signals(
         long=(macd > signal) & (macd.shift(1) <= signal.shift(1)) & tradable,
         short=(macd < signal) & (macd.shift(1) >= signal.shift(1)) & tradable,
     )
+
+
+def liquidity_sweep_reclaim_signals(
+    frame: pd.DataFrame,
+    *,
+    lookback: int = 20,
+    min_sweep_bps: float = 5.0,
+    rejection_close_fraction: float = 0.60,
+) -> SignalSet:
+    """Closed-candle liquidity sweep/reclaim signals with no future leakage.
+
+    Long:
+    - current low sweeps below the prior `lookback`-bar low by at least
+      `min_sweep_bps`,
+    - current close reclaims that prior low,
+    - close finishes in the upper `rejection_close_fraction` of the candle.
+
+    Short is the exact mirror image around the prior rolling high.
+    """
+    if lookback < 2:
+        raise ValueError("lookback must be at least 2")
+    if min_sweep_bps < 0:
+        raise ValueError("min_sweep_bps cannot be negative")
+    if not 0.5 < rejection_close_fraction < 1.0:
+        raise ValueError("rejection_close_fraction must be between 0.5 and 1.0")
+
+    required = {"high", "low", "close", "volume"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError("OHLCV frame missing columns: " + ", ".join(missing))
+
+    previous_low = (
+        frame["low"]
+        .rolling(lookback, min_periods=lookback)
+        .min()
+        .shift(1)
+    )
+    previous_high = (
+        frame["high"]
+        .rolling(lookback, min_periods=lookback)
+        .max()
+        .shift(1)
+    )
+
+    sweep_fraction = min_sweep_bps / 10_000.0
+    candle_range = (frame["high"] - frame["low"]).where(
+        frame["high"] > frame["low"]
+    )
+    close_location = (frame["close"] - frame["low"]) / candle_range
+    tradable = frame["volume"] > 0
+
+    long_signal = (
+        previous_low.notna()
+        & (frame["low"] <= previous_low * (1.0 - sweep_fraction))
+        & (frame["close"] > previous_low)
+        & (close_location >= rejection_close_fraction)
+        & tradable
+    )
+    short_signal = (
+        previous_high.notna()
+        & (frame["high"] >= previous_high * (1.0 + sweep_fraction))
+        & (frame["close"] < previous_high)
+        & (close_location <= 1.0 - rejection_close_fraction)
+        & tradable
+    )
+    return SignalSet(long=long_signal, short=short_signal)
