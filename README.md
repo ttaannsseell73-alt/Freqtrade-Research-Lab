@@ -270,6 +270,51 @@ target, -0.5% stop, 30-minute maximum hold, the same Freqtrade fee, and the same
 post-backtest slippage stress. Do not tune these values on the same sample after
 seeing results.
 
+## One-command scalping benchmark suite
+
+Use `scripts/run_scalping_suite.py` to run the locked 1m/5m scalping smoke
+benchmarks without manually launching each strategy/timeframe combination.
+
+The suite currently covers:
+
+- `LiquiditySweepReclaimScalp`
+- `BreakoutRetestScalp`
+- `CompressionExpansionScalp`
+- 1m and 5m
+- the same fee, slippage, stake, pair batch, and date window for every run.
+
+When `--reuse-root` is supplied, the suite reuses an existing run only when the
+strategy SHA-256, timeframe, date window, costs, pair offset, pair count, and
+exact `pairs.txt` all match. Anything missing or mismatched is executed
+automatically.
+
+Example:
+
+```powershell
+docker compose run --rm --entrypoint python freqtrade /freqtrade/user_data/research_lab/scripts/run_scalping_suite.py `
+  --config /freqtrade/user_data/config.json `
+  --data-dir /freqtrade/user_data/data/binance `
+  --catalog-1m /freqtrade/user_data/research/catalog_20250920_20260920/dataset_catalog.csv `
+  --catalog-5m /freqtrade/user_data/research/catalog_5m_20250920_20260920/dataset_catalog.csv `
+  --reuse-root /freqtrade/user_data/research/execution `
+  --output-dir /freqtrade/user_data/research/execution/scalping_suite_smoke5_v1 `
+  --start 2025-09-20 `
+  --end 2026-09-20 `
+  --max-pairs 5
+```
+
+Outputs:
+
+- `suite_summary.csv`: consolidated fee + slippage adjusted metrics.
+- `SCALPING_SUITE_REPORT.md`: readable report with total, long, and short
+  profit factor/expectancy.
+- `suite_manifest.json`: run/reuse settings and any errors.
+- `runs/`: only benchmarks that were not safely reusable.
+
+A `POSITIVE_SMOKE` label is diagnostic only. It is not promotion to live
+trading; lookahead checks, broader-universe testing, walk-forward validation,
+and paper trading are still required.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;

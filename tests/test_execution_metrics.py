@@ -7,6 +7,7 @@ import numpy as np
 from freqtrade_research_lab.execution_metrics import (
     load_backtest_report,
     summarize_backtest,
+    summarize_directions,
     write_backtest_summary,
 )
 
@@ -122,3 +123,33 @@ def test_empty_report_is_supported(tmp_path: Path) -> None:
     assert pair_metrics.empty
     assert exits.empty
     assert overall["trades"] == 0
+
+
+
+def test_direction_summary_separates_long_and_short(tmp_path: Path) -> None:
+    archive = tmp_path / "result.zip"
+    _write_backtest_zip(archive)
+    report = load_backtest_report(archive, strategy_name="BenchmarkMacdExecution")
+
+    directions = summarize_directions(report, slippage_bps_round_trip=4.0)
+    overall = directions.loc[directions["pair"] == "__ALL__"].set_index("direction")
+
+    assert int(overall.loc["long", "trades"]) == 2
+    assert int(overall.loc["short", "trades"]) == 1
+    assert abs(float(overall.loc["long", "expectancy"]) - 0.0146) < 1e-12
+    assert abs(float(overall.loc["short", "expectancy"]) - (-0.0054)) < 1e-12
+
+
+def test_write_backtest_summary_writes_direction_metrics(tmp_path: Path) -> None:
+    archive = tmp_path / "result.zip"
+    _write_backtest_zip(archive)
+    output = tmp_path / "summary"
+
+    write_backtest_summary(
+        archive,
+        output,
+        strategy_name="BenchmarkMacdExecution",
+        slippage_bps_round_trip=4.0,
+    )
+
+    assert (output / "direction_metrics.csv").is_file()

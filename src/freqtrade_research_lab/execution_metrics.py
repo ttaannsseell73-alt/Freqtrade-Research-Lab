@@ -225,6 +225,82 @@ def summarize_backtest(
     return pair_metrics, overall, exits
 
 
+
+def summarize_directions(
+    report: BacktestReport,
+    *,
+    slippage_bps_round_trip: float = 4.0,
+) -> pd.DataFrame:
+    """Return slippage-adjusted long/short metrics overall and per pair."""
+    if slippage_bps_round_trip < 0:
+        raise ValueError("slippage_bps_round_trip cannot be negative")
+
+    columns = [
+        "pair",
+        "direction",
+        "trades",
+        "wins",
+        "draws",
+        "losses",
+        "win_rate",
+        "expectancy",
+        "median_return",
+        "profit_factor",
+        "sum_adjusted_returns",
+        "max_drawdown_compounded",
+        "avg_duration_minutes",
+        "funding_fees_sum",
+    ]
+    trades = report.trades.copy()
+    if trades.empty or "is_short" not in trades.columns:
+        return pd.DataFrame(columns=columns)
+    if "profit_ratio" not in trades.columns:
+        raise ValueError("Backtest trades missing columns: profit_ratio")
+
+    trades["profit_ratio"] = pd.to_numeric(trades["profit_ratio"], errors="raise")
+    trades["adjusted_profit_ratio"] = (
+        trades["profit_ratio"] - slippage_bps_round_trip / 10_000.0
+    )
+    trades["direction"] = np.where(
+        trades["is_short"].fillna(False).astype(bool),
+        "short",
+        "long",
+    )
+    sort_columns = [
+        column for column in ("pair", "close_date", "open_date") if column in trades.columns
+    ]
+    if sort_columns:
+        trades = trades.sort_values(sort_columns).reset_index(drop=True)
+
+    rows: list[dict[str, object]] = []
+    for direction, group in trades.groupby("direction", sort=True, observed=True):
+        metrics = _metrics(group)
+        rows.append({
+            "pair": "__ALL__",
+            "direction": str(direction),
+            **{
+                key: value
+                for key, value in metrics.items()
+                if key not in {"long_trades", "short_trades"}
+            },
+        })
+
+    for (pair, direction), group in trades.groupby(
+        ["pair", "direction"], sort=True, observed=True
+    ):
+        metrics = _metrics(group)
+        rows.append({
+            "pair": str(pair),
+            "direction": str(direction),
+            **{
+                key: value
+                for key, value in metrics.items()
+                if key not in {"long_trades", "short_trades"}
+            },
+        })
+
+    return pd.DataFrame(rows, columns=columns)
+
 def write_backtest_summary(
     archive_path: Path,
     output_dir: Path,
@@ -238,7 +314,12 @@ def write_backtest_summary(
         report,
         slippage_bps_round_trip=slippage_bps_round_trip,
     )
+    directions = summarize_directions(
+        report,
+        slippage_bps_round_trip=slippage_bps_round_trip,
+    )
     pair_metrics.to_csv(output_dir / "pair_metrics.csv", index=False)
+    directions.to_csv(output_dir / "direction_metrics.csv", index=False)
     exits.to_csv(output_dir / "exit_reason_metrics.csv", index=False)
     (output_dir / "overall_metrics.json").write_text(
         json.dumps(overall, indent=2, allow_nan=True),
