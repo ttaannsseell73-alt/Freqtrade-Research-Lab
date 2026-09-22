@@ -275,6 +275,11 @@ seeing results.
 Use `scripts/run_scalping_suite.py` to run the locked 1m/5m scalping smoke
 benchmarks without manually launching each strategy/timeframe combination.
 
+5m suite members are executed with **1m detail candles** so stop/ROI ordering
+inside each 5m candle is resolved at the finest locally available OHLCV
+resolution. Reuse validation includes `timeframe_detail`, therefore older 5m
+runs without 1m detail are not accepted as canonical reuse candidates.
+
 The suite currently covers:
 
 - `LiquiditySweepReclaimScalp`
