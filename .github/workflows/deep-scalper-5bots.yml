@@ -1,0 +1,197 @@
+name: deep-scalper-5bots
+
+on:
+  push:
+    branches:
+      - bench/native-scalper-5bots-v1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  elvis_usdm_scalper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned project
+        run: |
+          git clone https://github.com/ElvisTV/backtestingbots_s1.git candidate
+          cd candidate
+          git checkout 043c8c499bd47b33ca0d0fd2eb021fe992a2cfa4
+      - name: Install
+        run: python -m pip install pandas numpy matplotlib requests
+      - name: Prepare funding-neutral benchmark
+        run: |
+          cd candidate
+          mkdir -p bench_data
+          printf 'timestamp,funding_rate,mark_price\n' > bench_data/BTCUSDT_funding.csv
+      - name: Run native scalping backtest
+        run: |
+          cd candidate
+          set -o pipefail
+          python btcusdt_usdm_scalping_backtester.py             --intervals 1m 5m             --start-month 2026-08             --end-month 2026-08             --data-dir bench_data             --output-dir bench_out             --initial-equity 1000 2>&1 | tee ../elvis.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: elvis-usdm-scalper
+          path: |
+            elvis.log
+            candidate/bench_out/
+
+  libaceta_scalping_research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned project
+        run: |
+          git clone https://github.com/libaceta/tradingbot.git candidate
+          cd candidate
+          git checkout 10bdfd01fd6dbf4a5b80c1719fdabe96f953bef7
+      - name: Install
+        run: python -m pip install requests pandas numpy
+      - name: Run native 90d Bybit perpetual benchmark
+        run: |
+          cd candidate
+          set -o pipefail
+          python strategies/scalping_research/backtest_scalping.py 2>&1 | tee ../libaceta.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: libaceta-scalping-research
+          path: |
+            libaceta.log
+            candidate/strategies/scalping_research/SCALPING_REPORT.md
+            candidate/strategies/scalping_research/scalping_results.json
+
+  dogan_scalping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned project
+        run: |
+          git clone https://github.com/DoganAliSAN/scalping.git candidate
+          cd candidate
+          git checkout d731a98907e7cb0bdeb1262c631443a91a892440
+      - name: Install
+        run: python -m pip install python-binance pandas numpy requests pytz
+      - name: Run native cached monthly benchmark
+        run: |
+          cd candidate
+          set -o pipefail
+          python backtest_month.py --month 2026-03             --symbols BTCUSDT_PERP ETHUSDT_PERP             --workers 2 --leverage 20 2>&1 | tee ../dogan.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dogan-scalping
+          path: dogan.log
+
+  dniskav_scalper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned project
+        run: |
+          git clone https://github.com/dniskav/scalper-bot.git candidate
+          cd candidate
+          git checkout c6f2455f5bab34d0e11c4b351a23154782b7ef9a
+      - name: Install
+        run: python -m pip install -r candidate/deploy/requirements.txt
+      - name: Download immutable Binance Vision 5m month
+        run: |
+          python - <<'PY'
+          import io, zipfile, urllib.request, csv
+          url='https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip'
+          data=urllib.request.urlopen(url, timeout=60).read()
+          z=zipfile.ZipFile(io.BytesIO(data))
+          rows=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]), encoding='utf-8')))
+          with open('candidate/btcusdt_5m.csv','w',newline='') as f:
+              w=csv.writer(f)
+              for r in rows:
+                  if not r or not r[0].isdigit():
+                      continue
+                  w.writerow([r[0],r[1],r[2],r[3],r[4],r[5]])
+          print('candles', len(rows))
+          PY
+      - name: Run native CSV backtest
+        run: |
+          cd candidate
+          set -o pipefail
+          python -m src.ui.cli backtest btcusdt_5m.csv 2>&1 | tee ../dniskav.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dniskav-scalper
+          path: |
+            dniskav.log
+            candidate/data/backtest_trades.csv
+
+  eye360_scalper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned project
+        run: |
+          git clone https://github.com/kishore446/360-Crypto-Eye-Scalping-.git candidate
+          cd candidate
+          git checkout 46d1f154077c14007c4892cb3dc86394c8fd7cb6
+      - name: Install
+        run: python -m pip install -r candidate/requirements.txt pandas numpy
+      - name: Run backtester on immutable Binance Vision data
+        run: |
+          cd candidate
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee ../eye360.log
+          import io, zipfile, urllib.request, csv
+          import pandas as pd
+          from bot.backtester import Backtester, CandleData
+
+          url='https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip'
+          payload=urllib.request.urlopen(url, timeout=60).read()
+          z=zipfile.ZipFile(io.BytesIO(payload))
+          raw=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]),encoding='utf-8')))
+          rows=[]
+          for r in raw:
+              if not r or not r[0].isdigit():
+                  continue
+              rows.append((pd.to_datetime(int(r[0]),unit='ms',utc=True),float(r[1]),float(r[2]),float(r[3]),float(r[4]),float(r[5])))
+          df=pd.DataFrame(rows,columns=['ts','open','high','low','close','volume']).set_index('ts')
+
+          def to_candles(frame):
+              return [CandleData(open=float(x.open),high=float(x.high),low=float(x.low),close=float(x.close),volume=float(x.volume)) for x in frame.itertuples()]
+
+          agg={'open':'first','high':'max','low':'min','close':'last','volume':'sum'}
+          df4h=df.resample('4h').agg(agg).dropna()
+          df1d=df.resample('1D').agg(agg).dropna()
+          bt=Backtester('BTC/USDT:USDT',to_candles(df),to_candles(df4h),to_candles(df1d),initial_capital=1000,risk_per_trade=0.01)
+          result=bt.run()
+          result.print_report()
+          print(result.summary())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eye360-scalper
+          path: eye360.log
