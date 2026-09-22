@@ -1,0 +1,204 @@
+name: native-scalper-benchmark-v1
+
+on:
+  push:
+    branches:
+      - benchmark/native-scalpers-v1
+    paths:
+      - ".github/workflows/native-scalper-benchmark-v1.yml"
+      - "benchmarks/native_scalpers_v1/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smallfish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Clone pinned Smallfish
+        run: |
+          git clone https://github.com/azseza/smallfish_.git candidate
+          cd candidate
+          git checkout e9a53c5a43f0dcb88d9ecd1b2130f7dac61b205f
+          git rev-parse HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          cd candidate
+          python -m pip install --upgrade pip
+          python -m pip install .
+      - name: Tests
+        continue-on-error: true
+        run: |
+          cd candidate
+          python -m pytest -q | tee ../smallfish_tests.log
+      - name: Native Binance futures backtest
+        id: backtest
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          python src/backtest.py --symbol BTCUSDT --days 14 --mode aggressive --equity 1000 --exchange binance --fees --interval 1 2>&1 | tee ../smallfish_backtest.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smallfish
+          path: |
+            smallfish_tests.log
+            smallfish_backtest.log
+
+  ultra_scalping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Clone pinned Ultra Scalping Bot
+        run: |
+          git clone https://github.com/ROMEROPS7/ultra-scalping-bot.git candidate
+          cd candidate
+          git checkout b47351ff8963d8e9f13aa91be91f8cbaf28025b9
+          git rev-parse HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          cd candidate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Native combined scalper backtest
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          python run_backtest.py --symbol BTC/USDT:USDT --timeframe 1m --days 14 --strategy combined --exchange binance --capital 1000 --commission 0.05 --output ../ultra_result.json 2>&1 | tee ../ultra_backtest.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ultra-scalping
+          path: |
+            ultra_backtest.log
+            ultra_result.json
+
+  jodi_orderflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      BINANCE_TESTNET: "false"
+      INITIAL_BALANCE: "1000"
+      LEVERAGE: "1"
+      BACKTEST_LEVERAGE: "1"
+      FEE_TAKER: "0.001"
+    steps:
+      - name: Clone pinned JODI Orderflow Scalper
+        run: |
+          git clone https://github.com/JODI96/Trader.git candidate
+          cd candidate
+          git checkout 4384b050464741c588fdcd0579e1c0b7d43863a4
+          git rev-parse HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          cd candidate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Native backtest and training replay
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          python main.py --mode backtest --symbol BTCUSDT --days 7 --cycles 1 2>&1 | tee ../jodi_backtest.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jodi-orderflow
+          path: |
+            jodi_backtest.log
+            candidate/models/**
+            candidate/data/**
+
+  nikhil_futures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      USE_TESTNET: "false"
+      INITIAL_CAPITAL: "1000"
+    steps:
+      - name: Clone pinned Binance Futures Bot
+        run: |
+          git clone https://github.com/Nikhilperr/binance-futures-trading-bot.git candidate
+          cd candidate
+          git checkout $(git rev-parse HEAD)
+          git rev-parse HEAD | tee ../nikhil_commit.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          cd candidate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Probe public Binance futures data
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee ../nikhil_probe.log
+          from modules.trade_manager import get_client
+          client = get_client()
+          rows = client.futures_klines(symbol="BTCUSDT", interval="1h", limit=720)
+          print("PUBLIC_DATA_OK", len(rows))
+          PY
+      - name: Run native weekly backtester
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee ../nikhil_backtest.log
+          from modules.learning_engine import init_db
+          from modules.backtester import run_weekly_backtest
+          init_db()
+          result = run_weekly_backtest()
+          print("NATIVE_BACKTEST_RESULT", result)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nikhil-futures
+          path: |
+            nikhil_commit.txt
+            nikhil_probe.log
+            nikhil_backtest.log
+
+  binance_go_scalp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Clone pinned Go Binance Scalp Bot
+        run: |
+          git clone https://github.com/wferreirauy/binance-bot.git candidate
+          cd candidate
+          git checkout 260bd2e13738b8c81d8f5f9918e004c6370f9b61
+          git rev-parse HEAD
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+      - name: Tests
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          go test ./... 2>&1 | tee ../go_scalp_tests.log
+      - name: Native scalp-bull backtest
+        continue-on-error: true
+        run: |
+          cd candidate
+          set -o pipefail
+          go run . -f sample-scalp-config.yml backtest -t "BTC/USDT" --strategy scalp-bull 2>&1 | tee ../go_scalp_backtest.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-binance-scalp
+          path: |
+            go_scalp_tests.log
+            go_scalp_backtest.log
