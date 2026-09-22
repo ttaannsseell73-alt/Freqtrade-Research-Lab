@@ -300,11 +300,11 @@ def test_compression_expansion_validates_parameters() -> None:
 def _bos_choch_fixture() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "open": [100.0, 101.0, 102.0, 102.8, 104.8, 104.5],
-            "high": [101.0, 102.0, 103.0, 105.0, 106.8, 105.0],
-            "low": [99.0, 100.0, 101.0, 102.5, 104.2, 99.0],
-            "close": [100.0, 101.0, 102.0, 104.5, 106.2, 100.0],
-            "volume": [1.0] * 6,
+            "open": [100.0, 101.0, 102.0, 103.0, 104.5, 106.5, 107.0],
+            "high": [101.0, 102.0, 103.0, 104.0, 106.8, 108.5, 108.0],
+            "low": [99.0, 100.0, 101.0, 102.0, 104.2, 105.5, 99.0],
+            "close": [100.0, 101.0, 102.0, 103.0, 106.2, 108.2, 100.2],
+            "volume": [1.0] * 7,
         }
     )
 
@@ -323,11 +323,11 @@ def test_bos_choch_initializes_then_emits_bos_and_choch() -> None:
     )
 
     # First confirmed break establishes state and is not traded.
-    assert not bool(signals.long.iloc[3])
+    assert not bool(signals.long.iloc[4])
     # Continuation break is BOS.
-    assert bool(signals.long.iloc[4])
+    assert bool(signals.long.iloc[5])
     # Opposite break is CHOCH.
-    assert bool(signals.short.iloc[5])
+    assert bool(signals.short.iloc[6])
     assert not (signals.long & signals.short).any()
 
 
