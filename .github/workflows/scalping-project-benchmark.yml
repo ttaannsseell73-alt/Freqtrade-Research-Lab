@@ -1,0 +1,204 @@
+name: scalping-project-benchmark
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/scalping-project-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eye360:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/kishore446/360-Crypto-Eye-Scalping-.git bot
+          cd bot
+          git checkout 46d1f154077c14007c4892cb3dc86394c8fd7cb6
+      - name: Install
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Native tests and public-data backtest smoke
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          pytest -q tests --disable-warnings > ../eye360-tests.log 2>&1
+          TEST_RC=$?
+          timeout 240 python -m bot.backtest_cli --symbol BTCUSDT --start 2026-08-01 --end 2026-08-04 --quiet > ../eye360-backtest.log 2>&1
+          BACKTEST_RC=$?
+          printf "project=360-Crypto-Eye-Scalping\ncommit=46d1f154077c14007c4892cb3dc86394c8fd7cb6\ntest_rc=%s\nbacktest_rc=%s\n" "$TEST_RC" "$BACKTEST_RC" > ../eye360-result.txt
+          cat ../eye360-result.txt
+          tail -80 ../eye360-backtest.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eye360-result
+          path: |
+            eye360-result.txt
+            eye360-tests.log
+            eye360-backtest.log
+
+  jodi-trader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/JODI96/Trader.git bot
+          cd bot
+          git checkout 4384b050464741c588fdcd0579e1c0b7d43863a4
+      - name: Install
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile and historical replay
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python -m compileall -q . > ../jodi-compile.log 2>&1
+          COMPILE_RC=$?
+          timeout 600 python main.py --mode backtest --days 1 --symbol BTCUSDT > ../jodi-backtest.log 2>&1
+          BACKTEST_RC=$?
+          printf "project=JODI96-Trader\ncommit=4384b050464741c588fdcd0579e1c0b7d43863a4\ncompile_rc=%s\nbacktest_rc=%s\n" "$COMPILE_RC" "$BACKTEST_RC" > ../jodi-result.txt
+          cat ../jodi-result.txt
+          tail -120 ../jodi-backtest.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jodi-result
+          path: |
+            jodi-result.txt
+            jodi-compile.log
+            jodi-backtest.log
+
+  hftbacktest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Install stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/nkaz001/hftbacktest.git bot
+          cd bot
+          git checkout 5f3ec40b2afb764e0fea112f941ed85523ef4e88
+      - name: Build and native tests
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          RUSTFLAGS="" cargo build -p hftbacktest --release > ../hft-build.log 2>&1
+          BUILD_RC=$?
+          RUSTFLAGS="" cargo test -p hftbacktest --lib > ../hft-tests.log 2>&1
+          TEST_RC=$?
+          printf "project=hftbacktest\ncommit=5f3ec40b2afb764e0fea112f941ed85523ef4e88\nbuild_rc=%s\ntest_rc=%s\n" "$BUILD_RC" "$TEST_RC" > ../hft-result.txt
+          cat ../hft-result.txt
+          tail -100 ../hft-tests.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hft-result
+          path: |
+            hft-result.txt
+            hft-build.log
+            hft-tests.log
+
+  auto-trader-scalping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/mgh3326/auto_trader.git bot
+          cd bot
+          git checkout 008c8585d5ee0b2102eeeff9461c043b59957665
+      - name: Install uv and test dependencies
+        run: |
+          pip install uv
+          cd bot
+          uv sync --group test
+          uv pip install --python .venv/bin/python nautilus_trader==1.227.0
+      - name: Run scalping-specific tests
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          uv run pytest -q             tests/services/brokers/binance/demo_scalping/test_signal.py             research/nautilus_scalping/tests/test_signal_parity.py             research/nautilus_scalping/tests/test_meanrev_parity.py             > ../auto-trader-tests.log 2>&1
+          TEST_RC=$?
+          printf "project=auto_trader-nautilus-scalping\ncommit=008c8585d5ee0b2102eeeff9461c043b59957665\ntest_rc=%s\n" "$TEST_RC" > ../auto-trader-result.txt
+          cat ../auto-trader-result.txt
+          tail -120 ../auto-trader-tests.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auto-trader-result
+          path: |
+            auto-trader-result.txt
+            auto-trader-tests.log
+
+  ict-smart-money:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/pranay123-stack/Algorithmic-Trading-Projects.git bot
+          cd bot
+          git checkout 4da7382886675510c664c18fe035f9dd805542a3
+      - name: Paper engine tests
+        shell: bash
+        run: |
+          set +e
+          cd bot/ict_smart_money_crypto_strategy/paper_trading_engine
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+          pytest -q tests > ../../../ict-tests.log 2>&1
+          TEST_RC=$?
+          printf "project=ICT-Smart-Money-Crypto\ncommit=4da7382886675510c664c18fe035f9dd805542a3\ntest_rc=%s\n" "$TEST_RC" > ../../../ict-result.txt
+          cat ../../../ict-result.txt
+          tail -120 ../../../ict-tests.log || true
+      - name: Backtest CLI smoke
+        shell: bash
+        run: |
+          set +e
+          cd bot/ict_smart_money_crypto_strategy/backtest_engine
+          pip install -r requirements.txt > ../../../ict-install-backtest.log 2>&1
+          INSTALL_RC=$?
+          if [ "$INSTALL_RC" -eq 0 ]; then
+            timeout 600 python backtest_cli.py --preset scalping --symbol BTC/USDT --timeframe 15m --year 2024 --leverage 3.0 --output ../../../ict-backtest.json > ../../../ict-backtest.log 2>&1
+            BACKTEST_RC=$?
+          else
+            BACKTEST_RC=99
+          fi
+          printf "backtest_install_rc=%s\nbacktest_rc=%s\n" "$INSTALL_RC" "$BACKTEST_RC" >> ../../../ict-result.txt
+          cat ../../../ict-result.txt
+          tail -120 ../../../ict-backtest.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ict-result
+          path: |
+            ict-result.txt
+            ict-tests.log
+            ict-install-backtest.log
+            ict-backtest.log
+            ict-backtest.json
+          if-no-files-found: ignore
