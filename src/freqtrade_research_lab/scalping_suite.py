@@ -16,6 +16,7 @@ DEFAULT_STRATEGIES = (
     "LiquiditySweepReclaimScalp",
     "BreakoutRetestScalp",
     "CompressionExpansionScalp",
+    "BosChochScalp",
 )
 
 

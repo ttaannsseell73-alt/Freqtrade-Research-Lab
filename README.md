@@ -280,6 +280,7 @@ The suite currently covers:
 - `LiquiditySweepReclaimScalp`
 - `BreakoutRetestScalp`
 - `CompressionExpansionScalp`
+- `BosChochScalp`
 - 1m and 5m
 - the same fee, slippage, stake, pair batch, and date window for every run.
 
@@ -314,6 +315,25 @@ Outputs:
 A `POSITIVE_SMOKE` label is diagnostic only. It is not promotion to live
 trading; lookahead checks, broader-universe testing, walk-forward validation,
 and paper trading are still required.
+
+## BOS / CHOCH scalping benchmark
+
+The fourth locked price-action candidate is `BosChochScalp`.
+
+The v1 rule is frozen before results are inspected:
+
+- market-structure levels = previous 20 completed candles,
+- confirmed break requires a close at least 5 bps beyond the prior structure level,
+- break candle normalized range must be at least 1.20x the prior 20-candle median,
+- long breaks must close in the upper 65% of the candle; short breaks in the lower 35%,
+- the first confirmed break only initializes directional structure state,
+- a later same-direction break is tagged BOS,
+- a later opposite-direction break is tagged CHOCH,
+- entry occurs only after the completed break candle.
+
+No centered/fractal pivot requiring future candles is used. Execution remains the
+same 1x, +0.8% ROI, -0.5% stop, 30-minute maximum hold benchmark so signal
+families remain comparable.
 
 ## Known research limitations
 
