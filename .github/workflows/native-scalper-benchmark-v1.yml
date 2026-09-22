@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v4
       - name: Clone pinned Smallfish
         run: |
           git clone https://github.com/azseza/smallfish_.git candidate
@@ -28,32 +29,24 @@ jobs:
           python-version: "3.11"
       - name: Install
         run: |
-          cd candidate
           python -m pip install --upgrade pip
-          python -m pip install .
-      - name: Tests
-        continue-on-error: true
+          python -m pip install ./candidate
+      - name: Native engine on pinned common dataset
         run: |
-          cd candidate
-          python -m pytest -q | tee ../smallfish_tests.log
-      - name: Native Binance futures backtest
-        id: backtest
-        continue-on-error: true
-        run: |
-          cd candidate
           set -o pipefail
-          python src/backtest.py --symbol BTCUSDT --days 14 --mode aggressive --equity 1000 --exchange binance --fees --interval 1 2>&1 | tee ../smallfish_backtest.log
+          python benchmarks/native_scalpers_v1/run_smallfish_local.py --candidate candidate --output smallfish_result.json 2>&1 | tee smallfish_local.log
       - uses: actions/upload-artifact@v4
         with:
-          name: smallfish
+          name: smallfish-local
           path: |
-            smallfish_tests.log
-            smallfish_backtest.log
+            smallfish_local.log
+            smallfish_result.json
 
   ultra_scalping:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v4
       - name: Clone pinned Ultra Scalping Bot
         run: |
           git clone https://github.com/ROMEROPS7/ultra-scalping-bot.git candidate
@@ -65,32 +58,30 @@ jobs:
           python-version: "3.11"
       - name: Install
         run: |
-          cd candidate
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: Native combined scalper backtest
-        continue-on-error: true
+          python -m pip install -r candidate/requirements.txt
+      - name: Native core backtester on pinned common dataset
         run: |
-          cd candidate
           set -o pipefail
-          python run_backtest.py --symbol BTC/USDT:USDT --timeframe 1m --days 14 --strategy combined --exchange binance --capital 1000 --commission 0.05 --output ../ultra_result.json 2>&1 | tee ../ultra_backtest.log
+          python benchmarks/native_scalpers_v1/run_ultra_local.py --candidate candidate --output ultra_result.json 2>&1 | tee ultra_local.log
       - uses: actions/upload-artifact@v4
         with:
-          name: ultra-scalping
+          name: ultra-local
           path: |
-            ultra_backtest.log
+            ultra_local.log
             ultra_result.json
 
   jodi_orderflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     env:
       BINANCE_TESTNET: "false"
       INITIAL_BALANCE: "1000"
       LEVERAGE: "1"
       BACKTEST_LEVERAGE: "1"
-      FEE_TAKER: "0.001"
+      FEE_TAKER: "0.0014"
     steps:
+      - uses: actions/checkout@v4
       - name: Clone pinned JODI Orderflow Scalper
         run: |
           git clone https://github.com/JODI96/Trader.git candidate
@@ -102,79 +93,27 @@ jobs:
           python-version: "3.11"
       - name: Install
         run: |
-          cd candidate
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: Native backtest and training replay
-        continue-on-error: true
+          python -m pip install -r candidate/requirements.txt
+      - name: Chronological 5d train plus 2d validation
         run: |
-          cd candidate
           set -o pipefail
-          python main.py --mode backtest --symbol BTCUSDT --days 7 --cycles 1 2>&1 | tee ../jodi_backtest.log
+          python benchmarks/native_scalpers_v1/run_jodi_local.py --candidate candidate --output jodi_result.json 2>&1 | tee jodi_local.log
       - uses: actions/upload-artifact@v4
         with:
-          name: jodi-orderflow
+          name: jodi-local
           path: |
-            jodi_backtest.log
-            candidate/models/**
-            candidate/data/**
-
-  nikhil_futures:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      USE_TESTNET: "false"
-      INITIAL_CAPITAL: "1000"
-    steps:
-      - name: Clone pinned Binance Futures Bot
-        run: |
-          git clone https://github.com/Nikhilperr/binance-futures-trading-bot.git candidate
-          cd candidate
-          git checkout $(git rev-parse HEAD)
-          git rev-parse HEAD | tee ../nikhil_commit.txt
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install
-        run: |
-          cd candidate
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-      - name: Probe public Binance futures data
-        continue-on-error: true
-        run: |
-          cd candidate
-          set -o pipefail
-          python - <<'PY' 2>&1 | tee ../nikhil_probe.log
-          from modules.trade_manager import get_client
-          client = get_client()
-          rows = client.futures_klines(symbol="BTCUSDT", interval="1h", limit=720)
-          print("PUBLIC_DATA_OK", len(rows))
-          PY
-      - name: Run native weekly backtester
-        continue-on-error: true
-        run: |
-          cd candidate
-          set -o pipefail
-          python - <<'PY' 2>&1 | tee ../nikhil_backtest.log
-          from modules.learning_engine import init_db
-          from modules.backtester import run_weekly_backtest
-          init_db()
-          result = run_weekly_backtest()
-          print("NATIVE_BACKTEST_RESULT", result)
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nikhil-futures
-          path: |
-            nikhil_commit.txt
-            nikhil_probe.log
-            nikhil_backtest.log
+            jodi_local.log
+            jodi_result.json
+            candidate/ml/model/**
 
   binance_go_scalp:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      BENCH_DATA_GLOB: ${{ github.workspace }}/benchmarks/native_scalpers_v1/data/BTCUSDT_1m_20260908_20260915_part*.json
     steps:
+      - uses: actions/checkout@v4
       - name: Clone pinned Go Binance Scalp Bot
         run: |
           git clone https://github.com/wferreirauy/binance-bot.git candidate
@@ -184,21 +123,50 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24.x"
-      - name: Tests
-        continue-on-error: true
+      - name: Baseline project tests
         run: |
           cd candidate
-          set -o pipefail
-          go test ./... 2>&1 | tee ../go_scalp_tests.log
-      - name: Native scalp-bull backtest
-        continue-on-error: true
+          go test ./...
+      - name: Run native scalp decision path on pinned fixture
         run: |
+          cp benchmarks/native_scalpers_v1/go_local_benchmark_test.go candidate/strategy/native_fixture_benchmark_test.go
           cd candidate
           set -o pipefail
-          go run . -f sample-scalp-config.yml backtest -t "BTC/USDT" --strategy scalp-bull 2>&1 | tee ../go_scalp_backtest.log
+          go test ./strategy -run TestNativeScalpBullOnPinnedFixture -v 2>&1 | tee ../go_local.log
       - uses: actions/upload-artifact@v4
         with:
-          name: go-binance-scalp
+          name: go-scalp-local
+          path: go_local.log
+
+  eye360:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone pinned 360 Crypto Eye
+        run: |
+          git clone https://github.com/kishore446/360-Crypto-Eye-Scalping-.git candidate
+          cd candidate
+          git checkout 46d1f154077c14007c4892cb3dc86394c8fd7cb6
+          git rev-parse HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r candidate/requirements.txt
+      - name: Project tests
+        run: |
+          cd candidate
+          pytest tests -q
+      - name: Native confluence backtester on pinned futures dataset
+        run: |
+          set -o pipefail
+          python benchmarks/native_scalpers_v1/run_360eye_local.py --candidate candidate --output eye360_result.json 2>&1 | tee eye360_local.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eye360-local
           path: |
-            go_scalp_tests.log
-            go_scalp_backtest.log
+            eye360_local.log
+            eye360_result.json
