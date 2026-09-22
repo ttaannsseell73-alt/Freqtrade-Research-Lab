@@ -26,7 +26,7 @@ jobs:
           cd candidate
           git checkout 043c8c499bd47b33ca0d0fd2eb021fe992a2cfa4
       - name: Install
-        run: python -m pip install pandas numpy matplotlib requests websockets python-dotenv
+        run: python -m pip install pandas numpy matplotlib requests websockets python-dotenv cryptography
       - name: Prepare funding-neutral benchmark
         run: |
           cd candidate
@@ -60,6 +60,10 @@ jobs:
           git checkout 10bdfd01fd6dbf4a5b80c1719fdabe96f953bef7
       - name: Install
         run: python -m pip install requests pandas numpy
+      - name: Prepare native report directory
+        run: |
+          sudo mkdir -p /app/strategies/scalping_research
+          sudo chown -R "$USER":"$USER" /app
       - name: Run native strategies on immutable Binance USD-M data
         run: |
           cd candidate
@@ -100,7 +104,6 @@ jobs:
 
           mod.fetch_klines=lambda symbol, interval, days=90: vision_frame(symbol, interval)
           mod.DAYS_HISTORY=90
-          Path("/app/strategies/scalping_research").mkdir(parents=True, exist_ok=True)
           mod.main()
           PY
       - name: Collect report
@@ -178,6 +181,24 @@ jobs:
           cd candidate
           set -o pipefail
           PYTHONPATH=src python -m ui.cli backtest btcusdt_5m.csv 2>&1 | tee ../dniskav.log
+      - name: Standardize dniskav metrics with 14 bps round-trip cost
+        run: |
+          cd candidate
+          python - <<'PY' | tee -a ../dniskav.log
+          import csv, math
+          p='data/backtest_trades.csv'
+          rows=list(csv.DictReader(open(p))) if __import__('os').path.exists(p) else []
+          rets=[]
+          for r in rows:
+              e=float(r['entry']); x=float(r['exit']); side=r['side']
+              gross=(x/e-1.0) if side=='long' else (e/x-1.0)
+              rets.append(gross-0.0014)
+          wins=[x for x in rets if x>0]; losses=[x for x in rets if x<0]
+          pf=sum(wins)/abs(sum(losses)) if losses else (float('inf') if wins else 0.0)
+          print('STANDARDIZED trades=',len(rets),'win_rate=',(len(wins)/len(rets) if rets else 0.0),
+                'expectancy=',(sum(rets)/len(rets) if rets else 0.0),'profit_factor=',pf,
+                'net_return_sum=',sum(rets))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
