@@ -3,7 +3,6 @@ import glob
 import json
 from pathlib import Path
 from typing import Iterable
-import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 PATTERN = ROOT / "benchmarks" / "native_scalpers_v1" / "data" / "BTCUSDT_1m_20260908_20260915_part*.json"
@@ -25,6 +24,7 @@ def slice_days(rows: list[list], start_day: int, days: int) -> list[list]:
     return [r for r in rows if start <= int(r[0]) < end]
 
 def resample(rows: list[list], minutes: int) -> list[list]:
+    import pandas as pd
     if minutes == 1:
         return list(rows)
     frame = pd.DataFrame(rows, columns=[
@@ -52,7 +52,8 @@ def resample(rows: list[list], minutes: int) -> list[list]:
         ])
     return out
 
-def to_frame(rows: list[list]) -> pd.DataFrame:
+def to_frame(rows: list[list]):
+    import pandas as pd
     frame=pd.DataFrame({
         "timestamp":pd.to_datetime([int(r[0]) for r in rows],unit="ms",utc=True),
         "open":[float(r[1]) for r in rows],
