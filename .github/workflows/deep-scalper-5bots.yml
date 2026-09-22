@@ -26,7 +26,7 @@ jobs:
           cd candidate
           git checkout 043c8c499bd47b33ca0d0fd2eb021fe992a2cfa4
       - name: Install
-        run: python -m pip install pandas numpy matplotlib requests
+        run: python -m pip install pandas numpy matplotlib requests websockets python-dotenv
       - name: Prepare funding-neutral benchmark
         run: |
           cd candidate
@@ -60,19 +60,61 @@ jobs:
           git checkout 10bdfd01fd6dbf4a5b80c1719fdabe96f953bef7
       - name: Install
         run: python -m pip install requests pandas numpy
-      - name: Run native 90d Bybit perpetual benchmark
+      - name: Run native strategies on immutable Binance USD-M data
         run: |
           cd candidate
           set -o pipefail
-          python strategies/scalping_research/backtest_scalping.py 2>&1 | tee ../libaceta.log
+          python - <<'PY' 2>&1 | tee ../libaceta.log
+          import csv, io, zipfile, urllib.request
+          import pandas as pd
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("strategies/scalping_research/backtest_scalping.py")
+          spec = importlib.util.spec_from_file_location("scalp_research", path)
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+
+          cache = {}
+          def vision_frame(symbol, interval):
+              key=(symbol,interval)
+              if key in cache:
+                  return cache[key].copy()
+              frames=[]
+              for month in ("2026-06","2026-07","2026-08"):
+                  url=f"https://data.binance.vision/data/futures/um/monthly/klines/{symbol}/{interval}m/{symbol}-{interval}m-{month}.zip"
+                  payload=urllib.request.urlopen(url, timeout=60).read()
+                  z=zipfile.ZipFile(io.BytesIO(payload))
+                  raw=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]),encoding="utf-8")))
+                  rows=[]
+                  for r in raw:
+                      if not r or not r[0].isdigit():
+                          continue
+                      rows.append([int(r[0]),float(r[1]),float(r[2]),float(r[3]),float(r[4]),float(r[5]),float(r[7])])
+                  frames.append(pd.DataFrame(rows,columns=["ts","open","high","low","close","volume","turnover"]))
+              df=pd.concat(frames,ignore_index=True).drop_duplicates("ts").sort_values("ts").reset_index(drop=True)
+              df["datetime"]=pd.to_datetime(df["ts"],unit="ms")
+              cache[key]=df
+              print(f"loaded {symbol} {interval}m {len(df)} candles")
+              return df.copy()
+
+          mod.fetch_klines=lambda symbol, interval, days=90: vision_frame(symbol, interval)
+          mod.DAYS_HISTORY=90
+          Path("/app/strategies/scalping_research").mkdir(parents=True, exist_ok=True)
+          mod.main()
+          PY
+      - name: Collect report
+        if: always()
+        run: |
+          mkdir -p libaceta_out
+          cp -f /app/strategies/scalping_research/* libaceta_out/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: libaceta-scalping-research
           path: |
             libaceta.log
-            candidate/strategies/scalping_research/SCALPING_REPORT.md
-            candidate/strategies/scalping_research/scalping_results.json
+            libaceta_out/
 
   dogan_scalping:
     runs-on: ubuntu-latest
@@ -88,7 +130,7 @@ jobs:
           cd candidate
           git checkout d731a98907e7cb0bdeb1262c631443a91a892440
       - name: Install
-        run: python -m pip install python-binance pandas numpy requests pytz
+        run: python -m pip install python-binance pandas numpy requests pytz matplotlib
       - name: Run native cached monthly benchmark
         run: |
           cd candidate
@@ -135,7 +177,7 @@ jobs:
         run: |
           cd candidate
           set -o pipefail
-          python -m src.ui.cli backtest btcusdt_5m.csv 2>&1 | tee ../dniskav.log
+          PYTHONPATH=src python -m ui.cli backtest btcusdt_5m.csv 2>&1 | tee ../dniskav.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
