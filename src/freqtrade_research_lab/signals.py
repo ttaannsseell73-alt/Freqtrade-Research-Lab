@@ -206,3 +206,101 @@ def breakout_retest_signals(
     )
 
     return SignalSet(long=long_signal, short=short_signal)
+
+
+def compression_expansion_signals(
+    frame: pd.DataFrame,
+    *,
+    compression_window: int = 10,
+    baseline_window: int = 50,
+    compression_ratio: float = 0.60,
+    expansion_ratio: float = 1.50,
+    breakout_buffer_bps: float = 5.0,
+    close_strength_fraction: float = 0.65,
+) -> SignalSet:
+    """Price-only compression -> expansion breakout signal without lookahead.
+
+    Compression is measured from the completed prior `compression_window`
+    range relative to its own historical median range-width baseline.
+    Expansion requires the current candle's normalized range to exceed the
+    median normalized candle range of the prior compression window.
+    """
+    if compression_window < 3:
+        raise ValueError("compression_window must be at least 3")
+    if baseline_window < compression_window:
+        raise ValueError("baseline_window must be >= compression_window")
+    if not 0 < compression_ratio < 1:
+        raise ValueError("compression_ratio must be between 0 and 1")
+    if expansion_ratio <= 1:
+        raise ValueError("expansion_ratio must be greater than 1")
+    if breakout_buffer_bps < 0:
+        raise ValueError("breakout_buffer_bps cannot be negative")
+    if not 0.5 < close_strength_fraction < 1.0:
+        raise ValueError("close_strength_fraction must be between 0.5 and 1.0")
+
+    required = {"high", "low", "close", "volume"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError("OHLCV frame missing columns: " + ", ".join(missing))
+
+    rolling_high = frame["high"].rolling(
+        compression_window, min_periods=compression_window
+    ).max()
+    rolling_low = frame["low"].rolling(
+        compression_window, min_periods=compression_window
+    ).min()
+    range_width = (rolling_high - rolling_low) / frame["close"]
+
+    prior_range_width = range_width.shift(1)
+    historical_width_baseline = (
+        range_width
+        .shift(compression_window + 1)
+        .rolling(baseline_window, min_periods=baseline_window)
+        .median()
+    )
+    compressed = (
+        prior_range_width.notna()
+        & historical_width_baseline.notna()
+        & (prior_range_width <= historical_width_baseline * compression_ratio)
+    )
+
+    prior_high = rolling_high.shift(1)
+    prior_low = rolling_low.shift(1)
+
+    previous_close = frame["close"].shift(1)
+    normalized_candle_range = (frame["high"] - frame["low"]) / previous_close
+    prior_range_baseline = (
+        normalized_candle_range
+        .rolling(compression_window, min_periods=compression_window)
+        .median()
+        .shift(1)
+    )
+    expanding = (
+        prior_range_baseline.notna()
+        & (normalized_candle_range >= prior_range_baseline * expansion_ratio)
+    )
+
+    candle_range = (frame["high"] - frame["low"]).where(
+        frame["high"] > frame["low"]
+    )
+    close_location = (frame["close"] - frame["low"]) / candle_range
+    breakout_buffer = breakout_buffer_bps / 10_000.0
+    tradable = frame["volume"] > 0
+
+    long_signal = (
+        compressed
+        & expanding
+        & prior_high.notna()
+        & (frame["close"] >= prior_high * (1.0 + breakout_buffer))
+        & (close_location >= close_strength_fraction)
+        & tradable
+    )
+    short_signal = (
+        compressed
+        & expanding
+        & prior_low.notna()
+        & (frame["close"] <= prior_low * (1.0 - breakout_buffer))
+        & (close_location <= 1.0 - close_strength_fraction)
+        & tradable
+    )
+    return SignalSet(long=long_signal, short=short_signal)
