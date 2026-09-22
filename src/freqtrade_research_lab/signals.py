@@ -254,9 +254,9 @@ def compression_expansion_signals(
     prior_range_width = range_width.shift(1)
     historical_width_baseline = (
         range_width
+        .shift(compression_window + 1)
         .rolling(baseline_window, min_periods=baseline_window)
         .median()
-        .shift(1)
     )
     compressed = (
         prior_range_width.notna()
