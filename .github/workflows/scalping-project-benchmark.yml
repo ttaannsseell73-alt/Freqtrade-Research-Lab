@@ -88,9 +88,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
+      - name: Install stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
       - name: Clone pinned source
         run: |
           git clone https://github.com/nkaz001/hftbacktest.git bot
@@ -101,9 +102,9 @@ jobs:
         run: |
           set +e
           cd bot
-          cargo build -p hftbacktest --release > ../hft-build.log 2>&1
+          RUSTFLAGS="" cargo build -p hftbacktest --release > ../hft-build.log 2>&1
           BUILD_RC=$?
-          cargo test -p hftbacktest --lib > ../hft-tests.log 2>&1
+          RUSTFLAGS="" cargo test -p hftbacktest --lib > ../hft-tests.log 2>&1
           TEST_RC=$?
           printf "project=hftbacktest\ncommit=5f3ec40b2afb764e0fea112f941ed85523ef4e88\nbuild_rc=%s\ntest_rc=%s\n" "$BUILD_RC" "$TEST_RC" > ../hft-result.txt
           cat ../hft-result.txt
@@ -133,6 +134,7 @@ jobs:
           pip install uv
           cd bot
           uv sync --group test
+          uv pip install --python .venv/bin/python nautilus_trader==1.227.0
       - name: Run scalping-specific tests
         shell: bash
         run: |
@@ -182,7 +184,7 @@ jobs:
           pip install -r requirements.txt > ../../../ict-install-backtest.log 2>&1
           INSTALL_RC=$?
           if [ "$INSTALL_RC" -eq 0 ]; then
-            timeout 600 python backtest_cli.py --preset scalping --symbol BTC/USDT --timeframe 15m --year 2024 --leverage 3.0 --export ../../../ict-backtest.json > ../../../ict-backtest.log 2>&1
+            timeout 600 python backtest_cli.py --preset scalping --symbol BTC/USDT --timeframe 15m --year 2024 --leverage 3.0 --output ../../../ict-backtest.json > ../../../ict-backtest.log 2>&1
             BACKTEST_RC=$?
           else
             BACKTEST_RC=99
