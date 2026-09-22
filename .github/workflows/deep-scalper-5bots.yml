@@ -36,7 +36,7 @@ jobs:
         run: |
           cd candidate
           set -o pipefail
-          python btcusdt_usdm_scalping_backtester.py             --intervals 1m 5m             --start-month 2026-08             --end-month 2026-08             --data-dir bench_data             --output-dir bench_out             --initial-equity 1000 2>&1 | tee ../elvis.log
+          python btcusdt_usdm_scalping_backtester.py             --intervals 1m 5m             --start-month 2026-06             --end-month 2026-08             --data-dir bench_data             --output-dir bench_out             --initial-equity 1000 2>&1 | tee ../elvis.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -134,11 +134,109 @@ jobs:
           git checkout d731a98907e7cb0bdeb1262c631443a91a892440
       - name: Install
         run: python -m pip install python-binance pandas numpy requests pytz matplotlib
-      - name: Run native cached monthly benchmark
+      - name: Run strategy on immutable Binance Vision data
         run: |
           cd candidate
           set -o pipefail
-          python backtest_month.py --month 2026-03             --symbols BTCUSDT_PERP ETHUSDT_PERP             --workers 2 --leverage 20 2>&1 | tee ../dogan.log
+          python - <<'PY' 2>&1 | tee ../dogan.log
+          import csv, io, zipfile, urllib.request, sys, types
+          from datetime import datetime, timezone, timedelta, date
+          import pandas as pd
+
+          # Prevent import-time live Binance client creation. Strategy logic remains unchanged.
+          stub=types.ModuleType("binance_live")
+          stub.get_binance_client=lambda: object()
+          sys.modules["binance_live"]=stub
+
+          import backtest_month as bm
+
+          frames={}
+          for symbol in ("BTCUSDT","ETHUSDT"):
+              parts=[]
+              for month in ("2026-06","2026-07","2026-08"):
+                  url=f"https://data.binance.vision/data/futures/um/monthly/klines/{symbol}/5m/{symbol}-5m-{month}.zip"
+                  payload=urllib.request.urlopen(url,timeout=60).read()
+                  z=zipfile.ZipFile(io.BytesIO(payload))
+                  raw=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]),encoding="utf-8")))
+                  rows=[]
+                  for r in raw:
+                      if not r or not r[0].isdigit():
+                          continue
+                      rows.append([int(r[0]),float(r[1]),float(r[2]),float(r[3]),float(r[4]),float(r[5])])
+                  parts.append(pd.DataFrame(rows,columns=["ts","open","high","low","close","volume"]))
+              df=pd.concat(parts,ignore_index=True).drop_duplicates("ts").sort_values("ts")
+              df["dt"]=pd.to_datetime(df["ts"],unit="ms",utc=True)
+              frames[symbol]=df.reset_index(drop=True)
+              print("loaded",symbol,len(df))
+
+          def base_symbol(s):
+              return str(s).replace("_PERP","").replace("/","").split(":")[0]
+
+          def local_klines(symbol, market, interval, start_str, end_str, date_midnight_ny=None, **kwargs):
+              key=base_symbol(symbol)
+              df=frames[key]
+              if date_midnight_ny is not None:
+                  start=date_midnight_ny.astimezone(timezone.utc)
+                  end=start+timedelta(days=1)
+              else:
+                  start=pd.Timestamp(start_str,tz="UTC").to_pydatetime()
+                  end=pd.Timestamp(end_str,tz="UTC").to_pydatetime()
+              sub=df[(df["dt"]>=start)&(df["dt"]<end)]
+              return [[int(r.ts),r.open,r.high,r.low,r.close,r.volume] for r in sub.itertuples()]
+
+          def local_first4h(symbol, market, date_midnight_ny, **kwargs):
+              key=base_symbol(symbol)
+              df=frames[key]
+              start=date_midnight_ny.astimezone(timezone.utc)
+              end=start+timedelta(hours=4)
+              sub=df[(df["dt"]>=start)&(df["dt"]<end)]
+              if sub.empty:
+                  return None,None
+              return float(sub["low"].min()),float(sub["high"].max())
+
+          bm.get_klines=local_klines
+          bm.get_first_4h_candle_levels=local_first4h
+
+          dates=[]
+          d=date(2026,6,1)
+          end=date(2026,8,31)
+          while d<=end:
+              dates.append(d); d+=timedelta(days=1)
+          today=datetime(2026,9,1,tzinfo=bm.NY_TZ)
+          leverage=20.0
+          cost_pct_per_trade=0.14*leverage  # 14 bps notional round-trip, expressed on margin at 20x
+
+          for display in ("BTCUSDT_PERP","ETHUSDT_PERP"):
+              symbol_for_api, market=bm.normalize_symbol_and_market(display)
+              adj=[]
+              raw=[]
+              counts={"target":0,"breakeven":0,"liquidation":0,"stop":0}
+              for d in dates:
+                  midnight=datetime(d.year,d.month,d.day,tzinfo=bm.NY_TZ)
+                  lo,hi=local_first4h(symbol_for_api,market,midnight)
+                  if lo is None: continue
+                  kl=local_klines(symbol_for_api,market,bm.Client.KLINE_INTERVAL_5MINUTE,"","",date_midnight_ny=midnight)
+                  closed=[t for t in bm.run_strategy_positions_only(kl,lo,hi,midnight,leverage=leverage) if t["result"]!="open"]
+                  for t in closed:
+                      p=bm.calculate_leveraged_pnl_pct(t["entry"],t["exit_price"],t["side"],t.get("leverage",leverage))
+                      raw.append(p)
+                      adj.append(p-cost_pct_per_trade)
+                      result=t["result"]
+                      if result in counts: counts[result]+=1
+                      elif result=="target": counts["target"]+=1
+                      else: counts["stop"]+=1
+              wins=[x for x in adj if x>0]; losses=[x for x in adj if x<0]
+              pf=sum(wins)/abs(sum(losses)) if losses else (float("inf") if wins else 0.0)
+              print("STANDARDIZED",display,
+                    "trades=",len(adj),
+                    "raw_expectancy_pct=",(sum(raw)/len(raw) if raw else 0.0),
+                    "adjusted_expectancy_pct=",(sum(adj)/len(adj) if adj else 0.0),
+                    "adjusted_pf=",pf,
+                    "adjusted_win_rate=",(len(wins)/len(adj) if adj else 0.0),
+                    "raw_total_pct_points=",sum(raw),
+                    "adjusted_total_pct_points=",sum(adj),
+                    "counts=",counts)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -160,19 +258,22 @@ jobs:
           git checkout c6f2455f5bab34d0e11c4b351a23154782b7ef9a
       - name: Install
         run: python -m pip install -r candidate/deploy/requirements.txt
-      - name: Download immutable Binance Vision 5m month
+      - name: Download immutable Binance Vision 5m 90d window
         run: |
           python - <<'PY'
           import io, zipfile, urllib.request, csv
-          url='https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip'
-          data=urllib.request.urlopen(url, timeout=60).read()
-          z=zipfile.ZipFile(io.BytesIO(data))
-          rows=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]), encoding='utf-8')))
+          rows=[]
+          for month in ('2026-06','2026-07','2026-08'):
+              url=f'https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-{month}.zip'
+              data=urllib.request.urlopen(url, timeout=60).read()
+              z=zipfile.ZipFile(io.BytesIO(data))
+              for r in csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]), encoding='utf-8')):
+                  if r and r[0].isdigit():
+                      rows.append(r)
+          rows.sort(key=lambda r:int(r[0]))
           with open('candidate/btcusdt_5m.csv','w',newline='') as f:
               w=csv.writer(f)
               for r in rows:
-                  if not r or not r[0].isdigit():
-                      continue
                   w.writerow([r[0],r[1],r[2],r[3],r[4],r[5]])
           print('candles', len(rows))
           PY
@@ -231,15 +332,16 @@ jobs:
           import pandas as pd
           from bot.backtester import Backtester, CandleData
 
-          url='https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip'
-          payload=urllib.request.urlopen(url, timeout=60).read()
-          z=zipfile.ZipFile(io.BytesIO(payload))
-          raw=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]),encoding='utf-8')))
           rows=[]
-          for r in raw:
-              if not r or not r[0].isdigit():
-                  continue
-              rows.append((pd.to_datetime(int(r[0]),unit='ms',utc=True),float(r[1]),float(r[2]),float(r[3]),float(r[4]),float(r[5])))
+          for month in ('2026-06','2026-07','2026-08'):
+              url=f'https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-{month}.zip'
+              payload=urllib.request.urlopen(url, timeout=60).read()
+              z=zipfile.ZipFile(io.BytesIO(payload))
+              raw=list(csv.reader(io.TextIOWrapper(z.open(z.namelist()[0]),encoding='utf-8')))
+              for r in raw:
+                  if not r or not r[0].isdigit():
+                      continue
+                  rows.append((pd.to_datetime(int(r[0]),unit='ms',utc=True),float(r[1]),float(r[2]),float(r[3]),float(r[4]),float(r[5])))
           df=pd.DataFrame(rows,columns=['ts','open','high','low','close','volume']).set_index('ts')
 
           def to_candles(frame):
@@ -252,6 +354,13 @@ jobs:
           result=bt.run()
           result.print_report()
           print(result.summary())
+          adjusted=[t.pnl_pct/100.0-0.0014 for t in result.trades]
+          wins=[x for x in adjusted if x>0]; losses=[x for x in adjusted if x<0]
+          pf=sum(wins)/abs(sum(losses)) if losses else (float('inf') if wins else 0.0)
+          print('STANDARDIZED trades=',len(adjusted),
+                'win_rate=',(len(wins)/len(adjusted) if adjusted else 0.0),
+                'expectancy=',(sum(adjusted)/len(adjusted) if adjusted else 0.0),
+                'profit_factor=',pf,'net_return_sum=',sum(adjusted))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
