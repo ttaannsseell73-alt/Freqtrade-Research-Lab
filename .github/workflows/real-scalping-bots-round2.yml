@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/real-scalping-bots-round2.yml"
+  push:
+    branches:
+      - "feat/real-scalping-bots-round2-v1"
   workflow_dispatch:
 
 permissions:
