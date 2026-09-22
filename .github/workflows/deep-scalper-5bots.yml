@@ -1,12 +1,7 @@
 name: deep-scalper-5bots
 
 on:
-  push:
-    branches:
-      - bench/native-scalper-5bots-v1
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
