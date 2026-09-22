@@ -304,3 +304,100 @@ def compression_expansion_signals(
         & tradable
     )
     return SignalSet(long=long_signal, short=short_signal)
+
+
+def bos_choch_signals(
+    frame: pd.DataFrame,
+    *,
+    lookback: int = 20,
+    break_buffer_bps: float = 5.0,
+    displacement_ratio: float = 1.20,
+    close_strength_fraction: float = 0.65,
+) -> SignalSet:
+    """Non-repainting BOS/CHOCH structure-break signal.
+
+    Structure levels use only completed prior candles. A directional state is
+    established by the latest confirmed break. A same-direction subsequent
+    break is BOS; an opposite-direction break is CHOCH. Both are entry signals
+    when the break candle also has sufficient displacement and closes strongly.
+    """
+    if lookback < 3:
+        raise ValueError("lookback must be at least 3")
+    if break_buffer_bps < 0:
+        raise ValueError("break_buffer_bps cannot be negative")
+    if displacement_ratio <= 1:
+        raise ValueError("displacement_ratio must be greater than 1")
+    if not 0.5 < close_strength_fraction < 1.0:
+        raise ValueError("close_strength_fraction must be between 0.5 and 1.0")
+
+    required = {"open", "high", "low", "close", "volume"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError("OHLCV frame missing columns: " + ", ".join(missing))
+
+    prior_high = (
+        frame["high"]
+        .rolling(lookback, min_periods=lookback)
+        .max()
+        .shift(1)
+    )
+    prior_low = (
+        frame["low"]
+        .rolling(lookback, min_periods=lookback)
+        .min()
+        .shift(1)
+    )
+    true_range = (frame["high"] - frame["low"]) / frame["close"].shift(1)
+    prior_range_median = (
+        true_range
+        .rolling(lookback, min_periods=lookback)
+        .median()
+        .shift(1)
+    )
+    candle_range = (frame["high"] - frame["low"]).where(
+        frame["high"] > frame["low"]
+    )
+    close_location = (frame["close"] - frame["low"]) / candle_range
+    buffer_fraction = break_buffer_bps / 10_000.0
+    displaced = (
+        prior_range_median.notna()
+        & (true_range >= prior_range_median * displacement_ratio)
+    )
+    tradable = frame["volume"] > 0
+
+    long_break = (
+        prior_high.notna()
+        & (frame["close"] >= prior_high * (1.0 + buffer_fraction))
+        & displaced
+        & (close_location >= close_strength_fraction)
+        & tradable
+    )
+    short_break = (
+        prior_low.notna()
+        & (frame["close"] <= prior_low * (1.0 - buffer_fraction))
+        & displaced
+        & (close_location <= 1.0 - close_strength_fraction)
+        & tradable
+    )
+
+    long_signal = pd.Series(False, index=frame.index, dtype=bool)
+    short_signal = pd.Series(False, index=frame.index, dtype=bool)
+    state = 0  # -1 bearish, +1 bullish, 0 uninitialized
+
+    for pos in range(len(frame)):
+        is_long_break = bool(long_break.iloc[pos])
+        is_short_break = bool(short_break.iloc[pos])
+
+        # Ambiguous simultaneous breaks are ignored rather than guessed.
+        if is_long_break and is_short_break:
+            continue
+        if is_long_break:
+            if state != 0:
+                long_signal.iloc[pos] = True
+            state = 1
+        elif is_short_break:
+            if state != 0:
+                short_signal.iloc[pos] = True
+            state = -1
+
+    return SignalSet(long=long_signal, short=short_signal)
