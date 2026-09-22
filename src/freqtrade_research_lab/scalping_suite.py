@@ -17,6 +17,13 @@ DEFAULT_STRATEGIES = (
     "BreakoutRetestScalp",
     "CompressionExpansionScalp",
     "BosChochScalp",
+    "TurtleTradeChannelsScalp",
+    "IsolatedPeakBottomScalp",
+    "VolumeBasedColouredBarsScalp",
+    "FollowLineScalp",
+    "SqueezeMomentumV2Scalp",
+    "ProgressiveTrendTrackerScalp",
+    "TurtleVhfFilteredScalp",
 )
 
 
