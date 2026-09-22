@@ -61,7 +61,7 @@ jobs:
           with zipfile.ZipFile(zpath) as zf:
               name = zf.namelist()[0]
               with zf.open(name) as fh:
-                  df = pd.read_csv(fh, header=None)
+                  df = pd.read_csv(fh)
           df = df.iloc[:, :12].copy()
           df.columns = [
               "open_time","open","high","low","close","volume","close_time",
@@ -173,7 +173,7 @@ jobs:
 
           with zipfile.ZipFile(Path("../btc_1m.zip")) as zf:
               with zf.open(zf.namelist()[0]) as fh:
-                  df = pd.read_csv(fh, header=None)
+                  df = pd.read_csv(fh)
           df = df.iloc[:, :6].copy()
           df.columns = ["open_time","open","high","low","close","volume"]
           for col in ["open","high","low","close","volume"]:
