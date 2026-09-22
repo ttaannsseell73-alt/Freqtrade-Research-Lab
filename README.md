@@ -245,6 +245,31 @@ target, -0.5% stop, 30-minute maximum hold, the same Freqtrade fee, and the same
 post-backtest slippage stress. Do not tune these values on the same sample after
 seeing results.
 
+## Compression -> Expansion scalping benchmark
+
+The third locked production-direction research candidate is
+`CompressionExpansionScalp`, tested on **1m and 5m Binance Futures scalping**
+under the same execution overlay as the previous price-action benchmarks.
+
+The v1 rule is frozen before results are inspected:
+
+- compression window = previous 10 completed candles,
+- historical compression baseline = median 10-candle range width from an older,
+  non-overlapping 50-sample history,
+- compression requires current prior 10-candle range width <= 60% of that
+  historical baseline,
+- expansion candle range must be at least 1.5x the median normalized range of
+  the prior 10 candles,
+- expansion close must break the compressed range by at least 5 bps,
+- long close must finish in the upper 65% of the expansion candle; short close
+  must finish in the lower 35%,
+- entry occurs on the candle after the completed expansion signal.
+
+Execution remains unchanged for comparability: 1x leverage, +0.8% gross ROI
+target, -0.5% stop, 30-minute maximum hold, the same Freqtrade fee, and the same
+post-backtest slippage stress. Do not tune these values on the same sample after
+seeing results.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;
