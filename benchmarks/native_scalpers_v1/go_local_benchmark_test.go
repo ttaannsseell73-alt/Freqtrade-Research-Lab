@@ -81,7 +81,7 @@ func TestNativeScalpBullOnPinnedFixture(t *testing.T) {
         tendency := calculateBacktestTendency(ohlcv.Closes[:i+1])
         sig := def.Decide(MarketSnapshot{
             Symbol: "BTC/USDT", Index: i, OHLCV: ohlcv, Tendency: tendency,
-            Config: &cfg, Position: position, EntryPrice: entry,
+            Config: cfg, Position: position, EntryPrice: entry,
         })
         price := ohlcv.Closes[i]
         switch sig {
