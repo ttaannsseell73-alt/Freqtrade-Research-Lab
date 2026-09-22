@@ -3,6 +3,7 @@ import pytest
 
 from freqtrade_research_lab.signals import (
     SignalSet,
+    bos_choch_signals,
     breakout_retest_signals,
     compression_expansion_signals,
     liquidity_sweep_reclaim_signals,
@@ -293,3 +294,85 @@ def test_compression_expansion_validates_parameters() -> None:
         compression_expansion_signals(data, breakout_buffer_bps=-1)
     with pytest.raises(ValueError, match="close_strength_fraction"):
         compression_expansion_signals(data, close_strength_fraction=0.5)
+
+
+
+def _bos_choch_fixture() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "open": [100.0, 101.0, 102.0, 102.8, 104.8, 104.5],
+            "high": [101.0, 102.0, 103.0, 105.0, 106.5, 105.0],
+            "low": [99.0, 100.0, 101.0, 102.5, 104.5, 99.0],
+            "close": [100.0, 101.0, 102.0, 104.5, 106.0, 100.0],
+            "volume": [1.0] * 6,
+        }
+    )
+
+
+def test_bos_choch_initializes_then_emits_bos_and_choch() -> None:
+    data = _bos_choch_fixture()
+    signals = validate_signal_set(
+        data,
+        bos_choch_signals(
+            data,
+            lookback=3,
+            break_buffer_bps=5.0,
+            displacement_ratio=1.01,
+            close_strength_fraction=0.60,
+        ),
+    )
+
+    # First confirmed break establishes state and is not traded.
+    assert not bool(signals.long.iloc[3])
+    # Continuation break is BOS.
+    assert bool(signals.long.iloc[4])
+    # Opposite break is CHOCH.
+    assert bool(signals.short.iloc[5])
+    assert not (signals.long & signals.short).any()
+
+
+def test_bos_choch_has_no_future_dependency() -> None:
+    data = _bos_choch_fixture()
+    base = bos_choch_signals(
+        data,
+        lookback=3,
+        displacement_ratio=1.01,
+        close_strength_fraction=0.60,
+    )
+
+    extended = pd.concat(
+        [
+            data,
+            pd.DataFrame(
+                {
+                    "open": [100.0],
+                    "high": [500.0],
+                    "low": [1.0],
+                    "close": [250.0],
+                    "volume": [1.0],
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    changed = bos_choch_signals(
+        extended,
+        lookback=3,
+        displacement_ratio=1.01,
+        close_strength_fraction=0.60,
+    )
+
+    assert base.long.tolist() == changed.long.iloc[: len(data)].tolist()
+    assert base.short.tolist() == changed.short.iloc[: len(data)].tolist()
+
+
+def test_bos_choch_validates_parameters() -> None:
+    data = _bos_choch_fixture()
+    with pytest.raises(ValueError, match="lookback"):
+        bos_choch_signals(data, lookback=2)
+    with pytest.raises(ValueError, match="break_buffer_bps"):
+        bos_choch_signals(data, break_buffer_bps=-1)
+    with pytest.raises(ValueError, match="displacement_ratio"):
+        bos_choch_signals(data, displacement_ratio=1.0)
+    with pytest.raises(ValueError, match="close_strength_fraction"):
+        bos_choch_signals(data, close_strength_fraction=0.5)
