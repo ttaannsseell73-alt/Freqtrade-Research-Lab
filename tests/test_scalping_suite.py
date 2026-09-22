@@ -105,3 +105,17 @@ def test_reuse_requires_exact_manifest_strategy_hash_and_pair_list(tmp_path: Pat
 
 def test_default_suite_includes_bos_choch() -> None:
     assert "BosChochScalp" in DEFAULT_STRATEGIES
+
+
+
+def test_default_suite_includes_locked_kivanc_batch() -> None:
+    expected = {
+        "TurtleTradeChannelsScalp",
+        "IsolatedPeakBottomScalp",
+        "VolumeBasedColouredBarsScalp",
+        "FollowLineScalp",
+        "SqueezeMomentumV2Scalp",
+        "ProgressiveTrendTrackerScalp",
+        "TurtleVhfFilteredScalp",
+    }
+    assert expected.issubset(set(DEFAULT_STRATEGIES))

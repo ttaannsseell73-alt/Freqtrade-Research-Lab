@@ -335,6 +335,34 @@ No centered/fractal pivot requiring future candles is used. Execution remains th
 same 1x, +0.8% ROI, -0.5% stop, 30-minute maximum hold benchmark so signal
 families remain comparable.
 
+## Kivanc / TradingView locked batch v1
+
+The remaining locked TradingView/Kivanc research set is executed in the same
+one-command 1m/5m suite. The first smoke test freezes the published/default
+logic before any result-driven tuning:
+
+- `TurtleTradeChannelsScalp`: 20-bar prior high/low breakout entry from TuTCI.
+- `IsolatedPeakBottomScalp`: the published PEAK1/PEAK2 and BOT1/BOT2
+  confirmation logic; signals are acted on only after the confirming candle.
+- `VolumeBasedColouredBarsScalp`: crypto-oriented 30-bar average volume and
+  only the original strong-volume (>150% average) bullish/bearish bar class is
+  promoted to an entry candidate.
+- `FollowLineScalp`: published BB(21, 1 std) + ATR(5) stateful Follow Line;
+  entries occur when trend direction flips.
+- `SqueezeMomentumV2Scalp`: published LazyBear/Kivanc momentum line with
+  5-bar signal SMA; entries are line crossovers.
+- `ProgressiveTrendTrackerScalp`: published PTT default periods
+  (5, 5, 2, 10), VIDYA/VAR smoothing, and price cross of PTT lower/upper lines.
+- `TurtleVhfFilteredScalp`: VHF is not treated as a standalone buy/sell
+  system. It is used as a trend-regime filter on the Turtle breakout because
+  the original VHF description explicitly defines it as a trend/range filter.
+
+All seven candidates keep the same suite execution overlay (1x, +0.8% gross
+ROI, -0.5% stop, 30-minute maximum hold, identical fee and post-backtest
+slippage) so the first pass compares signal quality rather than exit tuning.
+Any positive smoke result still requires lookahead checks, broader-universe
+testing, walk-forward validation, and paper trading.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;
