@@ -368,6 +368,32 @@ slippage) so the first pass compares signal quality rather than exit tuning.
 Any positive smoke result still requires lookahead checks, broader-universe
 testing, walk-forward validation, and paper trading.
 
+## External ready-scalper benchmark
+
+The custom signal research track is frozen. The next research stage benchmarks
+ready-made/open-source scalping strategies without modifying their source logic.
+
+`scripts/run_external_scalper_suite.py` downloads each strategy from an
+immutable GitHub commit, verifies the exact Git blob SHA-1, and then runs the
+strategy at its native timeframe on the same local Binance Futures data and
+cost assumptions.
+
+Initial apples-to-apples Freqtrade batch:
+
+- `Scalp` (1m), `SmoothScalp` (1m), and `ReinforcedSmoothScalp` (1m)
+  from `freqtrade/freqtrade-strategies`.
+- `GeneticEngineV1` (5m) and `EwoMomentumV1` (5m) from
+  `ceyhanmolla/freqtrade-strategies`.
+
+The source files are not edited. 5m candidates use 1m detail candles. The
+benchmark applies the same 5 bps/side fee plus 4 bps round-trip post-backtest
+slippage stress and writes a consolidated report. A positive smoke result is
+only retained for broader-pair, lookahead, walk-forward, and paper validation.
+
+Multi-timeframe third-party candidates that require additional 1h/4h
+informative data are intentionally deferred to the next external batch rather
+than being rewritten to fit the current data.
+
 ## Known research limitations
 
 - The current 725-contract list contains contracts active on the download date;
