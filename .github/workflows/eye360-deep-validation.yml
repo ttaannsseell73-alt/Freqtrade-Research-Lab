@@ -1,0 +1,141 @@
+name: eye360-deep-validation
+
+on:
+  push:
+    branches:
+      - "feat/real-scalping-bots-round2-v1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eye360-deep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Clone pinned source
+        run: |
+          git clone https://github.com/kishore446/360-Crypto-Eye-Scalping-.git bot
+          cd bot
+          git checkout 46d1f154077c14007c4892cb3dc86394c8fd7cb6
+      - name: Install and verify native tests
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+          pytest -q tests --disable-warnings
+      - name: Download 90 days for five liquid futures
+        shell: bash
+        run: |
+          set -e
+          mkdir -p market_data
+          for sym in BTCUSDT ETHUSDT SOLUSDT XRPUSDT DOGEUSDT; do
+            for month in 06 07 08; do
+              url="https://data.binance.vision/data/futures/um/monthly/klines/$sym/1m/$sym-1m-2026-$month.zip"
+              echo "Downloading $url"
+              curl -fL --retry 3 "$url" -o "market_data/$sym-2026-$month.zip"
+              unzip -t "market_data/$sym-2026-$month.zip" >/dev/null
+            done
+          done
+      - name: Run native 360 backtester and canonical cost stress
+        shell: bash
+        run: |
+          set -e
+          cd bot
+          python - <<'PY'
+          import json, math, zipfile
+          from pathlib import Path
+          import pandas as pd
+          from bot.backtester import Backtester
+          from bot.signal_engine import CandleData
+
+          DATA_ROOT = Path("../market_data")
+          symbols = ["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","DOGEUSDT"]
+          months = ["06","07","08"]
+          rows = []
+          all_adj = []
+
+          def load_symbol(sym):
+              frames = []
+              for month in months:
+                  zpath = DATA_ROOT / f"{sym}-2026-{month}.zip"
+                  with zipfile.ZipFile(zpath) as zf:
+                      with zf.open(zf.namelist()[0]) as fh:
+                          x = pd.read_csv(fh)
+                  x = x.iloc[:, :6].copy()
+                  x.columns = ["open_time","open","high","low","close","volume"]
+                  for col in ["open","high","low","close","volume"]:
+                      x[col] = pd.to_numeric(x[col], errors="coerce")
+                  x["dt"] = pd.to_datetime(x["open_time"], unit="ms", utc=True)
+                  frames.append(x.set_index("dt")[["open","high","low","close","volume"]].dropna())
+              df = pd.concat(frames).sort_index()
+              return df[~df.index.duplicated(keep="first")]
+
+          def candles(df, rule):
+              x = df.resample(rule, label="left", closed="left").agg(
+                  {"open":"first","high":"max","low":"min","close":"last","volume":"sum"}
+              ).dropna()
+              return [
+                  CandleData(open=float(r.open), high=float(r.high), low=float(r.low),
+                             close=float(r.close), volume=float(r.volume))
+                  for r in x.itertuples()
+              ]
+
+          for sym in symbols:
+              df = load_symbol(sym)
+              bt = Backtester(
+                  symbol=f"{sym[:-4]}/USDT:USDT",
+                  five_min_candles=candles(df, "5min"),
+                  four_hour_candles=candles(df, "4h"),
+                  daily_candles=candles(df, "1D"),
+                  initial_capital=10000.0,
+                  risk_per_trade=0.01,
+              )
+              r = bt.run()
+              raw = [float(t.pnl_pct) for t in r.trades]
+              adj = [x - 0.14 for x in raw]
+              all_adj.extend(adj)
+              gp = sum(x for x in adj if x > 0)
+              gl = abs(sum(x for x in adj if x < 0))
+              rows.append({
+                  "symbol": sym,
+                  "trades": r.total_trades,
+                  "raw_win_rate": r.win_rate,
+                  "raw_pf": r.profit_factor,
+                  "raw_sharpe": r.sharpe_ratio,
+                  "raw_max_dd_pct": r.max_drawdown_pct,
+                  "native_final_equity": r.final_equity,
+                  "adj_expectancy_pct": sum(adj)/len(adj) if adj else 0.0,
+                  "adj_pf": gp/gl if gl > 0 else (math.inf if gp > 0 else 0.0),
+              })
+
+          gp = sum(x for x in all_adj if x > 0)
+          gl = abs(sum(x for x in all_adj if x < 0))
+          aggregate = {
+              "trades": len(all_adj),
+              "adj_expectancy_pct": sum(all_adj)/len(all_adj) if all_adj else 0.0,
+              "adj_pf": gp/gl if gl > 0 else (math.inf if gp > 0 else 0.0),
+              "positive_trade_fraction": (
+                  sum(1 for x in all_adj if x > 0)/len(all_adj) if all_adj else 0.0
+              ),
+          }
+          payload = {
+              "project": "360-Crypto-Eye-Scalping",
+              "commit": "46d1f154077c14007c4892cb3dc86394c8fd7cb6",
+              "period": "2026-06-01 through 2026-08-31",
+              "symbols": symbols,
+              "cost_stress": "subtract 0.14 percentage points from every native trade",
+              "per_symbol": rows,
+              "aggregate": aggregate,
+          }
+          print(json.dumps(payload, indent=2))
+          Path("../eye360-deep-result.json").write_text(json.dumps(payload, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eye360-deep-result
+          path: eye360-deep-result.json

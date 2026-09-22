@@ -1,0 +1,367 @@
+name: real-scalping-bots-round2
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/real-scalping-bots-round2.yml"
+  push:
+    branches:
+      - "feat/real-scalping-bots-round2-v1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DATA_URL: https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2026-07.zip
+
+jobs:
+  eye360:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Clone pinned 360 Crypto Eye
+        run: |
+          git clone https://github.com/kishore446/360-Crypto-Eye-Scalping-.git bot
+          cd bot
+          git checkout 46d1f154077c14007c4892cb3dc86394c8fd7cb6
+      - name: Install dependencies
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Native tests
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          pytest -q tests --disable-warnings > ../eye360-tests.log 2>&1
+          echo $? > ../eye360-test-rc.txt
+      - name: Download common Binance Vision data
+        shell: bash
+        run: |
+          curl -fL --retry 3 "$DATA_URL" -o btc_1m.zip
+          unzip -t btc_1m.zip
+      - name: Offline native backtest on common data
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python - <<'PY' > ../eye360-backtest.log 2>&1
+          import json, math, zipfile
+          from pathlib import Path
+          import pandas as pd
+          from bot.backtester import Backtester
+          from bot.signal_engine import CandleData
+
+          zpath = Path("../btc_1m.zip")
+          with zipfile.ZipFile(zpath) as zf:
+              name = zf.namelist()[0]
+              with zf.open(name) as fh:
+                  df = pd.read_csv(fh)
+          df = df.iloc[:, :12].copy()
+          df.columns = [
+              "open_time","open","high","low","close","volume","close_time",
+              "quote_volume","trades","taker_buy_base","taker_buy_quote","ignore"
+          ]
+          for col in ["open","high","low","close","volume"]:
+              df[col] = pd.to_numeric(df[col], errors="coerce")
+          df["dt"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
+          df = df.set_index("dt")[["open","high","low","close","volume"]].dropna()
+
+          def resample(rule):
+              x = df.resample(rule, label="left", closed="left").agg(
+                  {"open":"first","high":"max","low":"min","close":"last","volume":"sum"}
+              ).dropna()
+              return [
+                  CandleData(
+                      open=float(r.open), high=float(r.high), low=float(r.low),
+                      close=float(r.close), volume=float(r.volume)
+                  )
+                  for r in x.itertuples()
+              ]
+
+          c5 = resample("5min")
+          c4h = resample("4h")
+          c1d = resample("1D")
+          bt = Backtester(
+              symbol="BTC/USDT:USDT",
+              five_min_candles=c5,
+              four_hour_candles=c4h,
+              daily_candles=c1d,
+              initial_capital=10000.0,
+              risk_per_trade=0.01,
+          )
+          r = bt.run()
+          raw = [float(t.pnl_pct) for t in r.trades]
+          adjusted = [x - 0.14 for x in raw]  # 10 bps fee + 4 bps slippage RT
+          gp = sum(x for x in adjusted if x > 0)
+          gl = abs(sum(x for x in adjusted if x < 0))
+          payload = {
+              "project": "360-Crypto-Eye-Scalping",
+              "commit": "46d1f154077c14007c4892cb3dc86394c8fd7cb6",
+              "data": "BTCUSDT 1m 2026-07 Binance Vision, resampled 5m/4h/1D",
+              "trades": r.total_trades,
+              "raw_win_rate": r.win_rate,
+              "raw_profit_factor": r.profit_factor,
+              "raw_sharpe": r.sharpe_ratio,
+              "raw_max_drawdown_pct": r.max_drawdown_pct,
+              "final_equity_native": r.final_equity,
+              "adjusted_expectancy_pct": (sum(adjusted) / len(adjusted)) if adjusted else 0.0,
+              "adjusted_profit_factor": (gp / gl) if gl > 0 else (math.inf if gp > 0 else 0.0),
+              "cost_adjustment_pct_per_roundtrip": 0.14,
+          }
+          print(json.dumps(payload, indent=2))
+          Path("../eye360-result.json").write_text(json.dumps(payload, indent=2))
+          PY
+          echo $? > ../eye360-backtest-rc.txt
+          cat ../eye360-result.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round2-eye360
+          path: |
+            eye360-result.json
+            eye360-tests.log
+            eye360-test-rc.txt
+            eye360-backtest.log
+            eye360-backtest-rc.txt
+          if-no-files-found: warn
+
+  ultra-scalping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Clone pinned Ultra Scalping Bot
+        run: |
+          git clone https://github.com/ROMEROPS7/ultra-scalping-bot.git bot
+          cd bot
+          git checkout b47351ff8963d8e9f13aa91be91f8cbaf28025b9
+      - name: Install dependencies
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python -m compileall -q . > ../ultra-compile.log 2>&1
+          echo $? > ../ultra-compile-rc.txt
+      - name: Download common Binance Vision data
+        shell: bash
+        run: |
+          curl -fL --retry 3 "$DATA_URL" -o btc_1m.zip
+          unzip -t btc_1m.zip
+      - name: Offline native backtests with canonical costs
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python - <<'PY' > ../ultra-backtest.log 2>&1
+          import json, zipfile
+          from pathlib import Path
+          import pandas as pd
+          from config.settings import BotConfig
+          from core.backtester import Backtester
+
+          with zipfile.ZipFile(Path("../btc_1m.zip")) as zf:
+              with zf.open(zf.namelist()[0]) as fh:
+                  df = pd.read_csv(fh)
+          df = df.iloc[:, :6].copy()
+          df.columns = ["open_time","open","high","low","close","volume"]
+          for col in ["open","high","low","close","volume"]:
+              df[col] = pd.to_numeric(df[col], errors="coerce")
+          df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
+          df = df.set_index("timestamp")[["open","high","low","close","volume"]].dropna()
+          # Keep the final 7 days so the O(N^2) native runner stays bounded.
+          df = df.tail(7 * 24 * 60)
+
+          out = {}
+          for name in ["ema_rsi_atr","momentum_scalper","grid_scalper","combined"]:
+              cfg = BotConfig()
+              cfg.strategy.active_strategy = name
+              cfg.scalping.leverage = 5
+              cfg.backtest.initial_balance = 10000.0
+              cfg.backtest.commission_pct = 0.0005
+              # Native engine charges entry commission, then exit commission+slippage.
+              # 0.0004 exit slippage yields 14 bps total round-trip cost.
+              cfg.backtest.slippage_pct = 0.0004
+              bt = Backtester(cfg)
+              r = bt.run(df.copy(), symbol="BTC/USDT:USDT")
+              out[name] = r
+
+          payload = {
+              "project": "ultra-scalping-bot",
+              "commit": "b47351ff8963d8e9f13aa91be91f8cbaf28025b9",
+              "data": "BTCUSDT 1m final 7 days of 2026-07 Binance Vision",
+              "costs": "5bps/side commission + 4bps RT slippage",
+              "strategies": out,
+          }
+          print(json.dumps(payload, indent=2, default=str))
+          Path("../ultra-result.json").write_text(json.dumps(payload, indent=2, default=str))
+          PY
+          echo $? > ../ultra-backtest-rc.txt
+          cat ../ultra-result.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round2-ultra
+          path: |
+            ultra-result.json
+            ultra-compile.log
+            ultra-compile-rc.txt
+            ultra-backtest.log
+            ultra-backtest-rc.txt
+          if-no-files-found: warn
+
+  jodi-orderflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned JODI Trader
+        run: |
+          git clone https://github.com/JODI96/Trader.git bot
+          cd bot
+          git checkout 4384b050464741c588fdcd0579e1c0b7d43863a4
+      - name: Install CPU dependencies
+        run: |
+          cd bot
+          python -m pip install --upgrade pip
+          grep -v -E '^torch([<=> ]|$)' requirements.txt > /tmp/jodi-req.txt
+          pip install -r /tmp/jodi-req.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and focused module smoke
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python -m compileall -q . > ../jodi-compile.log 2>&1
+          COMPILE_RC=$?
+          python - <<'PY' > ../jodi-smoke.log 2>&1
+          import json
+          from strategy.risk_manager import RiskManager
+          import config
+          r = RiskManager(config.INITIAL_BALANCE, sim_mode=True)
+          print(json.dumps({"balance": r.balance, "initial_balance": config.INITIAL_BALANCE}))
+          PY
+          SMOKE_RC=$?
+          printf '{"project":"JODI96-Trader","commit":"4384b050464741c588fdcd0579e1c0b7d43863a4","compile_rc":%s,"smoke_rc":%s,"note":"Native backtest is an RL training replay with balance resets; not accepted as comparable PnL evidence."}\n' "$COMPILE_RC" "$SMOKE_RC" > ../jodi-result.json
+          cat ../jodi-result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round2-jodi
+          path: |
+            jodi-result.json
+            jodi-compile.log
+            jodi-smoke.log
+
+  justin-hft-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Clone pinned HFT server
+        run: |
+          git clone https://github.com/justinmarkdaniel/trading-bot.git bot
+          cd bot
+          git checkout 8c81bc29ab62178407a8807811cee46bd7edad61
+      - name: Install and run full native tests
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" > ../justin-install.log 2>&1
+          INSTALL_RC=$?
+          if [ "$INSTALL_RC" -eq 0 ]; then
+            pytest server/tests -q > ../justin-tests.log 2>&1
+            TEST_RC=$?
+          else
+            TEST_RC=99
+          fi
+          printf '{"project":"justinmarkdaniel/trading-bot","commit":"8c81bc29ab62178407a8807811cee46bd7edad61","install_rc":%s,"test_rc":%s,"note":"Engineering chassis; repository explicitly ships only minimal example strategies."}\n' "$INSTALL_RC" "$TEST_RC" > ../justin-result.json
+          cat ../justin-result.json
+          tail -80 ../justin-tests.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round2-justin
+          path: |
+            justin-result.json
+            justin-install.log
+            justin-tests.log
+          if-no-files-found: warn
+
+  ryu-grid-scalp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone pinned grid scalp bot
+        run: |
+          git clone https://github.com/ryu878/binance_futures_scalp_grid_bot.git bot
+          cd bot
+          git checkout 79aebef38419af73059b44b0f5241dd1a014e20d
+      - name: Install and static executable smoke
+        shell: bash
+        run: |
+          set +e
+          cd bot
+          pip install python-binance ta pandas numpy > ../ryu-install.log 2>&1
+          INSTALL_RC=$?
+          python -m py_compile xrp.py config.py > ../ryu-compile.log 2>&1
+          COMPILE_RC=$?
+          python - <<'PY' > ../ryu-audit.log 2>&1
+          import ast, json
+          src = open("xrp.py", encoding="utf-8").read()
+          tree = ast.parse(src)
+          infinite = sum(
+              isinstance(n, ast.While)
+              and isinstance(n.test, ast.Constant)
+              and n.test.value is True
+              for n in ast.walk(tree)
+          )
+          bare_except = sum(
+              isinstance(n, ast.ExceptHandler) and n.type is None
+              for n in ast.walk(tree)
+          )
+          live_calls = sum(
+              isinstance(n, ast.Call)
+              and isinstance(n.func, ast.Attribute)
+              and n.func.attr in {
+                  "futures_create_order","futures_cancel_order",
+                  "futures_cancel_all_open_orders"
+              }
+              for n in ast.walk(tree)
+          )
+          print(json.dumps({
+              "infinite_loops": infinite,
+              "bare_except_blocks": bare_except,
+              "live_order_calls": live_calls,
+              "has_native_backtest": False,
+          }, indent=2))
+          PY
+          AUDIT_RC=$?
+          printf '{"project":"ryu878/binance_futures_scalp_grid_bot","commit":"79aebef38419af73059b44b0f5241dd1a014e20d","install_rc":%s,"compile_rc":%s,"audit_rc":%s,"note":"Live-only legacy BUSD grid; no native backtest path."}\n' "$INSTALL_RC" "$COMPILE_RC" "$AUDIT_RC" > ../ryu-result.json
+          cat ../ryu-result.json
+          cat ../ryu-audit.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round2-ryu
+          path: |
+            ryu-result.json
+            ryu-install.log
+            ryu-compile.log
+            ryu-audit.log
