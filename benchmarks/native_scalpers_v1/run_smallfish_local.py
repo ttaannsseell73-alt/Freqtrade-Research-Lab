@@ -14,9 +14,11 @@ import backtest as sf
 config=yaml.safe_load((args.candidate/"config"/"default.yaml").read_text())
 config["exchange"]="binance"
 config["backtest_fees"]=True
-# Standardized 14 bps round-trip stress: 5 bps maker entry + 9 bps taker exit.
-config["backtest_maker_fee"]=0.0005
-config["backtest_taker_fee"]=0.0009
+# Standardized 14 bps round-trip stress. Smallfish charges an entry fee
+# plus the exit fee selected by exit type, so 7 bps on both legs keeps every
+# completed trade at exactly 14 bps regardless of TP/SL exit classification.
+config["backtest_maker_fee"]=0.0007
+config["backtest_taker_fee"]=0.0007
 config.setdefault("tick_sizes",{})["BTCUSDT"]=0.1
 config.setdefault("min_qty",{})["BTCUSDT"]=0.001
 config.setdefault("qty_step",{})["BTCUSDT"]=0.001
@@ -45,6 +47,6 @@ if engine.state.has_position("BTCUSDT"):
     engine.force_close_all(rows[-1])
 sf.clear_sim_time()
 report=engine.report()
-payload={"project":"azseza/smallfish_","commit":"e9a53c5a43f0dcb88d9ecd1b2130f7dac61b205f","dataset":"BTCUSDT 1m 2026-09-08..2026-09-15","profile":"aggressive","cost_model":"maker 5bps + taker 9bps","metrics":report,"methodology_note":"Native BacktestEngine; kline-derived synthetic book/tape."}
+payload={"project":"azseza/smallfish_","commit":"e9a53c5a43f0dcb88d9ecd1b2130f7dac61b205f","dataset":"BTCUSDT 1m 2026-09-08..2026-09-15","profile":"aggressive","cost_model":"7bps entry + 7bps exit = 14bps round trip","metrics":report,"methodology_note":"Native BacktestEngine; kline-derived synthetic book/tape."}
 args.output.write_text(json.dumps(payload,indent=2,default=float),encoding="utf-8")
 print("SMALLFISH_LOCAL_RESULT",json.dumps(payload,default=float))
