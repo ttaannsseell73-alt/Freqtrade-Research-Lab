@@ -1,0 +1,51 @@
+name: coin-behavior-matrix-v1
+
+on:
+  push:
+    branches:
+      - research/coin-behavior-matrix-v1
+    paths:
+      - scripts/coin_behavior_matrix.py
+      - .github/workflows/coin-behavior-matrix-v1.yml
+  workflow_dispatch:
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run 50-coin x 10-strategy x 1m/5m discovery
+        run: |
+          python scripts/coin_behavior_matrix.py \
+            --start 2026-06-25 \
+            --end 2026-09-23 \
+            --seed-limit 70 \
+            --top-n 50 \
+            --min-coverage 0.95 \
+            --download-workers 8 \
+            --output-dir artifacts/coin_behavior_matrix_v1
+
+      - name: Remove candle cache from artifact
+        if: always()
+        run: rm -rf artifacts/coin_behavior_matrix_v1/cache || true
+
+      - name: Upload research report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coin-behavior-matrix-v1
+          path: artifacts/coin_behavior_matrix_v1
+          if-no-files-found: warn
+          retention-days: 30
