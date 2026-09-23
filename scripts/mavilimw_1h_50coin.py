@@ -11,6 +11,7 @@ import urllib.request
 import zipfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 import pandas as pd
@@ -221,11 +222,24 @@ def main() -> int:
     out=args.output_dir; out.mkdir(parents=True,exist_ok=True)
 
     audit=[]; rows=[]; trades=[]
+    downloaded={}
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futures={pool.submit(load_symbol,symbol,start,end):symbol for symbol in UNIVERSE}
+        for n,fut in enumerate(as_completed(futures),1):
+            symbol=futures[fut]
+            try:
+                frame,a=fut.result()
+            except Exception as exc:
+                frame=pd.DataFrame()
+                a={"symbol":symbol,"ok":False,"error":repr(exc),"coverage":0.0}
+            audit.append(a)
+            downloaded[symbol]=frame
+            print(f"[download {n}/{len(UNIVERSE)}] {symbol} coverage={a.get('coverage',0):.4f}",flush=True)
     for i,symbol in enumerate(UNIVERSE,1):
-        print(f"[{i}/{len(UNIVERSE)}] {symbol}",flush=True)
-        frame,a=load_symbol(symbol,start,end)
-        audit.append(a)
-        if frame.empty or a["coverage"]<0.95:
+        frame=downloaded.get(symbol,pd.DataFrame())
+        a=next((x for x in audit if x.get("symbol")==symbol),{"coverage":0.0})
+        print(f"[eval {i}/{len(UNIVERSE)}] {symbol}",flush=True)
+        if frame.empty or a.get("coverage",0)<0.95:
             continue
         rr,tt=evaluate(symbol,frame,start,end)
         rows.extend(rr)
