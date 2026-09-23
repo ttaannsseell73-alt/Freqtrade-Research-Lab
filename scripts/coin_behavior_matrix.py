@@ -384,9 +384,10 @@ def robust_analysis(results: pd.DataFrame) -> tuple[pd.DataFrame,pd.DataFrame]:
     cross = wide[wide["base_pass"]].groupby(["timeframe","strategy"])["symbol"].nunique().rename("cross_coin_support")
     wide = wide.merge(cross,on=["timeframe","strategy"],how="left")
     wide["cross_coin_support"] = wide["cross_coin_support"].fillna(0).astype(int)
-    train_ok = wide["expectancy_bps_train"]>=-2.0
-    regime_exception = (wide["cross_coin_support"]>=3)
-    wide["robust"] = wide["base_pass"] & (wide["neighbor_horizon_passes"]>=2) & (train_ok|regime_exception)
+    stable_train = (wide["expectancy_bps_train"]>0) & (wide["profit_factor_train"]>=1.0)
+    horizon_stable = wide["neighbor_horizon_passes"]>=2
+    wide["regime_dependent"] = wide["base_pass"] & horizon_stable & (~stable_train) & (wide["cross_coin_support"]>=3)
+    wide["robust"] = wide["base_pass"] & horizon_stable & stable_train
     wide["research_score"] = np.minimum(wide["expectancy_bps_validation"],wide["expectancy_bps_holdout"])
     candidates = wide[wide["robust"]].sort_values(["research_score","cross_coin_support"],ascending=False)
     return wide,candidates
@@ -410,6 +411,7 @@ def write_reports(outdir: Path, universe: pd.DataFrame, results: pd.DataFrame) -
                 "symbol":symbol,"timeframe":tf,"rank":rank,"strategy":row["strategy"],
                 "family":row["family"],"horizon_min":int(row["horizon_min"]),
                 "research_score_bps":row["research_score"],"robust":bool(row["robust"]),
+                "regime_dependent":bool(row["regime_dependent"]),
                 "validation_expectancy_bps":row["expectancy_bps_validation"],
                 "holdout_expectancy_bps":row["expectancy_bps_holdout"],
                 "holdout_15bps_expectancy_bps":row["holdout_expectancy_15bps"],
@@ -446,17 +448,31 @@ def write_reports(outdir: Path, universe: pd.DataFrame, results: pd.DataFrame) -
     failures.append(f"- 10 bps holdout positive but 15 bps stress non-positive: {int(((wide['expectancy_bps_holdout']>0)&(wide['holdout_expectancy_15bps']<=0)).sum())}\n")
     (outdir/"FAILURES.md").write_text("".join(failures),encoding="utf-8")
 
+    regime = wide[wide["regime_dependent"]].sort_values(["research_score","cross_coin_support"],ascending=False)
+    regime.to_csv(outdir/"REGIME_DEPENDENT.csv",index=False)
+    regime_md=["# Regime-Dependent Candidates\n\n",
+               "These pass current OOS and friction gates but fail the positive-train stability requirement. They are not stable-edge candidates.\n\n"]
+    if regime.empty:
+        regime_md.append("**None.**\n")
+    else:
+        regime_md.append("| Coin | TF | Strategy | Horizon | Train bps | Val bps | Holdout bps | Holdout @15bps |\n|---|---|---|---:|---:|---:|---:|---:|\n")
+        for r in regime.head(100).itertuples():
+            regime_md.append(f"| {r.symbol} | {r.timeframe} | {r.strategy} | {int(r.horizon_min)}m | {r.expectancy_bps_train:.2f} | {r.expectancy_bps_validation:.2f} | {r.expectancy_bps_holdout:.2f} | {r.holdout_expectancy_15bps:.2f} |\n")
+    (outdir/"REGIME_DEPENDENT.md").write_text("".join(regime_md),encoding="utf-8")
+
     robust_coin_count=int(candidates["symbol"].nunique()) if not candidates.empty else 0
+    regime_coin_count=int(regime["symbol"].nunique()) if not regime.empty else 0
     summary={
         "status":"COMPLETE","universe_size":int(len(universe)),"tested_rows":int(len(results)),
         "robust_combinations":int(len(candidates)),"coins_with_robust_setup":robust_coin_count,
+        "regime_dependent_combinations":int(len(regime)),"coins_with_regime_dependent_setup":regime_coin_count,
         "coins_without_robust_setup":int(len(universe)-robust_coin_count),
         "selection_note":"Research discovery classification, not live-trading approval.",
     }
     (outdir/"SUMMARY.json").write_text(json.dumps(summary,indent=2),encoding="utf-8")
 
     md=["# Robust Candidates\n\n"]
-    md.append("A candidate must survive validation and untouched holdout at 10 bps, remain positive on holdout at 15 bps, have >=25 independent events in validation and holdout, and pass at least two neighboring holding horizons. Negative train is allowed only when the same strategy/timeframe repeats across at least three coins.\n\n")
+    md.append("A stable-edge candidate must be positive in train, validation, and untouched holdout at 10 bps; remain positive on holdout at 15 bps; have >=25 independent events in validation and holdout; and pass at least two neighboring holding horizons. Negative-train setups are reported separately as regime-dependent and are never labeled robust.\n\n")
     if candidates.empty:
         md.append("**No robust candidates.**\n")
     else:
