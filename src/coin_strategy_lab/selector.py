@@ -103,6 +103,7 @@ def build_robust_assignments(
                 "symbol","timeframe","strategy_id","windows_passed","window_ids",
                 "worst_oos_floor_bps","worst_15bps_expectancy",
                 "worst_holdout_profit_factor","total_trades",
+                "expected_windows","window_coverage","robust_tier",
                 "confidence_score","robust",
             ]
         )
@@ -139,16 +140,32 @@ def build_robust_assignments(
     return grouped
 
 
-def _ensure_score(frame: pd.DataFrame) -> pd.DataFrame:
-    if "confidence_score" in frame.columns:
-        return frame.copy()
-    return add_confidence_score(frame)
+def _ensure_routing_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize legacy/direct selector inputs to the current routing schema."""
+    out = frame.copy()
+    if "expected_windows" not in out.columns:
+        out["expected_windows"] = (
+            out["timeframe"].map(EXPECTED_WINDOWS_BY_TIMEFRAME).fillna(2).astype(int)
+        )
+    if "window_coverage" not in out.columns:
+        out["window_coverage"] = (
+            out["windows_passed"].astype(float)
+            / out["expected_windows"].replace(0, 1).astype(float)
+        )
+    if "robust_tier" not in out.columns:
+        out["robust_tier"] = "RESEARCH"
+        robust_mask = out["robust"].astype(bool)
+        out.loc[robust_mask, "robust_tier"] = "B"
+        out.loc[robust_mask & (out["window_coverage"] >= 1.0), "robust_tier"] = "A"
+    if "confidence_score" not in out.columns:
+        out = add_confidence_score(out)
+    return out
 
 
 def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
     if robust.empty:
         return robust.copy()
-    eligible = _ensure_score(robust)
+    eligible = _ensure_routing_columns(robust)
     eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
