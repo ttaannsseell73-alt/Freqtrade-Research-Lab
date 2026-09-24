@@ -9,7 +9,8 @@ import pandas as pd
 from coin_strategy_lab.selector import (
     RobustnessPolicy,
     build_robust_assignments,
-    select_best_per_coin,
+    select_best_per_coin_timeframe,
+    select_best_setup_per_coin,
 )
 
 
@@ -44,16 +45,19 @@ def main() -> int:
         matrices,
         RobustnessPolicy(min_windows=args.min_windows),
     )
-    best = select_best_per_coin(robust)
+    best_tf = select_best_per_coin_timeframe(robust)
+    best_primary = select_best_setup_per_coin(robust)
 
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     robust.to_csv(out / "ROBUST_ASSIGNMENTS.csv", index=False)
-    best.to_csv(out / "BEST_ROBUST_STRATEGY_BY_COIN.csv", index=False)
+    best_tf.to_csv(out / "BEST_ROBUST_STRATEGY_BY_COIN_TIMEFRAME.csv", index=False)
+    best_primary.to_csv(out / "BEST_ROBUST_SETUP_BY_COIN.csv", index=False)
 
     assignments = {}
-    for row in best.itertuples():
-        assignments[row.symbol] = {
+    for row in best_tf.itertuples():
+        symbol_entry = assignments.setdefault(row.symbol, {"timeframes": {}})
+        symbol_entry["timeframes"][row.timeframe] = {
             "strategy_id": row.strategy_id,
             "windows_passed": int(row.windows_passed),
             "window_ids": str(row.window_ids).split(","),
@@ -63,11 +67,22 @@ def main() -> int:
             "status": "ROBUST",
         }
 
+    for row in best_primary.itertuples():
+        symbol_entry = assignments.setdefault(row.symbol, {"timeframes": {}})
+        symbol_entry["primary"] = {
+            "timeframe": row.timeframe,
+            "strategy_id": row.strategy_id,
+            "windows_passed": int(row.windows_passed),
+            "worst_oos_floor_bps": float(row.worst_oos_floor_bps),
+            "worst_15bps_expectancy": float(row.worst_15bps_expectancy),
+            "worst_holdout_profit_factor": float(row.worst_holdout_profit_factor),
+        }
+
     router = {
-        "version": 1,
+        "version": 2,
         "default": "NO_TRADE",
         "assignments": assignments,
-        "rule": "Only repeated multi-window candidates are assigned. Missing symbols => NO_TRADE.",
+        "rule": "Assignments are keyed by coin and timeframe. Each coin may also have one primary setup. Missing coin/timeframe => NO_TRADE.",
     }
     (out / "ROUTER_CONFIG.json").write_text(
         json.dumps(router, indent=2, ensure_ascii=False),
@@ -77,7 +92,8 @@ def main() -> int:
     summary = {
         "input_windows": [label for label, _ in args.matrix],
         "robust_pairs": int(robust["robust"].sum()) if not robust.empty else 0,
-        "coins_with_assignment": int(best["symbol"].nunique()) if not best.empty else 0,
+        "coins_with_assignment": int(best_primary["symbol"].nunique()) if not best_primary.empty else 0,
+        "coin_timeframe_assignments": int(len(best_tf)),
         "default": "NO_TRADE",
     }
     (out / "ROUTER_SUMMARY.json").write_text(
