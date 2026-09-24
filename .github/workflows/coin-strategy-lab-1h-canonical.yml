@@ -1,0 +1,50 @@
+name: coin-strategy-lab-1h-canonical
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-1h-canonical.yml
+  workflow_dispatch:
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - window: 90d
+            start: 2026-06-24
+            end: 2026-09-24
+            artifact: coin-strategy-lab-1h-90d-canonical
+          - window: 365d
+            start: 2025-09-24
+            end: 2026-09-24
+            artifact: coin-strategy-lab-1h-365d-canonical
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e .
+      - name: Run canonical all-futures 1h discovery
+        run: |
+          python scripts/run_coin_strategy_lab_discovery.py \
+            --start ${{ matrix.start }} \
+            --end ${{ matrix.end }} \
+            --timeframe 1h \
+            --data-source vision \
+            --workers 24 \
+            --output-dir artifacts/${{ matrix.artifact }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts/${{ matrix.artifact }}
+          if-no-files-found: warn
+          retention-days: 30
