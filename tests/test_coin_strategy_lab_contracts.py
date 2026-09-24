@@ -68,7 +68,7 @@ def test_all_v1_strategy_plugins_auto_discovered_and_signal():
     )
 
     registry = StrategyRegistry.discover_builtins()
-    expected = {"mavilimw", "alphatrend", "pmax", "utbot", "squeeze_momentum"}
+    expected = {"mavilimw", "alphatrend", "pmax", "utbot", "squeeze_momentum", "qqe_ssl_wae"}
     assert expected.issubset(set(registry.ids()))
 
     for strategy_id in expected:
