@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import urllib.request
+import urllib.parse
 import zipfile
 
 
@@ -113,6 +114,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    # urllib.parse is imported lazily to keep the module dependency-free.
-    import urllib.parse
     raise SystemExit(main())
