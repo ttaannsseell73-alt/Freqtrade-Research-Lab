@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import math
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +22,7 @@ from coin_strategy_lab.universe import fetch_usdt_perpetuals
 
 
 KLINES_URL = "https://fapi.binance.com/fapi/v1/klines"
+VISION_BASE_URL = "https://data.binance.vision/data/futures/um"
 INTERVAL_MS = 60 * 60 * 1000
 COLS = [
     "open_time","open","high","low","close","volume","close_time","quote_volume",
@@ -42,6 +47,81 @@ def _request_json(url: str, *, attempts: int = 5) -> object:
                 raise
             time.sleep(1.5 * (attempt + 1))
     raise RuntimeError("request retry exhausted")
+
+
+
+def _request_bytes(url: str, *, attempts: int = 4) -> bytes | None:
+    request = urllib.request.Request(url, headers={"User-Agent": "CoinStrategyLab/1.0"})
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return None
+            if attempt + 1 == attempts:
+                raise
+        except Exception:
+            if attempt + 1 == attempts:
+                raise
+        time.sleep(1.25 * (attempt + 1))
+    return None
+
+
+def _vision_zip_frame(payload: bytes) -> pd.DataFrame:
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        names = [name for name in archive.namelist() if not name.endswith("/")]
+        if not names:
+            return pd.DataFrame()
+        raw = archive.read(names[0])
+    frame = pd.read_csv(io.BytesIO(raw), header=None, low_memory=False)
+    if frame.empty:
+        return frame
+    if not str(frame.iloc[0, 0]).lstrip("-").isdigit():
+        frame = frame.iloc[1:].reset_index(drop=True)
+    frame = frame.iloc[:, :12]
+    frame.columns = COLS[: frame.shape[1]]
+    for col in ["open_time","open","high","low","close","volume","quote_volume","trade_count"]:
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    frame = frame.dropna(subset=["open_time","open","high","low","close","volume"])
+    unit = "us" if float(frame["open_time"].median()) > 100_000_000_000_000 else "ms"
+    frame["time"] = pd.to_datetime(frame["open_time"].astype("int64"), unit=unit, utc=True)
+    return frame[["time","open","high","low","close","volume","quote_volume","trade_count"]]
+
+
+def _vision_archive_urls(symbol: str, start: date, end: date) -> list[str]:
+    urls: list[str] = []
+    qsymbol = urllib.parse.quote(symbol, safe="")
+    month = date(start.year, start.month, 1)
+    end_month = date(end.year, end.month, 1)
+    while month < end_month:
+        ym = month.strftime("%Y-%m")
+        filename = urllib.parse.quote(f"{symbol}-1h-{ym}.zip", safe="-_.")
+        urls.append(f"{VISION_BASE_URL}/monthly/klines/{qsymbol}/1h/{filename}")
+        month = date(month.year + (month.month == 12), 1 if month.month == 12 else month.month + 1, 1)
+    day = end_month
+    while day < end:
+        ds = day.strftime("%Y-%m-%d")
+        filename = urllib.parse.quote(f"{symbol}-1h-{ds}.zip", safe="-_.")
+        urls.append(f"{VISION_BASE_URL}/daily/klines/{qsymbol}/1h/{filename}")
+        day += timedelta(days=1)
+    return urls
+
+
+def download_klines_vision(symbol: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+    frames: list[pd.DataFrame] = []
+    for url in _vision_archive_urls(symbol, start.date(), end.date()):
+        payload = _request_bytes(url)
+        if payload is None:
+            continue
+        frame = _vision_zip_frame(payload)
+        if not frame.empty:
+            frames.append(frame)
+    if not frames:
+        return pd.DataFrame(columns=["time","open","high","low","close","volume","quote_volume","trade_count"])
+    out = pd.concat(frames, ignore_index=True).drop_duplicates("time").sort_values("time")
+    out = out[(out["time"] >= start) & (out["time"] < end)]
+    return out.reset_index(drop=True)
 
 
 def load_snapshot(path: Path) -> list[dict]:
@@ -215,6 +295,9 @@ def main() -> int:
     parser.add_argument("--snapshot", type=Path, default=Path("config/futures_universe_snapshot.json"))
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--request-pause", type=float, default=0.34)
+    parser.add_argument("--data-source", choices=["api","vision"], default="vision")
+    parser.add_argument("--workers", type=int, default=16)
+    parser.add_argument("--symbols", default="")
     parser.add_argument("--max-symbols", type=int, default=0)
     args = parser.parse_args()
 
@@ -229,6 +312,9 @@ def main() -> int:
 
     universe, universe_source = load_universe(args.snapshot)
     universe = sorted(universe, key=lambda x: x["symbol"])
+    if args.symbols:
+        wanted = {item.strip().upper() for item in args.symbols.split(",") if item.strip()}
+        universe = [item for item in universe if item["symbol"] in wanted]
     if args.max_symbols > 0:
         universe = universe[: args.max_symbols]
 
@@ -241,11 +327,35 @@ def main() -> int:
     trade_rows: list[pd.DataFrame] = []
     errors: list[dict] = []
 
+    downloaded: dict[str, tuple[pd.DataFrame | None, Exception | None]] = {}
+    if args.data_source == "vision" and args.workers > 1:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            pending = {
+                pool.submit(download_klines_vision, meta["symbol"], start, end): meta["symbol"]
+                for meta in universe
+            }
+            for done_idx, future in enumerate(as_completed(pending), 1):
+                symbol = pending[future]
+                try:
+                    downloaded[symbol] = (future.result(), None)
+                except Exception as exc:
+                    downloaded[symbol] = (None, exc)
+                print(f"[download {done_idx}/{len(universe)}] {symbol}", flush=True)
+
     for idx, meta in enumerate(universe, 1):
         symbol = meta["symbol"]
-        print(f"[{idx}/{len(universe)}] {symbol}", flush=True)
+        print(f"[eval {idx}/{len(universe)}] {symbol}", flush=True)
         try:
-            frame = download_klines(symbol, start_ms, end_ms, args.request_pause)
+            if args.data_source == "vision":
+                if downloaded:
+                    frame, download_error = downloaded.get(symbol, (None, RuntimeError("missing download result")))
+                    if download_error is not None:
+                        raise download_error
+                    assert frame is not None
+                else:
+                    frame = download_klines_vision(symbol, start, end)
+            else:
+                frame = download_klines(symbol, start_ms, end_ms, args.request_pause)
         except Exception as exc:
             errors.append({"symbol": symbol, "stage": "download", "error": repr(exc)})
             audit_rows.append(
@@ -316,6 +426,24 @@ def main() -> int:
     details.to_csv(out / "DETAILED_RESULTS.csv", index=False)
     trades_all.to_csv(out / "TRADES.csv", index=False)
     (out / "ERRORS.json").write_text(json.dumps(errors, indent=2), encoding="utf-8")
+
+    if details.empty:
+        summary = {
+            "status": "NO_EVALUABLE_DATA",
+            "period": {"start": start.isoformat(), "end_exclusive": end.isoformat()},
+            "timeframe": "1h",
+            "universe_source": universe_source,
+            "universe_count": len(universe),
+            "ready_symbols": int((audit.get("status") == "READY").sum()) if not audit.empty else 0,
+            "insufficient_history": int((audit.get("status") == "INSUFFICIENT_HISTORY").sum()) if not audit.empty else 0,
+            "download_errors": int((audit.get("status") == "DOWNLOAD_ERROR").sum()) if not audit.empty else 0,
+            "strategy_count": len(strategy_ids),
+            "strategies": list(strategy_ids),
+            "data_source": args.data_source,
+        }
+        (out / "SUMMARY.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        print(json.dumps(summary, indent=2), flush=True)
+        return 0
 
     base = details[details["cost_bps"] == 10.0].copy()
     piv = base.pivot_table(
@@ -390,6 +518,7 @@ def main() -> int:
         "costs_bps_round_trip": [6,10,15],
         "split": "50/25/25 chronological",
         "execution": "closed-bar signal, next 1h open, reverse on opposite signal",
+        "data_source": args.data_source,
         "note": "Discovery classification only; candidates require longer-horizon and native execution validation.",
     }
     (out / "SUMMARY.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
