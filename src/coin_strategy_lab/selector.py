@@ -83,7 +83,7 @@ def build_robust_assignments(
     return grouped
 
 
-def select_best_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
+def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
     if robust.empty:
         return robust.copy()
     eligible = robust[robust["robust"]].copy()
@@ -101,3 +101,26 @@ def select_best_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
         ascending=[True, True, False, False, False, False],
     )
     return eligible.groupby(["symbol","timeframe"], as_index=False).head(1).reset_index(drop=True)
+
+
+def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
+    if robust.empty:
+        return robust.copy()
+    eligible = robust[robust["robust"]].copy()
+    if eligible.empty:
+        return eligible
+    eligible = eligible.sort_values(
+        [
+            "symbol",
+            "windows_passed",
+            "worst_oos_floor_bps",
+            "worst_15bps_expectancy",
+            "worst_holdout_profit_factor",
+        ],
+        ascending=[True, False, False, False, False],
+    )
+    return eligible.groupby("symbol", as_index=False).head(1).reset_index(drop=True)
+
+
+# Backward-compatible name; semantically this returns one strategy per coin+timeframe.
+select_best_per_coin = select_best_per_coin_timeframe
