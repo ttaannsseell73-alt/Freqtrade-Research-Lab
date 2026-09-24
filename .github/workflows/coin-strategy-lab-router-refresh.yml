@@ -51,6 +51,7 @@ jobs:
           done
           python scripts/download_latest_coin_strategy_artifacts.py \
             "${args[@]}" \
+            --branch foundation/coin-strategy-lab-v1 \
             --output-root collected
 
       - name: Merge high-frequency shards
