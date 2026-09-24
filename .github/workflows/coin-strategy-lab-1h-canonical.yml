@@ -1,4 +1,5 @@
 name: coin-strategy-lab-1h-canonical
+# matrix-schema: timeframe-aware-v3
 
 on:
   push:
