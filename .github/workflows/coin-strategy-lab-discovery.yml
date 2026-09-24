@@ -23,10 +23,10 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e .
-      - name: Full all-futures discovery
+      - name: Full all-futures 365d discovery
         run: |
           python scripts/run_coin_strategy_lab_discovery.py \
-            --start 2026-06-24 \
+            --start 2025-09-24 \
             --end 2026-09-24 \
             --data-source vision \
             --workers 24 \
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coin-strategy-lab-discovery-full
+          name: coin-strategy-lab-discovery-365d
           path: artifacts/coin_strategy_lab_discovery
           if-no-files-found: warn
           retention-days: 30
