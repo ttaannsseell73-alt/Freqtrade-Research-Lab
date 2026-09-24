@@ -1,0 +1,96 @@
+name: coin-strategy-lab-router-refresh
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - config/router_refresh_trigger.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build-router:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e .
+
+      - name: Download latest canonical artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=()
+          for name in \
+            coin-strategy-lab-1h-90d-canonical \
+            coin-strategy-lab-1h-180d \
+            coin-strategy-lab-1h-365d-canonical \
+            coin-strategy-lab-15m-180d \
+            coin-strategy-lab-15m-365d \
+            coin-strategy-lab-4h-365d \
+            coin-strategy-lab-4h-730d \
+            coin-strategy-lab-1d-730d \
+            coin-strategy-lab-1d-1095d
+          do
+            args+=(--artifact "$name")
+          done
+          for tf in 1m 5m; do
+            for shard in 0 1 2 3 4 5 6 7; do
+              args+=(--artifact "coin-strategy-lab-${tf}-shard-${shard}")
+              args+=(--artifact "coin-strategy-lab-${tf}-180d-shard-${shard}")
+            done
+          done
+          python scripts/download_latest_coin_strategy_artifacts.py \
+            "${args[@]}" \
+            --output-root collected
+
+      - name: Merge high-frequency shards
+        run: |
+          for tf in 1m 5m; do
+            args90=()
+            args180=()
+            for shard in 0 1 2 3 4 5 6 7; do
+              args90+=(--input-dir "collected/coin-strategy-lab-${tf}-shard-${shard}")
+              args180+=(--input-dir "collected/coin-strategy-lab-${tf}-180d-shard-${shard}")
+            done
+            python scripts/merge_coin_strategy_shards.py "${args90[@]}" --output-dir "merged/${tf}-90d"
+            python scripts/merge_coin_strategy_shards.py "${args180[@]}" --output-dir "merged/${tf}-180d"
+          done
+
+      - name: Build full robust router
+        run: |
+          python scripts/build_coin_strategy_router.py \
+            --matrix 1m-90d=merged/1m-90d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1m-180d=merged/1m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 5m-90d=merged/5m-90d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 5m-180d=merged/5m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 15m-180d=collected/coin-strategy-lab-15m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 15m-365d=collected/coin-strategy-lab-15m-365d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1h-90d=collected/coin-strategy-lab-1h-90d-canonical/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1h-180d=collected/coin-strategy-lab-1h-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1h-365d=collected/coin-strategy-lab-1h-365d-canonical/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 4h-365d=collected/coin-strategy-lab-4h-365d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 4h-730d=collected/coin-strategy-lab-4h-730d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1d-730d=collected/coin-strategy-lab-1d-730d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --matrix 1d-1095d=collected/coin-strategy-lab-1d-1095d/MASTER_COIN_STRATEGY_MATRIX.csv \
+            --min-windows 2 \
+            --output-dir router
+
+      - name: Archive input manifest
+        run: cp collected/ARTIFACT_MANIFEST.json router/ARTIFACT_MANIFEST.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-router
+          path: router
+          if-no-files-found: error
+          retention-days: 30
