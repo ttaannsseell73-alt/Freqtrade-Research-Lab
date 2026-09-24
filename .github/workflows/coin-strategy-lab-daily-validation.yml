@@ -1,6 +1,11 @@
 name: coin-strategy-lab-daily-validation
 
 on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-daily-validation.yml
   workflow_dispatch:
 
 jobs:
@@ -31,3 +36,5 @@ jobs:
           path: artifacts/coin-strategy-lab-1d-730d
           if-no-files-found: warn
           retention-days: 30
+
+# trigger: canonical-full-universe-1970-01-01
