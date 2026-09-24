@@ -125,3 +125,25 @@ def test_primary_score_normalizes_window_count_by_timeframe():
     best = select_best_setup_per_coin(rows)
     assert best.iloc[0]["strategy_id"] == "daily"
     assert best.iloc[0]["timeframe"] == "1d"
+
+
+def test_robust_tier_requires_all_expected_windows_for_tier_a():
+    m90 = _matrix([
+        {"symbol":"AAAUSDT","timeframe":"1h","strategy_id":"pmax","candidate":True,"oos_floor_bps":20.0,
+         "expectancy_full_15bps":12.0,"profit_factor_holdout":1.3,"trades_full":30},
+        {"symbol":"BBBUSDT","timeframe":"1d","strategy_id":"utbot","candidate":True,"oos_floor_bps":20.0,
+         "expectancy_full_15bps":12.0,"profit_factor_holdout":1.3,"trades_full":30},
+    ])
+    m180 = _matrix([
+        {"symbol":"AAAUSDT","timeframe":"1h","strategy_id":"pmax","candidate":True,"oos_floor_bps":18.0,
+         "expectancy_full_15bps":11.0,"profit_factor_holdout":1.2,"trades_full":40},
+        {"symbol":"BBBUSDT","timeframe":"1d","strategy_id":"utbot","candidate":True,"oos_floor_bps":18.0,
+         "expectancy_full_15bps":11.0,"profit_factor_holdout":1.2,"trades_full":40},
+    ])
+    result = build_robust_assignments([("w1", m90), ("w2", m180)])
+    one_h = result[result["symbol"] == "AAAUSDT"].iloc[0]
+    one_d = result[result["symbol"] == "BBBUSDT"].iloc[0]
+    assert one_h["robust_tier"] == "B"
+    assert one_h["expected_windows"] == 3
+    assert one_d["robust_tier"] == "A"
+    assert one_d["expected_windows"] == 2
