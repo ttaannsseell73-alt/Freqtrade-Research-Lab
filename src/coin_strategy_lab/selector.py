@@ -21,6 +21,16 @@ def _cap_log(value: float, cap: float) -> float:
     return min(math.log1p(value) / math.log1p(cap), 1.0)
 
 
+EXPECTED_WINDOWS_BY_TIMEFRAME = {
+    "1m": 2,
+    "5m": 2,
+    "15m": 2,
+    "1h": 3,
+    "4h": 2,
+    "1d": 2,
+}
+
+
 def _confidence_score(row: pd.Series) -> float:
     """Timeframe-aware routing score.
 
@@ -32,7 +42,9 @@ def _confidence_score(row: pd.Series) -> float:
     stress = _cap_log(row.get("worst_15bps_expectancy", 0.0), 100.0)
     pf = min(max((float(row.get("worst_holdout_profit_factor", 1.0)) - 1.0) / 1.0, 0.0), 1.0)
     sample = _cap_log(row.get("total_trades", 0.0), 300.0)
-    windows = min(max(float(row.get("windows_passed", 0.0)) / 3.0, 0.0), 1.0)
+    timeframe = str(row.get("timeframe", ""))
+    expected_windows = float(EXPECTED_WINDOWS_BY_TIMEFRAME.get(timeframe, 2))
+    windows = min(max(float(row.get("windows_passed", 0.0)) / expected_windows, 0.0), 1.0)
     return 100.0 * (
         0.35 * edge
         + 0.25 * stress
@@ -139,8 +151,8 @@ def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
         [
             "symbol",
             "timeframe",
-            "windows_passed",
             "confidence_score",
+            "windows_passed",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
         ],
@@ -159,8 +171,8 @@ def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
     eligible = eligible.sort_values(
         [
             "symbol",
-            "windows_passed",
             "confidence_score",
+            "windows_passed",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
         ],
