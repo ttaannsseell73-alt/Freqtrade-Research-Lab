@@ -48,3 +48,35 @@ def test_strategy_plugins_are_auto_discovered():
     ids = tuple(p.spec.strategy_id for p in plugins)
     assert "mavilimw" in ids
     assert StrategyRegistry.discover_builtins().ids() == ids
+
+
+def test_all_v1_strategy_plugins_auto_discovered_and_signal():
+    import numpy as np
+    from coin_strategy_lab import StrategyRegistry
+
+    n = 500
+    t = np.arange(n, dtype=float)
+    base = 100.0 + 0.03 * t + 4.0 * np.sin(t / 11.0)
+    candles = pd.DataFrame(
+        {
+            "open": base + 0.1 * np.sin(t / 3.0),
+            "high": base + 1.0,
+            "low": base - 1.0,
+            "close": base + 0.2 * np.cos(t / 5.0),
+            "volume": 1000.0 + 100.0 * np.sin(t / 7.0),
+        }
+    )
+
+    registry = StrategyRegistry.discover_builtins()
+    expected = {"mavilimw", "alphatrend", "pmax", "utbot", "squeeze_momentum"}
+    assert expected.issubset(set(registry.ids()))
+
+    for strategy_id in expected:
+        strategy = registry.get(strategy_id)
+        prepared = strategy.prepare(candles)
+        long_sig = strategy.long_entries(prepared)
+        short_sig = strategy.short_entries(prepared)
+        assert len(long_sig) == n
+        assert len(short_sig) == n
+        assert long_sig.dtype == bool
+        assert short_sig.dtype == bool
