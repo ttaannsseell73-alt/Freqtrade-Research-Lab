@@ -1,0 +1,20 @@
+{
+  "universe": {
+    "exchange": "binance",
+    "market": "usd-m-perpetual",
+    "quote": "USDT",
+    "status": "TRADING",
+    "minimum_coverage": 0.95
+  },
+  "timeframes": ["1m", "5m", "15m", "1h", "4h", "1d"],
+  "cost_bps_round_trip": [6, 10, 15],
+  "split": {
+    "train": 0.5,
+    "validation": 0.25,
+    "holdout": 0.25
+  },
+  "router": {
+    "allow_no_trade": true,
+    "hysteresis_required": true
+  }
+}
