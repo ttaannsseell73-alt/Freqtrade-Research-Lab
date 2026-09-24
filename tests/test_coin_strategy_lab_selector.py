@@ -77,3 +77,27 @@ def test_primary_setup_can_choose_across_timeframes():
     assert len(best) == 1
     assert best.iloc[0]["timeframe"] == "1h"
     assert best.iloc[0]["strategy_id"] == "mavilimw"
+
+
+def test_confidence_score_caps_raw_bps_across_timeframes():
+    from coin_strategy_lab.selector import select_best_setup_per_coin
+
+    rows = pd.DataFrame([
+        {
+            "symbol":"AAAUSDT","timeframe":"1d","strategy_id":"daily_spike",
+            "windows_passed":2,"window_ids":"730d,1095d",
+            "worst_oos_floor_bps":5000.0,"median_oos_floor_bps":6000.0,
+            "worst_15bps_expectancy":4900.0,"worst_holdout_profit_factor":1.05,
+            "total_trades":20,"robust":True,
+        },
+        {
+            "symbol":"AAAUSDT","timeframe":"1h","strategy_id":"hourly_stable",
+            "windows_passed":3,"window_ids":"90d,180d,365d",
+            "worst_oos_floor_bps":80.0,"median_oos_floor_bps":90.0,
+            "worst_15bps_expectancy":70.0,"worst_holdout_profit_factor":1.8,
+            "total_trades":300,"robust":True,
+        },
+    ])
+    best = select_best_setup_per_coin(rows)
+    assert best.iloc[0]["strategy_id"] == "hourly_stable"
+    assert 0.0 <= float(best.iloc[0]["confidence_score"]) <= 100.0
