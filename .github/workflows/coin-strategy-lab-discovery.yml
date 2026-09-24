@@ -1,14 +1,6 @@
 name: coin-strategy-lab-discovery
 
 on:
-  push:
-    branches:
-      - foundation/coin-strategy-lab-v1
-    paths:
-      - scripts/run_coin_strategy_lab_discovery.py
-      - src/coin_strategy_lab/**
-      - config/futures_universe_snapshot.json
-      - .github/workflows/coin-strategy-lab-discovery.yml
   workflow_dispatch:
 
 jobs:
