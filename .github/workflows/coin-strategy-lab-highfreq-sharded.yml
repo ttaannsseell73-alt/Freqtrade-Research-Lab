@@ -1,6 +1,11 @@
 name: coin-strategy-lab-highfreq-sharded
 
 on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-highfreq-sharded.yml
   workflow_dispatch:
 
 jobs:
@@ -38,3 +43,5 @@ jobs:
           path: artifacts/${{ matrix.timeframe }}-shard-${{ matrix.shard }}
           if-no-files-found: warn
           retention-days: 30
+
+# trigger: canonical-full-universe-1970-01-01
