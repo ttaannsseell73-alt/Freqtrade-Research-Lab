@@ -2,7 +2,8 @@ import pandas as pd
 import pytest
 
 from coin_strategy_lab import StrategyRegistry, Timeframe
-from coin_strategy_lab.strategies import MavilimW
+from coin_strategy_lab.strategies import discover_builtin_strategies
+from coin_strategy_lab.strategies.mavilimw import MavilimW
 from coin_strategy_lab.timeframes import CANONICAL_TIMEFRAMES, WINDOW_POLICY
 
 
@@ -40,3 +41,10 @@ def test_missing_ohlcv_is_rejected():
     strategy = MavilimW()
     with pytest.raises(ValueError):
         strategy.prepare(pd.DataFrame({"close": [1.0, 2.0]}))
+
+
+def test_strategy_plugins_are_auto_discovered():
+    plugins = discover_builtin_strategies()
+    ids = tuple(p.spec.strategy_id for p in plugins)
+    assert "mavilimw" in ids
+    assert StrategyRegistry.discover_builtins().ids() == ids
