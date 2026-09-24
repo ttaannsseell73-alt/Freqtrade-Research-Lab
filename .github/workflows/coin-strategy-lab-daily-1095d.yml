@@ -1,0 +1,38 @@
+name: coin-strategy-lab-daily-1095d
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-daily-1095d.yml
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e .
+      - name: Run all-futures 1d 1095d validation
+        run: |
+          python scripts/run_coin_strategy_lab_discovery.py \
+            --start 2023-09-25 \
+            --end 2026-09-24 \
+            --timeframe 1d \
+            --data-source vision \
+            --workers 24 \
+            --output-dir artifacts/coin-strategy-lab-1d-1095d
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-strategy-lab-1d-1095d
+          path: artifacts/coin-strategy-lab-1d-1095d
+          if-no-files-found: warn
+          retention-days: 30
