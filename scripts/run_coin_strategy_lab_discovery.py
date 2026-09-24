@@ -469,7 +469,7 @@ def main() -> int:
 
     base = details[details["cost_bps"] == 10.0].copy()
     piv = base.pivot_table(
-        index=["symbol","strategy_id","strategy_version"],
+        index=["symbol","timeframe","strategy_id","strategy_version"],
         columns="split",
         values=["trades","expectancy_bps","profit_factor","net_sum_bps","win_rate","max_drawdown_bps","avg_holding_hours"],
         aggfunc="first",
@@ -479,12 +479,12 @@ def main() -> int:
 
     stress = details[(details["split"] == "full") & (details["cost_bps"].isin([6.0,15.0]))]
     stress = stress.pivot_table(
-        index=["symbol","strategy_id"],
+        index=["symbol","timeframe","strategy_id"],
         columns="cost_bps",
         values="expectancy_bps",
         aggfunc="first",
     ).reset_index().rename(columns={6.0:"expectancy_full_6bps",15.0:"expectancy_full_15bps"})
-    master = piv.merge(stress, on=["symbol","strategy_id"], how="left")
+    master = piv.merge(stress, on=["symbol","timeframe","strategy_id"], how="left")
 
     master["candidate"] = (
         (master["trades_full"] >= 20)
@@ -539,7 +539,7 @@ def main() -> int:
         "coins_with_candidate": int(master[master["candidate"]]["symbol"].nunique()) if not master.empty else 0,
         "costs_bps_round_trip": [6,10,15],
         "split": "50/25/25 chronological",
-        "execution": "closed-bar signal, next 1h open, reverse on opposite signal",
+        "execution": f"closed-bar signal, next {args.timeframe} open, reverse on opposite signal",
         "data_source": args.data_source,
         "shard": {"count": args.shard_count, "index": args.shard_index},
         "note": "Discovery classification only; candidates require longer-horizon and native execution validation.",
