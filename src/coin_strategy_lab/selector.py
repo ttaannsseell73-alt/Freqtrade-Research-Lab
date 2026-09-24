@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable
+import math
 
 import pandas as pd
 
@@ -12,6 +13,42 @@ class RobustnessPolicy:
     min_oos_floor_bps: float = 0.0
     min_stress_expectancy_bps: float = 0.0
     min_holdout_profit_factor: float = 1.0
+
+
+def _cap_log(value: float, cap: float) -> float:
+    value = max(float(value), 0.0)
+    cap = max(float(cap), 1e-9)
+    return min(math.log1p(value) / math.log1p(cap), 1.0)
+
+
+def _confidence_score(row: pd.Series) -> float:
+    """Timeframe-aware routing score.
+
+    Raw bps-per-trade cannot be compared directly across 1m..1d. This score
+    deliberately caps large edge values and also rewards stress survival,
+    holdout PF, repeatability across windows, and sample size.
+    """
+    edge = _cap_log(row.get("worst_oos_floor_bps", 0.0), 100.0)
+    stress = _cap_log(row.get("worst_15bps_expectancy", 0.0), 100.0)
+    pf = min(max((float(row.get("worst_holdout_profit_factor", 1.0)) - 1.0) / 1.0, 0.0), 1.0)
+    sample = _cap_log(row.get("total_trades", 0.0), 300.0)
+    windows = min(max(float(row.get("windows_passed", 0.0)) / 3.0, 0.0), 1.0)
+    return 100.0 * (
+        0.35 * edge
+        + 0.25 * stress
+        + 0.15 * pf
+        + 0.15 * sample
+        + 0.10 * windows
+    )
+
+
+def add_confidence_score(frame: pd.DataFrame) -> pd.DataFrame:
+    out = frame.copy()
+    if out.empty:
+        out["confidence_score"] = pd.Series(dtype=float)
+        return out
+    out["confidence_score"] = out.apply(_confidence_score, axis=1)
+    return out
 
 
 def build_robust_assignments(
@@ -53,7 +90,8 @@ def build_robust_assignments(
             columns=[
                 "symbol","timeframe","strategy_id","windows_passed","window_ids",
                 "worst_oos_floor_bps","worst_15bps_expectancy",
-                "worst_holdout_profit_factor","robust",
+                "worst_holdout_profit_factor","total_trades",
+                "confidence_score","robust",
             ]
         )
 
@@ -70,23 +108,31 @@ def build_robust_assignments(
         )
     )
     grouped["robust"] = grouped["windows_passed"] >= policy.min_windows
+    grouped = add_confidence_score(grouped)
     grouped = grouped.sort_values(
         [
             "robust",
             "windows_passed",
+            "confidence_score",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
-            "worst_holdout_profit_factor",
         ],
         ascending=False,
     ).reset_index(drop=True)
     return grouped
 
 
+def _ensure_score(frame: pd.DataFrame) -> pd.DataFrame:
+    if "confidence_score" in frame.columns:
+        return frame.copy()
+    return add_confidence_score(frame)
+
+
 def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
     if robust.empty:
         return robust.copy()
-    eligible = robust[robust["robust"]].copy()
+    eligible = _ensure_score(robust)
+    eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
     eligible = eligible.sort_values(
@@ -94,9 +140,9 @@ def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
             "symbol",
             "timeframe",
             "windows_passed",
+            "confidence_score",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
-            "worst_holdout_profit_factor",
         ],
         ascending=[True, True, False, False, False, False],
     )
@@ -106,16 +152,17 @@ def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
 def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
     if robust.empty:
         return robust.copy()
-    eligible = robust[robust["robust"]].copy()
+    eligible = _ensure_score(robust)
+    eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
     eligible = eligible.sort_values(
         [
             "symbol",
             "windows_passed",
+            "confidence_score",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
-            "worst_holdout_profit_factor",
         ],
         ascending=[True, False, False, False, False],
     )
