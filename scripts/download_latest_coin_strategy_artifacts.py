@@ -41,12 +41,17 @@ def _request_bytes(url: str, token: str) -> bytes:
         return response.read()
 
 
-def latest_artifact(repo: str, name: str, token: str) -> dict | None:
+def latest_artifact(repo: str, name: str, token: str, branch: str | None = None) -> dict | None:
     url = f"{API}/repos/{repo}/actions/artifacts?name={urllib.parse.quote(name)}&per_page=100"
     payload = _request_json(url, token)
     candidates = [
         item for item in payload.get("artifacts", [])
-        if item.get("name") == name and not item.get("expired", False)
+        if item.get("name") == name
+        and not item.get("expired", False)
+        and (
+            not branch
+            or (item.get("workflow_run") or {}).get("head_branch") == branch
+        )
     ]
     if not candidates:
         return None
@@ -54,8 +59,8 @@ def latest_artifact(repo: str, name: str, token: str) -> dict | None:
     return candidates[0]
 
 
-def download_artifact(repo: str, name: str, token: str, destination: Path) -> dict:
-    artifact = latest_artifact(repo, name, token)
+def download_artifact(repo: str, name: str, token: str, destination: Path, branch: str | None = None) -> dict:
+    artifact = latest_artifact(repo, name, token, branch)
     if artifact is None:
         raise FileNotFoundError(f"Required GitHub Actions artifact not found: {name}")
     payload = _request_bytes(
@@ -73,6 +78,7 @@ def main() -> int:
     parser.add_argument("--artifact", action="append", required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY", ""))
+    parser.add_argument("--branch", default=os.getenv("GITHUB_REF_NAME", ""))
     args = parser.parse_args()
 
     token = os.getenv("GITHUB_TOKEN", "")
@@ -90,6 +96,7 @@ def main() -> int:
                 name,
                 token,
                 args.output_root / name,
+                args.branch or None,
             )
             manifest.append(
                 {
@@ -97,6 +104,7 @@ def main() -> int:
                     "artifact_id": artifact["id"],
                     "created_at": artifact.get("created_at"),
                     "workflow_run_id": (artifact.get("workflow_run") or {}).get("id"),
+                    "head_branch": (artifact.get("workflow_run") or {}).get("head_branch"),
                 }
             )
             print(f"downloaded {name} artifact_id={artifact['id']}", flush=True)
