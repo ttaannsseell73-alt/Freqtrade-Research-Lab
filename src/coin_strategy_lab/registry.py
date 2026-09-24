@@ -11,6 +11,11 @@ class StrategyRegistry:
         for plugin in plugins:
             self.register(plugin)
 
+    @classmethod
+    def discover_builtins(cls) -> "StrategyRegistry":
+        from .strategies import discover_builtin_strategies
+        return cls(discover_builtin_strategies())
+
     def register(self, plugin: StrategyPlugin) -> None:
         key = plugin.spec.strategy_id
         if key in self._plugins:
