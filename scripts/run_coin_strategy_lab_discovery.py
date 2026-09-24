@@ -23,7 +23,14 @@ from coin_strategy_lab.universe import fetch_usdt_perpetuals
 
 KLINES_URL = "https://fapi.binance.com/fapi/v1/klines"
 VISION_BASE_URL = "https://data.binance.vision/data/futures/um"
-INTERVAL_MS = 60 * 60 * 1000
+INTERVAL_MS = {
+    "1m": 60 * 1000,
+    "5m": 5 * 60 * 1000,
+    "15m": 15 * 60 * 1000,
+    "1h": 60 * 60 * 1000,
+    "4h": 4 * 60 * 60 * 1000,
+    "1d": 24 * 60 * 60 * 1000,
+}
 COLS = [
     "open_time","open","high","low","close","volume","close_time","quote_volume",
     "trade_count","taker_buy_base","taker_buy_quote","ignore",
@@ -89,28 +96,28 @@ def _vision_zip_frame(payload: bytes) -> pd.DataFrame:
     return frame[["time","open","high","low","close","volume","quote_volume","trade_count"]]
 
 
-def _vision_archive_urls(symbol: str, start: date, end: date) -> list[str]:
+def _vision_archive_urls(symbol: str, timeframe: str, start: date, end: date) -> list[str]:
     urls: list[str] = []
     qsymbol = urllib.parse.quote(symbol, safe="")
     month = date(start.year, start.month, 1)
     end_month = date(end.year, end.month, 1)
     while month < end_month:
         ym = month.strftime("%Y-%m")
-        filename = urllib.parse.quote(f"{symbol}-1h-{ym}.zip", safe="-_.")
-        urls.append(f"{VISION_BASE_URL}/monthly/klines/{qsymbol}/1h/{filename}")
+        filename = urllib.parse.quote(f"{symbol}-{timeframe}-{ym}.zip", safe="-_.")
+        urls.append(f"{VISION_BASE_URL}/monthly/klines/{qsymbol}/{timeframe}/{filename}")
         month = date(month.year + (month.month == 12), 1 if month.month == 12 else month.month + 1, 1)
     day = end_month
     while day < end:
         ds = day.strftime("%Y-%m-%d")
-        filename = urllib.parse.quote(f"{symbol}-1h-{ds}.zip", safe="-_.")
-        urls.append(f"{VISION_BASE_URL}/daily/klines/{qsymbol}/1h/{filename}")
+        filename = urllib.parse.quote(f"{symbol}-{timeframe}-{ds}.zip", safe="-_.")
+        urls.append(f"{VISION_BASE_URL}/daily/klines/{qsymbol}/{timeframe}/{filename}")
         day += timedelta(days=1)
     return urls
 
 
-def download_klines_vision(symbol: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+def download_klines_vision(symbol: str, timeframe: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
-    for url in _vision_archive_urls(symbol, start.date(), end.date()):
+    for url in _vision_archive_urls(symbol, timeframe, start.date(), end.date()):
         payload = _request_bytes(url)
         if payload is None:
             continue
@@ -139,14 +146,14 @@ def load_universe(snapshot: Path) -> tuple[list[dict], str]:
     return load_snapshot(snapshot), "snapshot_fallback"
 
 
-def download_klines(symbol: str, start_ms: int, end_ms: int, request_pause: float) -> pd.DataFrame:
+def download_klines(symbol: str, timeframe: str, start_ms: int, end_ms: int, request_pause: float) -> pd.DataFrame:
     rows: list[list] = []
     cursor = start_ms
     while cursor < end_ms:
         query = urllib.parse.urlencode(
             {
                 "symbol": symbol,
-                "interval": "1h",
+                "interval": timeframe,
                 "startTime": cursor,
                 "endTime": end_ms - 1,
                 "limit": 1500,
@@ -157,7 +164,7 @@ def download_klines(symbol: str, start_ms: int, end_ms: int, request_pause: floa
             break
         rows.extend(payload)
         last_open = int(payload[-1][0])
-        next_cursor = last_open + INTERVAL_MS
+        next_cursor = last_open + INTERVAL_MS[timeframe]
         if next_cursor <= cursor:
             break
         cursor = next_cursor
@@ -291,6 +298,7 @@ def split_trades(trades: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, s
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", default="2026-06-24")
+    parser.add_argument("--timeframe", choices=["1m","5m","15m","1h","4h","1d"], default="1h")
     parser.add_argument("--end", default="2026-09-24")
     parser.add_argument("--snapshot", type=Path, default=Path("config/futures_universe_snapshot.json"))
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -305,7 +313,8 @@ def main() -> int:
     end = pd.Timestamp(args.end, tz="UTC")
     start_ms = int(start.timestamp() * 1000)
     end_ms = int(end.timestamp() * 1000)
-    expected_candles = int((end - start).total_seconds() // 3600)
+    interval_ms = INTERVAL_MS[args.timeframe]
+    expected_candles = int((end - start).total_seconds() * 1000 // interval_ms)
 
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
@@ -331,7 +340,7 @@ def main() -> int:
     if args.data_source == "vision" and args.workers > 1:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             pending = {
-                pool.submit(download_klines_vision, meta["symbol"], start, end): meta["symbol"]
+                pool.submit(download_klines_vision, meta["symbol"], args.timeframe, start, end): meta["symbol"]
                 for meta in universe
             }
             for done_idx, future in enumerate(as_completed(pending), 1):
@@ -353,9 +362,9 @@ def main() -> int:
                         raise download_error
                     assert frame is not None
                 else:
-                    frame = download_klines_vision(symbol, start, end)
+                    frame = download_klines_vision(symbol, args.timeframe, start, end)
             else:
-                frame = download_klines(symbol, start_ms, end_ms, args.request_pause)
+                frame = download_klines(symbol, args.timeframe, start_ms, end_ms, args.request_pause)
         except Exception as exc:
             errors.append({"symbol": symbol, "stage": "download", "error": repr(exc)})
             audit_rows.append(
@@ -407,7 +416,7 @@ def main() -> int:
                         detailed_rows.append(
                             {
                                 "symbol": symbol,
-                                "timeframe": "1h",
+                                "timeframe": args.timeframe,
                                 "strategy_id": strategy_id,
                                 "strategy_version": strategy.spec.version,
                                 "split": split,
@@ -431,7 +440,7 @@ def main() -> int:
         summary = {
             "status": "NO_EVALUABLE_DATA",
             "period": {"start": start.isoformat(), "end_exclusive": end.isoformat()},
-            "timeframe": "1h",
+            "timeframe": args.timeframe,
             "universe_source": universe_source,
             "universe_count": len(universe),
             "ready_symbols": int((audit.get("status") == "READY").sum()) if not audit.empty else 0,
@@ -504,7 +513,7 @@ def main() -> int:
     summary = {
         "status": "COMPLETE",
         "period": {"start": start.isoformat(), "end_exclusive": end.isoformat()},
-        "timeframe": "1h",
+        "timeframe": args.timeframe,
         "universe_source": universe_source,
         "universe_count": len(universe),
         "ready_symbols": int((audit.get("status") == "READY").sum()) if not audit.empty else 0,
@@ -524,7 +533,7 @@ def main() -> int:
     (out / "SUMMARY.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     lines = [
-        "# CoinStrategyLab — 1H / 90d Discovery\n\n",
+        f"# CoinStrategyLab — {args.timeframe} Discovery\n\n",
         f"- Universe: {summary['universe_count']} symbols ({summary['ready_symbols']} ready)\n",
         f"- Strategies: {summary['strategy_count']}\n",
         f"- Candidate pairs: {summary['candidate_pairs']}\n",
