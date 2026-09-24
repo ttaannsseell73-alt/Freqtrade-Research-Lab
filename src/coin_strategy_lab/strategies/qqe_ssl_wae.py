@@ -33,34 +33,46 @@ def _qqe_line(close: pd.Series, rsi_length: int, smoothing: int, factor: float) 
     dv = dar.to_numpy(float)
     longband = np.full(len(close), np.nan)
     shortband = np.full(len(close), np.nan)
-    trend = np.full(len(close), np.nan)
 
     prev_long = prev_short = np.nan
-    prev_trend = 1.0
     prev_rs = np.nan
     for i in range(len(close)):
         if np.isnan(rs[i]) or np.isnan(dv[i]):
             continue
         new_short = rs[i] + dv[i]
         new_long = rs[i] - dv[i]
-
         if np.isnan(prev_long):
             cur_long, cur_short = new_long, new_short
         else:
             cur_long = max(prev_long, new_long) if prev_rs > prev_long and rs[i] > prev_long else new_long
             cur_short = min(prev_short, new_short) if prev_rs < prev_short and rs[i] < prev_short else new_short
+        longband[i], shortband[i] = cur_long, cur_short
+        prev_long, prev_short, prev_rs = cur_long, cur_short, rs[i]
 
-        cur_trend = prev_trend
-        if not np.isnan(prev_short) and not np.isnan(prev_rs):
-            crossed_short = (prev_rs <= prev_short and rs[i] > prev_short) or (prev_rs >= prev_short and rs[i] < prev_short)
-            crossed_long = (prev_long <= prev_rs and cur_long > rs[i]) or (prev_long >= prev_rs and cur_long < rs[i])
-            if crossed_short:
-                cur_trend = 1.0
-            elif crossed_long:
-                cur_trend = -1.0
+    rs_s = pd.Series(rs, index=close.index)
+    long_s = pd.Series(longband, index=close.index)
+    short_s = pd.Series(shortband, index=close.index)
 
-        longband[i], shortband[i], trend[i] = cur_long, cur_short, cur_trend
-        prev_long, prev_short, prev_trend, prev_rs = cur_long, cur_short, cur_trend, rs[i]
+    # Pine:
+    # cross_1 = ta.cross(longband[1], RSIndex)
+    # trend := ta.cross(RSIndex, shortband[1]) ? 1 : cross_1 ? -1 : nz(trend[1], 1)
+    cross_short = (
+        ((rs_s > short_s.shift(1)) & (rs_s.shift(1) <= short_s.shift(2)))
+        | ((rs_s < short_s.shift(1)) & (rs_s.shift(1) >= short_s.shift(2)))
+    ).fillna(False)
+    cross_long = (
+        ((long_s.shift(1) > rs_s) & (long_s.shift(2) <= rs_s.shift(1)))
+        | ((long_s.shift(1) < rs_s) & (long_s.shift(2) >= rs_s.shift(1)))
+    ).fillna(False)
+
+    trend = np.full(len(close), np.nan)
+    prev_trend = 1.0
+    for i in range(len(close)):
+        if bool(cross_short.iloc[i]):
+            prev_trend = 1.0
+        elif bool(cross_long.iloc[i]):
+            prev_trend = -1.0
+        trend[i] = prev_trend
 
     fast_tl = np.where(trend == 1.0, longband, shortband)
     return rsi_ma, pd.Series(fast_tl, index=close.index)
