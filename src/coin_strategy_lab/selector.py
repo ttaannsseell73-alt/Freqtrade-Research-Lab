@@ -22,6 +22,7 @@ def build_robust_assignments(
     for window_id, matrix in matrices:
         required = {
             "symbol",
+            "timeframe",
             "strategy_id",
             "candidate",
             "oos_floor_bps",
@@ -50,14 +51,14 @@ def build_robust_assignments(
     if qualified.empty:
         return pd.DataFrame(
             columns=[
-                "symbol","strategy_id","windows_passed","window_ids",
+                "symbol","timeframe","strategy_id","windows_passed","window_ids",
                 "worst_oos_floor_bps","worst_15bps_expectancy",
                 "worst_holdout_profit_factor","robust",
             ]
         )
 
     grouped = (
-        qualified.groupby(["symbol","strategy_id"], as_index=False)
+        qualified.groupby(["symbol","timeframe","strategy_id"], as_index=False)
         .agg(
             windows_passed=("window_id","nunique"),
             window_ids=("window_id", lambda s: ",".join(sorted(set(map(str, s))))),
@@ -91,11 +92,12 @@ def select_best_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
     eligible = eligible.sort_values(
         [
             "symbol",
+            "timeframe",
             "windows_passed",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
             "worst_holdout_profit_factor",
         ],
-        ascending=[True, False, False, False, False],
+        ascending=[True, True, False, False, False, False],
     )
-    return eligible.groupby("symbol", as_index=False).head(1).reset_index(drop=True)
+    return eligible.groupby(["symbol","timeframe"], as_index=False).head(1).reset_index(drop=True)
