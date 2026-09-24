@@ -101,3 +101,27 @@ def test_confidence_score_caps_raw_bps_across_timeframes():
     best = select_best_setup_per_coin(rows)
     assert best.iloc[0]["strategy_id"] == "hourly_stable"
     assert 0.0 <= float(best.iloc[0]["confidence_score"]) <= 100.0
+
+
+def test_primary_score_normalizes_window_count_by_timeframe():
+    from coin_strategy_lab.selector import select_best_setup_per_coin
+
+    rows = pd.DataFrame([
+        {
+            "symbol":"AAAUSDT","timeframe":"1h","strategy_id":"hourly",
+            "windows_passed":3,"window_ids":"90d,180d,365d",
+            "worst_oos_floor_bps":8.0,"median_oos_floor_bps":10.0,
+            "worst_15bps_expectancy":3.0,"worst_holdout_profit_factor":1.15,
+            "total_trades":600,"robust":True,
+        },
+        {
+            "symbol":"AAAUSDT","timeframe":"1d","strategy_id":"daily",
+            "windows_passed":2,"window_ids":"730d,1095d",
+            "worst_oos_floor_bps":80.0,"median_oos_floor_bps":90.0,
+            "worst_15bps_expectancy":70.0,"worst_holdout_profit_factor":1.6,
+            "total_trades":180,"robust":True,
+        },
+    ])
+    best = select_best_setup_per_coin(rows)
+    assert best.iloc[0]["strategy_id"] == "daily"
+    assert best.iloc[0]["timeframe"] == "1d"
