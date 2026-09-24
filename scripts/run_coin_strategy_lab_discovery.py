@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from coin_strategy_lab import StrategyRegistry
-from coin_strategy_lab.universe import fetch_usdt_perpetuals
+from coin_strategy_lab.universe import fetch_usdt_perpetuals, discover_usdt_perpetuals_from_vision
 
 
 KLINES_URL = "https://fapi.binance.com/fapi/v1/klines"
@@ -136,13 +136,21 @@ def load_snapshot(path: Path) -> list[dict]:
     return list(payload["symbols"])
 
 
-def load_universe(snapshot: Path) -> tuple[list[dict], str]:
+def load_universe(snapshot: Path, reference_date: date) -> tuple[list[dict], str]:
     try:
         live = fetch_usdt_perpetuals()
         if live:
             return [asdict(x) for x in live], "live_exchange_info"
     except Exception as exc:
-        print(f"[universe] live scanner failed, using snapshot: {exc!r}", flush=True)
+        print(f"[universe] live exchangeInfo failed: {exc!r}", flush=True)
+
+    try:
+        vision = discover_usdt_perpetuals_from_vision(reference_date)
+        if vision:
+            return [asdict(x) for x in vision], "vision_recent_archives"
+    except Exception as exc:
+        print(f"[universe] Vision discovery failed, using snapshot: {exc!r}", flush=True)
+
     return load_snapshot(snapshot), "snapshot_fallback"
 
 
@@ -331,7 +339,7 @@ def main() -> int:
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
 
-    universe, universe_source = load_universe(args.snapshot)
+    universe, universe_source = load_universe(args.snapshot, end.date() - timedelta(days=2))
     universe = sorted(universe, key=lambda x: x["symbol"])
     if args.symbols:
         wanted = {item.strip().upper() for item in args.symbols.split(",") if item.strip()}
