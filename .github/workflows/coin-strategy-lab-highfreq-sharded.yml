@@ -1,0 +1,40 @@
+name: coin-strategy-lab-highfreq-sharded
+
+on:
+  workflow_dispatch:
+
+jobs:
+  discover:
+    strategy:
+      fail-fast: false
+      matrix:
+        timeframe: [1m, 5m]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e .
+      - name: Run sharded high-frequency discovery
+        run: |
+          python scripts/run_coin_strategy_lab_discovery.py \
+            --start 2026-06-24 \
+            --end 2026-09-24 \
+            --timeframe ${{ matrix.timeframe }} \
+            --data-source vision \
+            --workers 12 \
+            --shard-count 8 \
+            --shard-index ${{ matrix.shard }} \
+            --output-dir artifacts/${{ matrix.timeframe }}-shard-${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-strategy-lab-${{ matrix.timeframe }}-shard-${{ matrix.shard }}
+          path: artifacts/${{ matrix.timeframe }}-shard-${{ matrix.shard }}
+          if-no-files-found: warn
+          retention-days: 30
