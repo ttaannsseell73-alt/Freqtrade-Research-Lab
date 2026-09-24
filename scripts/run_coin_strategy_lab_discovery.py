@@ -295,6 +295,16 @@ def split_trades(trades: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, s
     raise ValueError(split)
 
 
+def apply_shard(universe: list[dict], shard_count: int, shard_index: int) -> list[dict]:
+    if shard_count < 1:
+        raise ValueError("shard_count must be >= 1")
+    if shard_index < 0 or shard_index >= shard_count:
+        raise ValueError("shard_index must satisfy 0 <= shard_index < shard_count")
+    if shard_count == 1:
+        return universe
+    return [item for idx, item in enumerate(universe) if idx % shard_count == shard_index]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", default="2026-06-24")
@@ -307,6 +317,8 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--symbols", default="")
     parser.add_argument("--max-symbols", type=int, default=0)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
     args = parser.parse_args()
 
     start = pd.Timestamp(args.start, tz="UTC")
@@ -326,6 +338,7 @@ def main() -> int:
         universe = [item for item in universe if item["symbol"] in wanted]
     if args.max_symbols > 0:
         universe = universe[: args.max_symbols]
+    universe = apply_shard(universe, args.shard_count, args.shard_index)
 
     registry = StrategyRegistry.discover_builtins()
     strategy_ids = registry.ids()
@@ -528,6 +541,7 @@ def main() -> int:
         "split": "50/25/25 chronological",
         "execution": "closed-bar signal, next 1h open, reverse on opposite signal",
         "data_source": args.data_source,
+        "shard": {"count": args.shard_count, "index": args.shard_index},
         "note": "Discovery classification only; candidates require longer-horizon and native execution validation.",
     }
     (out / "SUMMARY.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
