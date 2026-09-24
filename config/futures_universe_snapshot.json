@@ -1,0 +1,4223 @@
+{
+  "generated_from": "Binance USD-M exchangeInfo",
+  "serverTime": 1790242909866,
+  "count": 527,
+  "symbols": [
+    {
+      "symbol": "0GUSDT",
+      "baseAsset": "0G",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758123900000
+    },
+    {
+      "symbol": "1000000BOBUSDT",
+      "baseAsset": "1000000BOB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749112200000
+    },
+    {
+      "symbol": "1000000MOGUSDT",
+      "baseAsset": "1000000MOG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1730982600000
+    },
+    {
+      "symbol": "1000BONKUSDT",
+      "baseAsset": "1000BONK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1700661600000
+    },
+    {
+      "symbol": "1000CATUSDT",
+      "baseAsset": "1000CAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1729513800000
+    },
+    {
+      "symbol": "1000CHEEMSUSDT",
+      "baseAsset": "1000CHEEMS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1732535100000
+    },
+    {
+      "symbol": "1000FLOKIUSDT",
+      "baseAsset": "1000FLOKI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1683331200000
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "baseAsset": "1000LUNC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1662620400000
+    },
+    {
+      "symbol": "1000PEPEUSDT",
+      "baseAsset": "1000PEPE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1683244800000
+    },
+    {
+      "symbol": "1000RATSUSDT",
+      "baseAsset": "1000RATS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1702648800000
+    },
+    {
+      "symbol": "1000SATSUSDT",
+      "baseAsset": "1000SATS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1702389600000
+    },
+    {
+      "symbol": "1000SHIBUSDT",
+      "baseAsset": "1000SHIB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1620630000000
+    },
+    {
+      "symbol": "1000XECUSDT",
+      "baseAsset": "1000XEC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1631775600000
+    },
+    {
+      "symbol": "1INCHUSDT",
+      "baseAsset": "1INCH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1608879600000
+    },
+    {
+      "symbol": "1MBABYDOGEUSDT",
+      "baseAsset": "1MBABYDOGE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1726486500000
+    },
+    {
+      "symbol": "2ZUSDT",
+      "baseAsset": "2Z",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759408200000
+    },
+    {
+      "symbol": "4USDT",
+      "baseAsset": "4",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759923000000
+    },
+    {
+      "symbol": "AAVEUSDT",
+      "baseAsset": "AAVE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1602831600000
+    },
+    {
+      "symbol": "ACEUSDT",
+      "baseAsset": "ACE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1702893600000
+    },
+    {
+      "symbol": "ACHUSDT",
+      "baseAsset": "ACH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1676962800000
+    },
+    {
+      "symbol": "ACTUSDT",
+      "baseAsset": "ACT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731327300000
+    },
+    {
+      "symbol": "ACUUSDT",
+      "baseAsset": "ACU",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1768999500000
+    },
+    {
+      "symbol": "ADAUSDT",
+      "baseAsset": "ADA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1580457600000
+    },
+    {
+      "symbol": "AEROUSDT",
+      "baseAsset": "AERO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733321700000
+    },
+    {
+      "symbol": "AEVOUSDT",
+      "baseAsset": "AEVO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1710336600000
+    },
+    {
+      "symbol": "AGLDUSDT",
+      "baseAsset": "AGLD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1690597800000
+    },
+    {
+      "symbol": "AGTUSDT",
+      "baseAsset": "AGT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747737000000
+    },
+    {
+      "symbol": "AIAUSDT",
+      "baseAsset": "AIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1768907700000
+    },
+    {
+      "symbol": "AIGENSYNUSDT",
+      "baseAsset": "AIGENSYN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1777472100000
+    },
+    {
+      "symbol": "AINUSDT",
+      "baseAsset": "AIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752144300000
+    },
+    {
+      "symbol": "AIOTUSDT",
+      "baseAsset": "AIOT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746016200000
+    },
+    {
+      "symbol": "AIOUSDT",
+      "baseAsset": "AIO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755084600000
+    },
+    {
+      "symbol": "AIXBTUSDT",
+      "baseAsset": "AIXBT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734719400000
+    },
+    {
+      "symbol": "AKEUSDT",
+      "baseAsset": "AKE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758889800000
+    },
+    {
+      "symbol": "AKTUSDT",
+      "baseAsset": "AKT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731929400000
+    },
+    {
+      "symbol": "ALCHUSDT",
+      "baseAsset": "ALCH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1736250300000
+    },
+    {
+      "symbol": "ALGOUSDT",
+      "baseAsset": "ALGO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1592298000000
+    },
+    {
+      "symbol": "ALICEUSDT",
+      "baseAsset": "ALICE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615791600000
+    },
+    {
+      "symbol": "ALLOUSDT",
+      "baseAsset": "ALLO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762869600000
+    },
+    {
+      "symbol": "ALLUSDT",
+      "baseAsset": "ALL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1754472600000
+    },
+    {
+      "symbol": "ALPINEUSDT",
+      "baseAsset": "ALPINE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746524700000
+    },
+    {
+      "symbol": "ALTUSDT",
+      "baseAsset": "ALT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1706191200000
+    },
+    {
+      "symbol": "ANIMEUSDT",
+      "baseAsset": "ANIME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737651600000
+    },
+    {
+      "symbol": "ANKRUSDT",
+      "baseAsset": "ANKR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1611558000000
+    },
+    {
+      "symbol": "APEUSDT",
+      "baseAsset": "APE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1647500400000
+    },
+    {
+      "symbol": "API3USDT",
+      "baseAsset": "API3",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1645426800000
+    },
+    {
+      "symbol": "APRUSDT",
+      "baseAsset": "APR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761215400000
+    },
+    {
+      "symbol": "APTUSDT",
+      "baseAsset": "APT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1666076400000
+    },
+    {
+      "symbol": "ARBUSDT",
+      "baseAsset": "ARB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1679554800000
+    },
+    {
+      "symbol": "ARCUSDT",
+      "baseAsset": "ARC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737118800000
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "baseAsset": "ARIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756897200000
+    },
+    {
+      "symbol": "ARKMUSDT",
+      "baseAsset": "ARKM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1690512300000
+    },
+    {
+      "symbol": "ARKUSDT",
+      "baseAsset": "ARK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1695133800000
+    },
+    {
+      "symbol": "ARPAUSDT",
+      "baseAsset": "ARPA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1634540400000
+    },
+    {
+      "symbol": "ARUSDT",
+      "baseAsset": "AR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1632812400000
+    },
+    {
+      "symbol": "ARXUSDT",
+      "baseAsset": "ARX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1782189900000
+    },
+    {
+      "symbol": "ASRUSDT",
+      "baseAsset": "ASR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746523800000
+    },
+    {
+      "symbol": "ASTERUSDT",
+      "baseAsset": "ASTER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758283200000
+    },
+    {
+      "symbol": "ASTRUSDT",
+      "baseAsset": "ASTR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1676271600000
+    },
+    {
+      "symbol": "ATHUSDT",
+      "baseAsset": "ATH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743608700000
+    },
+    {
+      "symbol": "ATOMUSDT",
+      "baseAsset": "ATOM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581077400000
+    },
+    {
+      "symbol": "ATUSDT",
+      "baseAsset": "AT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761737400000
+    },
+    {
+      "symbol": "AUCTIONUSDT",
+      "baseAsset": "AUCTION",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1702645200000
+    },
+    {
+      "symbol": "AUSDT",
+      "baseAsset": "A",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1748419200000
+    },
+    {
+      "symbol": "AVAAIUSDT",
+      "baseAsset": "AVAAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737119700000
+    },
+    {
+      "symbol": "AVAUSDT",
+      "baseAsset": "AVA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734094800000
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "baseAsset": "AVAX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1600844400000
+    },
+    {
+      "symbol": "AVNTUSDT",
+      "baseAsset": "AVNT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757430000000
+    },
+    {
+      "symbol": "AWEUSDT",
+      "baseAsset": "AWE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747814400000
+    },
+    {
+      "symbol": "AXLUSDT",
+      "baseAsset": "AXL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1709307000000
+    },
+    {
+      "symbol": "AXSUSDT",
+      "baseAsset": "AXS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1605855600000
+    },
+    {
+      "symbol": "AZTECUSDT",
+      "baseAsset": "AZTEC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1770784200000
+    },
+    {
+      "symbol": "B2USDT",
+      "baseAsset": "B2",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746538200000
+    },
+    {
+      "symbol": "BABYUSDT",
+      "baseAsset": "BABY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743859800000
+    },
+    {
+      "symbol": "BANANAS31USDT",
+      "baseAsset": "BANANAS31",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742634900000
+    },
+    {
+      "symbol": "BANANAUSDT",
+      "baseAsset": "BANANA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1723687200000
+    },
+    {
+      "symbol": "BANDUSDT",
+      "baseAsset": "BAND",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1596006000000
+    },
+    {
+      "symbol": "BANKUSDT",
+      "baseAsset": "BANK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1745001000000
+    },
+    {
+      "symbol": "BANUSDT",
+      "baseAsset": "BAN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731929400000
+    },
+    {
+      "symbol": "BARDUSDT",
+      "baseAsset": "BARD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758193200000
+    },
+    {
+      "symbol": "BASEDUSDT",
+      "baseAsset": "BASED",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1774864800000
+    },
+    {
+      "symbol": "BASUSDT",
+      "baseAsset": "BAS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756215000000
+    },
+    {
+      "symbol": "BATUSDT",
+      "baseAsset": "BAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581581100000
+    },
+    {
+      "symbol": "BBUSDT",
+      "baseAsset": "BB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1715603400000
+    },
+    {
+      "symbol": "BCHUSDT",
+      "baseAsset": "BCH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1576745700000
+    },
+    {
+      "symbol": "BEAMXUSDT",
+      "baseAsset": "BEAMX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1700227800000
+    },
+    {
+      "symbol": "BEATUSDT",
+      "baseAsset": "BEAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762949700000
+    },
+    {
+      "symbol": "BELUSDT",
+      "baseAsset": "BEL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1605682800000
+    },
+    {
+      "symbol": "BERAUSDT",
+      "baseAsset": "BERA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1738854000000
+    },
+    {
+      "symbol": "BICOUSDT",
+      "baseAsset": "BICO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1695904200000
+    },
+    {
+      "symbol": "BIGTIMEUSDT",
+      "baseAsset": "BIGTIME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1697121000000
+    },
+    {
+      "symbol": "BILLUSDT",
+      "baseAsset": "BILL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1778141700000
+    },
+    {
+      "symbol": "BIOUSDT",
+      "baseAsset": "BIO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1735906500000
+    },
+    {
+      "symbol": "BIRBUSDT",
+      "baseAsset": "BIRB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769663700000
+    },
+    {
+      "symbol": "BLESSUSDT",
+      "baseAsset": "BLESS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758619800000
+    },
+    {
+      "symbol": "BLUAIUSDT",
+      "baseAsset": "BLUAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761046200000
+    },
+    {
+      "symbol": "BLURUSDT",
+      "baseAsset": "BLUR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1682553600000
+    },
+    {
+      "symbol": "BMTUSDT",
+      "baseAsset": "BMT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742218200000
+    },
+    {
+      "symbol": "BNBUSDT",
+      "baseAsset": "BNB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581321600000
+    },
+    {
+      "symbol": "BNTUSDT",
+      "baseAsset": "BNT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1691668800000
+    },
+    {
+      "symbol": "BOMEUSDT",
+      "baseAsset": "BOME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1710592200000
+    },
+    {
+      "symbol": "BRETTUSDT",
+      "baseAsset": "BRETT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1724150100000
+    },
+    {
+      "symbol": "BREVUSDT",
+      "baseAsset": "BREV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1767091500000
+    },
+    {
+      "symbol": "BROCCOLI714USDT",
+      "baseAsset": "BROCCOLI714",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742547600000
+    },
+    {
+      "symbol": "BROCCOLIF3BUSDT",
+      "baseAsset": "BROCCOLIF3B",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742548500000
+    },
+    {
+      "symbol": "BRUSDT",
+      "baseAsset": "BR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742561100000
+    },
+    {
+      "symbol": "BSBUSDT",
+      "baseAsset": "BSB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1774439100000
+    },
+    {
+      "symbol": "BSVUSDT",
+      "baseAsset": "BSV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1697805000000
+    },
+    {
+      "symbol": "BTCDOMUSDT",
+      "baseAsset": "BTCDOM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1623913200000
+    },
+    {
+      "symbol": "BTCUSDT",
+      "baseAsset": "BTC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1567965300000
+    },
+    {
+      "symbol": "BTRUSDT",
+      "baseAsset": "BTR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756290600000
+    },
+    {
+      "symbol": "BTWUSDT",
+      "baseAsset": "BTW",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1780582500000
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "baseAsset": "BULLA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1751619600000
+    },
+    {
+      "symbol": "BUSDT",
+      "baseAsset": "B",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747931400000
+    },
+    {
+      "symbol": "C98USDT",
+      "baseAsset": "C98",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1629702000000
+    },
+    {
+      "symbol": "CAKEUSDT",
+      "baseAsset": "CAKE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1698929100000
+    },
+    {
+      "symbol": "CAPUSDT",
+      "baseAsset": "CAP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1782560700000
+    },
+    {
+      "symbol": "CARVUSDT",
+      "baseAsset": "CARV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1754585100000
+    },
+    {
+      "symbol": "CATIUSDT",
+      "baseAsset": "CATI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1726831800000
+    },
+    {
+      "symbol": "CCUSDT",
+      "baseAsset": "CC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761912000000
+    },
+    {
+      "symbol": "CELOUSDT",
+      "baseAsset": "CELO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1632639600000
+    },
+    {
+      "symbol": "CELRUSDT",
+      "baseAsset": "CELR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1617001200000
+    },
+    {
+      "symbol": "CETUSUSDT",
+      "baseAsset": "CETUS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1730901600000
+    },
+    {
+      "symbol": "CFGUSDT",
+      "baseAsset": "CFG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1773666000000
+    },
+    {
+      "symbol": "CFXUSDT",
+      "baseAsset": "CFX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1676790000000
+    },
+    {
+      "symbol": "CGPTUSDT",
+      "baseAsset": "CGPT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734722100000
+    },
+    {
+      "symbol": "CHILLGUYUSDT",
+      "baseAsset": "CHILLGUY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1732718700000
+    },
+    {
+      "symbol": "CHIPUSDT",
+      "baseAsset": "CHIP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1776323700000
+    },
+    {
+      "symbol": "CHRUSDT",
+      "baseAsset": "CHR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615532400000
+    },
+    {
+      "symbol": "CHZUSDT",
+      "baseAsset": "CHZ",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1611212400000
+    },
+    {
+      "symbol": "CKBUSDT",
+      "baseAsset": "CKB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1677481200000
+    },
+    {
+      "symbol": "CLANKERUSDT",
+      "baseAsset": "CLANKER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762948800000
+    },
+    {
+      "symbol": "CLOUSDT",
+      "baseAsset": "CLO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760441400000
+    },
+    {
+      "symbol": "COAIUSDT",
+      "baseAsset": "COAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758785400000
+    },
+    {
+      "symbol": "COLLECTUSDT",
+      "baseAsset": "COLLECT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1767186900000
+    },
+    {
+      "symbol": "COMPUSDT",
+      "baseAsset": "COMP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1593507600000
+    },
+    {
+      "symbol": "COOKIEUSDT",
+      "baseAsset": "COOKIE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1736249400000
+    },
+    {
+      "symbol": "COTIUSDT",
+      "baseAsset": "COTI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615273200000
+    },
+    {
+      "symbol": "COWUSDT",
+      "baseAsset": "COW",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1730899800000
+    },
+    {
+      "symbol": "CROSSUSDT",
+      "baseAsset": "CROSS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752143400000
+    },
+    {
+      "symbol": "CRVUSDT",
+      "baseAsset": "CRV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1598943600000
+    },
+    {
+      "symbol": "CTKUSDT",
+      "baseAsset": "CTK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746008100000
+    },
+    {
+      "symbol": "CTRUSDT",
+      "baseAsset": "CTR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1779960600000
+    },
+    {
+      "symbol": "CTSIUSDT",
+      "baseAsset": "CTSI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1635145200000
+    },
+    {
+      "symbol": "CUSDT",
+      "baseAsset": "C",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752570000000
+    },
+    {
+      "symbol": "CVCUSDT",
+      "baseAsset": "CVC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747384200000
+    },
+    {
+      "symbol": "CVXUSDT",
+      "baseAsset": "CVX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753270200000
+    },
+    {
+      "symbol": "CYBERUSDT",
+      "baseAsset": "CYBER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1692619200000
+    },
+    {
+      "symbol": "CYSUSDT",
+      "baseAsset": "CYS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765537200000
+    },
+    {
+      "symbol": "DASHUSDT",
+      "baseAsset": "DASH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1580803500000
+    },
+    {
+      "symbol": "DATAIPUSDT",
+      "baseAsset": "DATAIP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1783061100000
+    },
+    {
+      "symbol": "DEEPUSDT",
+      "baseAsset": "DEEP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1745310600000
+    },
+    {
+      "symbol": "DEXEUSDT",
+      "baseAsset": "DEXE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1735039800000
+    },
+    {
+      "symbol": "DIAUSDT",
+      "baseAsset": "DIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1727872200000
+    },
+    {
+      "symbol": "DODOXUSDT",
+      "baseAsset": "DODOX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1691496000000
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "baseAsset": "DOGE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1594371600000
+    },
+    {
+      "symbol": "DOGSUSDT",
+      "baseAsset": "DOGS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1724675400000
+    },
+    {
+      "symbol": "DOLOUSDT",
+      "baseAsset": "DOLO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746068400000
+    },
+    {
+      "symbol": "DOODUSDT",
+      "baseAsset": "DOOD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746797400000
+    },
+    {
+      "symbol": "DOSUSDT",
+      "baseAsset": "DOS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1786460400000
+    },
+    {
+      "symbol": "DOTUSDT",
+      "baseAsset": "DOT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1598079600000
+    },
+    {
+      "symbol": "DRIFTUSDT",
+      "baseAsset": "DRIFT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731080700000
+    },
+    {
+      "symbol": "DUSKUSDT",
+      "baseAsset": "DUSK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1641452400000
+    },
+    {
+      "symbol": "DYDXUSDT",
+      "baseAsset": "DYDX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1631170800000
+    },
+    {
+      "symbol": "DYMUSDT",
+      "baseAsset": "DYM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1707289200000
+    },
+    {
+      "symbol": "EDENUSDT",
+      "baseAsset": "EDEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759230000000
+    },
+    {
+      "symbol": "EDGEUSDT",
+      "baseAsset": "EDGE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1773928800000
+    },
+    {
+      "symbol": "EDUUSDT",
+      "baseAsset": "EDU",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1682640000000
+    },
+    {
+      "symbol": "EGLDUSDT",
+      "baseAsset": "EGLD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1600066800000
+    },
+    {
+      "symbol": "EIGENUSDT",
+      "baseAsset": "EIGEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1727762400000
+    },
+    {
+      "symbol": "ELSAUSDT",
+      "baseAsset": "ELSA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769066700000
+    },
+    {
+      "symbol": "ENAUSDT",
+      "baseAsset": "ENA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1712061000000
+    },
+    {
+      "symbol": "ENJUSDT",
+      "baseAsset": "ENJ",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1601362800000
+    },
+    {
+      "symbol": "ENSOUSDT",
+      "baseAsset": "ENSO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760432400000
+    },
+    {
+      "symbol": "ENSUSDT",
+      "baseAsset": "ENS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1638169200000
+    },
+    {
+      "symbol": "EPICUSDT",
+      "baseAsset": "EPIC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1741852800000
+    },
+    {
+      "symbol": "ERAUSDT",
+      "baseAsset": "ERA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752766200000
+    },
+    {
+      "symbol": "ESPORTSUSDT",
+      "baseAsset": "ESPORTS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753783200000
+    },
+    {
+      "symbol": "ESPUSDT",
+      "baseAsset": "ESP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1770711000000
+    },
+    {
+      "symbol": "ETCUSDT",
+      "baseAsset": "ETC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1579161600000
+    },
+    {
+      "symbol": "ETHFIUSDT",
+      "baseAsset": "ETHFI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1710775800000
+    },
+    {
+      "symbol": "ETHUSDT",
+      "baseAsset": "ETH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1574840700000
+    },
+    {
+      "symbol": "ETHWUSDT",
+      "baseAsset": "ETHW",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1701174600000
+    },
+    {
+      "symbol": "EULUSDT",
+      "baseAsset": "EUL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760365800000
+    },
+    {
+      "symbol": "EVAAUSDT",
+      "baseAsset": "EVAA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759487400000
+    },
+    {
+      "symbol": "FARTCOINUSDT",
+      "baseAsset": "FARTCOIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734720300000
+    },
+    {
+      "symbol": "FETUSDT",
+      "baseAsset": "FET",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1673766000000
+    },
+    {
+      "symbol": "FFUSDT",
+      "baseAsset": "FF",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759152600000
+    },
+    {
+      "symbol": "FHEUSDT",
+      "baseAsset": "FHE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744470000000
+    },
+    {
+      "symbol": "FIDAUSDT",
+      "baseAsset": "FIDA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1726749000000
+    },
+    {
+      "symbol": "FIGHTUSDT",
+      "baseAsset": "FIGHT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769170500000
+    },
+    {
+      "symbol": "FILUSDT",
+      "baseAsset": "FIL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1602828000000
+    },
+    {
+      "symbol": "FLOCKUSDT",
+      "baseAsset": "FLOCK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757400300000
+    },
+    {
+      "symbol": "FLOWUSDT",
+      "baseAsset": "FLOW",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1644390000000
+    },
+    {
+      "symbol": "FLUIDUSDT",
+      "baseAsset": "FLUID",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758708900000
+    },
+    {
+      "symbol": "FLUXUSDT",
+      "baseAsset": "FLUX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1725346800000
+    },
+    {
+      "symbol": "FOGOUSDT",
+      "baseAsset": "FOGO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1768053600000
+    },
+    {
+      "symbol": "FOLKSUSDT",
+      "baseAsset": "FOLKS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762432200000
+    },
+    {
+      "symbol": "FORMUSDT",
+      "baseAsset": "FORM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742371200000
+    },
+    {
+      "symbol": "FRAXUSDT",
+      "baseAsset": "FRAX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1768464000000
+    },
+    {
+      "symbol": "FUSDT",
+      "baseAsset": "F",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750250700000
+    },
+    {
+      "symbol": "GALAUSDT",
+      "baseAsset": "GALA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1631862000000
+    },
+    {
+      "symbol": "GASUSDT",
+      "baseAsset": "GAS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1698201900000
+    },
+    {
+      "symbol": "GENIUSUSDT",
+      "baseAsset": "GENIUS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1776310200000
+    },
+    {
+      "symbol": "GIGGLEUSDT",
+      "baseAsset": "GIGGLE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760003100000
+    },
+    {
+      "symbol": "GLMUSDT",
+      "baseAsset": "GLM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1708596000000
+    },
+    {
+      "symbol": "GMTUSDT",
+      "baseAsset": "GMT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1647241200000
+    },
+    {
+      "symbol": "GMXUSDT",
+      "baseAsset": "GMX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1676530800000
+    },
+    {
+      "symbol": "GOATUSDT",
+      "baseAsset": "GOAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1729776600000
+    },
+    {
+      "symbol": "GPSUSDT",
+      "baseAsset": "GPS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1739811600000
+    },
+    {
+      "symbol": "GRAMUSDT",
+      "baseAsset": "GRAM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1782979200000
+    },
+    {
+      "symbol": "GRASSUSDT",
+      "baseAsset": "GRASS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731079800000
+    },
+    {
+      "symbol": "GRIFFAINUSDT",
+      "baseAsset": "GRIFFAIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1735824600000
+    },
+    {
+      "symbol": "GRTUSDT",
+      "baseAsset": "GRT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1608274800000
+    },
+    {
+      "symbol": "GRVTUSDT",
+      "baseAsset": "GRVT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1785501900000
+    },
+    {
+      "symbol": "GTCUSDT",
+      "baseAsset": "GTC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615791600000
+    },
+    {
+      "symbol": "GUAUSDT",
+      "baseAsset": "GUA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1766312100000
+    },
+    {
+      "symbol": "GUNUSDT",
+      "baseAsset": "GUN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743426000000
+    },
+    {
+      "symbol": "GUSDT",
+      "baseAsset": "G",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1723725000000
+    },
+    {
+      "symbol": "GWEIUSDT",
+      "baseAsset": "GWEI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769664600000
+    },
+    {
+      "symbol": "HAEDALUSDT",
+      "baseAsset": "HAEDAL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746069300000
+    },
+    {
+      "symbol": "HANAUSDT",
+      "baseAsset": "HANA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758886200000
+    },
+    {
+      "symbol": "HBARUSDT",
+      "baseAsset": "HBAR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615964400000
+    },
+    {
+      "symbol": "HEIUSDT",
+      "baseAsset": "HEI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1739437200000
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "baseAsset": "HEMI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756441800000
+    },
+    {
+      "symbol": "HIVEUSDT",
+      "baseAsset": "HIVE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734953400000
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "baseAsset": "HMSTR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1727353800000
+    },
+    {
+      "symbol": "HOLOUSDT",
+      "baseAsset": "HOLO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757592000000
+    },
+    {
+      "symbol": "HOMEUSDT",
+      "baseAsset": "HOME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749555000000
+    },
+    {
+      "symbol": "HOTUSDT",
+      "baseAsset": "HOT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1617087600000
+    },
+    {
+      "symbol": "HUMAUSDT",
+      "baseAsset": "HUMA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1748264400000
+    },
+    {
+      "symbol": "HUSDT",
+      "baseAsset": "H",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750843800000
+    },
+    {
+      "symbol": "HYPERUSDT",
+      "baseAsset": "HYPER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1745326800000
+    },
+    {
+      "symbol": "HYPEUSDT",
+      "baseAsset": "HYPE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1748601000000
+    },
+    {
+      "symbol": "ICNTUSDT",
+      "baseAsset": "ICNT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1751547600000
+    },
+    {
+      "symbol": "ICPUSDT",
+      "baseAsset": "ICP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1627628400000
+    },
+    {
+      "symbol": "IDOLUSDT",
+      "baseAsset": "IDOL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1751620500000
+    },
+    {
+      "symbol": "IDUSDT",
+      "baseAsset": "ID",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1679529600000
+    },
+    {
+      "symbol": "ILVUSDT",
+      "baseAsset": "ILV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1699633800000
+    },
+    {
+      "symbol": "IMXUSDT",
+      "baseAsset": "IMX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1644476400000
+    },
+    {
+      "symbol": "INITUSDT",
+      "baseAsset": "INIT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744785000000
+    },
+    {
+      "symbol": "INJUSDT",
+      "baseAsset": "INJ",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1660633200000
+    },
+    {
+      "symbol": "INUSDT",
+      "baseAsset": "IN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1754562600000
+    },
+    {
+      "symbol": "INXUSDT",
+      "baseAsset": "INX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769799600000
+    },
+    {
+      "symbol": "IOSTUSDT",
+      "baseAsset": "IOST",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1582272300000
+    },
+    {
+      "symbol": "IOTAUSDT",
+      "baseAsset": "IOTA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581494400000
+    },
+    {
+      "symbol": "IOTXUSDT",
+      "baseAsset": "IOTX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1628665200000
+    },
+    {
+      "symbol": "IOUSDT",
+      "baseAsset": "IO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1718114400000
+    },
+    {
+      "symbol": "IRYSUSDT",
+      "baseAsset": "IRYS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1764172800000
+    },
+    {
+      "symbol": "JASMYUSDT",
+      "baseAsset": "JASMY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1650351600000
+    },
+    {
+      "symbol": "JCTUSDT",
+      "baseAsset": "JCT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762770600000
+    },
+    {
+      "symbol": "JELLYJELLYUSDT",
+      "baseAsset": "JELLYJELLY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743004800000
+    },
+    {
+      "symbol": "JOEUSDT",
+      "baseAsset": "JOE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1679961600000
+    },
+    {
+      "symbol": "JSTUSDT",
+      "baseAsset": "JST",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1745832600000
+    },
+    {
+      "symbol": "JTOUSDT",
+      "baseAsset": "JTO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1702029600000
+    },
+    {
+      "symbol": "JUPUSDT",
+      "baseAsset": "JUP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1706725800000
+    },
+    {
+      "symbol": "KAIAUSDT",
+      "baseAsset": "KAIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733320800000
+    },
+    {
+      "symbol": "KAITOUSDT",
+      "baseAsset": "KAITO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1740056400000
+    },
+    {
+      "symbol": "KASUSDT",
+      "baseAsset": "KAS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1700186400000
+    },
+    {
+      "symbol": "KATUSDT",
+      "baseAsset": "KAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1772427600000
+    },
+    {
+      "symbol": "KAVAUSDT",
+      "baseAsset": "KAVA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1595919900000
+    },
+    {
+      "symbol": "KERNELUSDT",
+      "baseAsset": "KERNEL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744632000000
+    },
+    {
+      "symbol": "KGENUSDT",
+      "baseAsset": "KGEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759847400000
+    },
+    {
+      "symbol": "KITEUSDT",
+      "baseAsset": "KITE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761733800000
+    },
+    {
+      "symbol": "KMNOUSDT",
+      "baseAsset": "KMNO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734721200000
+    },
+    {
+      "symbol": "KNCUSDT",
+      "baseAsset": "KNC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1592815800000
+    },
+    {
+      "symbol": "KOMAUSDT",
+      "baseAsset": "KOMA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733832900000
+    },
+    {
+      "symbol": "KSMUSDT",
+      "baseAsset": "KSM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1602658800000
+    },
+    {
+      "symbol": "LABUSDT",
+      "baseAsset": "LAB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760711400000
+    },
+    {
+      "symbol": "LAUSDT",
+      "baseAsset": "LA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749114000000
+    },
+    {
+      "symbol": "LAYERUSDT",
+      "baseAsset": "LAYER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1739288700000
+    },
+    {
+      "symbol": "LDOUSDT",
+      "baseAsset": "LDO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1663743600000
+    },
+    {
+      "symbol": "LIGHTUSDT",
+      "baseAsset": "LIGHT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758972600000
+    },
+    {
+      "symbol": "LINEAUSDT",
+      "baseAsset": "LINEA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756715400000
+    },
+    {
+      "symbol": "LINKUSDT",
+      "baseAsset": "LINK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1579248000000
+    },
+    {
+      "symbol": "LISTAUSDT",
+      "baseAsset": "LISTA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1718886600000
+    },
+    {
+      "symbol": "LITUSDT",
+      "baseAsset": "LIT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1766511000000
+    },
+    {
+      "symbol": "LPTUSDT",
+      "baseAsset": "LPT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1636527600000
+    },
+    {
+      "symbol": "LQTYUSDT",
+      "baseAsset": "LQTY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1678258800000
+    },
+    {
+      "symbol": "LSKUSDT",
+      "baseAsset": "LSK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1706192100000
+    },
+    {
+      "symbol": "LTCUSDT",
+      "baseAsset": "LTC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1578557100000
+    },
+    {
+      "symbol": "LUMIAUSDT",
+      "baseAsset": "LUMIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734521400000
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "baseAsset": "LUNA2",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1662706800000
+    },
+    {
+      "symbol": "LYNUSDT",
+      "baseAsset": "LYN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759735800000
+    },
+    {
+      "symbol": "MAGICUSDT",
+      "baseAsset": "MAGIC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1674457200000
+    },
+    {
+      "symbol": "MAGMAUSDT",
+      "baseAsset": "MAGMA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1767187800000
+    },
+    {
+      "symbol": "MANAUSDT",
+      "baseAsset": "MANA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615705200000
+    },
+    {
+      "symbol": "MANTAUSDT",
+      "baseAsset": "MANTA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1705586400000
+    },
+    {
+      "symbol": "MANTRAUSDT",
+      "baseAsset": "MANTRA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1772611200000
+    },
+    {
+      "symbol": "MARSCOINUSDT",
+      "baseAsset": "MARSCOIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1788255900000
+    },
+    {
+      "symbol": "MASKUSDT",
+      "baseAsset": "MASK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1626418800000
+    },
+    {
+      "symbol": "MAVIAUSDT",
+      "baseAsset": "MAVIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743008400000
+    },
+    {
+      "symbol": "MAVUSDT",
+      "baseAsset": "MAV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1688040000000
+    },
+    {
+      "symbol": "MEGAUSDT",
+      "baseAsset": "MEGA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769775300000
+    },
+    {
+      "symbol": "MELANIAUSDT",
+      "baseAsset": "MELANIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737365400000
+    },
+    {
+      "symbol": "MEMEUSDT",
+      "baseAsset": "MEME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1699012800000
+    },
+    {
+      "symbol": "MERLUSDT",
+      "baseAsset": "MERL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1748507400000
+    },
+    {
+      "symbol": "METISUSDT",
+      "baseAsset": "METIS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1710232200000
+    },
+    {
+      "symbol": "METUSDT",
+      "baseAsset": "MET",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760185800000
+    },
+    {
+      "symbol": "MEUSDT",
+      "baseAsset": "ME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733850000000
+    },
+    {
+      "symbol": "MEWUSDT",
+      "baseAsset": "MEW",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1718632800000
+    },
+    {
+      "symbol": "MINAUSDT",
+      "baseAsset": "MINA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1675407600000
+    },
+    {
+      "symbol": "MIRAUSDT",
+      "baseAsset": "MIRA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758888000000
+    },
+    {
+      "symbol": "MITOUSDT",
+      "baseAsset": "MITO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756398600000
+    },
+    {
+      "symbol": "MMTUSDT",
+      "baseAsset": "MMT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762257600000
+    },
+    {
+      "symbol": "MOCAUSDT",
+      "baseAsset": "MOCA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734348600000
+    },
+    {
+      "symbol": "MONUSDT",
+      "baseAsset": "MON",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760080500000
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "baseAsset": "MOODENG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1729850400000
+    },
+    {
+      "symbol": "MORPHOUSDT",
+      "baseAsset": "MORPHO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1732717800000
+    },
+    {
+      "symbol": "MOVEUSDT",
+      "baseAsset": "MOVE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733752800000
+    },
+    {
+      "symbol": "MOVRUSDT",
+      "baseAsset": "MOVR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1703593800000
+    },
+    {
+      "symbol": "MTLUSDT",
+      "baseAsset": "MTL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1617174000000
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "baseAsset": "MUBARAK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742219100000
+    },
+    {
+      "symbol": "MUSDT",
+      "baseAsset": "M",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1751880600000
+    },
+    {
+      "symbol": "MYXUSDT",
+      "baseAsset": "MYX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750249800000
+    },
+    {
+      "symbol": "NAORISUSDT",
+      "baseAsset": "NAORIS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753965000000
+    },
+    {
+      "symbol": "NEARUSDT",
+      "baseAsset": "NEAR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1602748800000
+    },
+    {
+      "symbol": "NEIROUSDT",
+      "baseAsset": "NEIRO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1726486200000
+    },
+    {
+      "symbol": "NEOUSDT",
+      "baseAsset": "NEO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581929100000
+    },
+    {
+      "symbol": "NEWTUSDT",
+      "baseAsset": "NEWT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750343400000
+    },
+    {
+      "symbol": "NIGHTUSDT",
+      "baseAsset": "NIGHT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765364400000
+    },
+    {
+      "symbol": "NILUSDT",
+      "baseAsset": "NIL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742821200000
+    },
+    {
+      "symbol": "NMRUSDT",
+      "baseAsset": "NMR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1687435200000
+    },
+    {
+      "symbol": "NOMUSDT",
+      "baseAsset": "NOM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759305600000
+    },
+    {
+      "symbol": "NOTUSDT",
+      "baseAsset": "NOT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1715868000000
+    },
+    {
+      "symbol": "NXPCUSDT",
+      "baseAsset": "NXPC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747290600000
+    },
+    {
+      "symbol": "OGNUSDT",
+      "baseAsset": "OGN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1617174000000
+    },
+    {
+      "symbol": "OGUSDT",
+      "baseAsset": "OG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747040400000
+    },
+    {
+      "symbol": "ONDOUSDT",
+      "baseAsset": "ONDO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1705755600000
+    },
+    {
+      "symbol": "ONEUSDT",
+      "baseAsset": "ONE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1615964400000
+    },
+    {
+      "symbol": "ONGUSDT",
+      "baseAsset": "ONG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1701090000000
+    },
+    {
+      "symbol": "ONTUSDT",
+      "baseAsset": "ONT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581408300000
+    },
+    {
+      "symbol": "ONUSDT",
+      "baseAsset": "ON",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761294600000
+    },
+    {
+      "symbol": "OPENUSDT",
+      "baseAsset": "OPEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757336400000
+    },
+    {
+      "symbol": "OPGUSDT",
+      "baseAsset": "OPG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1776871800000
+    },
+    {
+      "symbol": "OPNUSDT",
+      "baseAsset": "OPN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1771686000000
+    },
+    {
+      "symbol": "OPUSDT",
+      "baseAsset": "OP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1654066800000
+    },
+    {
+      "symbol": "ORCAUSDT",
+      "baseAsset": "ORCA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733497200000
+    },
+    {
+      "symbol": "ORDERUSDT",
+      "baseAsset": "ORDER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758890700000
+    },
+    {
+      "symbol": "ORDIUSDT",
+      "baseAsset": "ORDI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1699360200000
+    },
+    {
+      "symbol": "OUSDT",
+      "baseAsset": "O",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1782301500000
+    },
+    {
+      "symbol": "PARTIUSDT",
+      "baseAsset": "PARTI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742907600000
+    },
+    {
+      "symbol": "PAXGUSDT",
+      "baseAsset": "PAXG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743071400000
+    },
+    {
+      "symbol": "PENDLEUSDT",
+      "baseAsset": "PENDLE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1690511400000
+    },
+    {
+      "symbol": "PENGUUSDT",
+      "baseAsset": "PENGU",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734452100000
+    },
+    {
+      "symbol": "PEOPLEUSDT",
+      "baseAsset": "PEOPLE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1640242800000
+    },
+    {
+      "symbol": "PHAROSUSDT",
+      "baseAsset": "PHAROS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1778735700000
+    },
+    {
+      "symbol": "PHAUSDT",
+      "baseAsset": "PHA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1735558200000
+    },
+    {
+      "symbol": "PIEVERSEUSDT",
+      "baseAsset": "PIEVERSE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1763119800000
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "baseAsset": "PIPPIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737713700000
+    },
+    {
+      "symbol": "PIXELUSDT",
+      "baseAsset": "PIXEL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1708354800000
+    },
+    {
+      "symbol": "PLAYUSDT",
+      "baseAsset": "PLAY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753954200000
+    },
+    {
+      "symbol": "PLUMEUSDT",
+      "baseAsset": "PLUME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742562000000
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "baseAsset": "PNUT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1731328200000
+    },
+    {
+      "symbol": "POLUSDT",
+      "baseAsset": "POL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1726229700000
+    },
+    {
+      "symbol": "POLYXUSDT",
+      "baseAsset": "POLYX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1698201000000
+    },
+    {
+      "symbol": "PONSUSDT",
+      "baseAsset": "PONS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1788677100000
+    },
+    {
+      "symbol": "POPCATUSDT",
+      "baseAsset": "POPCAT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1724331600000
+    },
+    {
+      "symbol": "PORTALUSDT",
+      "baseAsset": "PORTAL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1709218800000
+    },
+    {
+      "symbol": "POWERUSDT",
+      "baseAsset": "POWER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765011600000
+    },
+    {
+      "symbol": "POWRUSDT",
+      "baseAsset": "POWR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1698373800000
+    },
+    {
+      "symbol": "PRLUSDT",
+      "baseAsset": "PRL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1775039400000
+    },
+    {
+      "symbol": "PROMPTUSDT",
+      "baseAsset": "PROMPT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744353000000
+    },
+    {
+      "symbol": "PROMUSDT",
+      "baseAsset": "PROM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1736944200000
+    },
+    {
+      "symbol": "PROVEUSDT",
+      "baseAsset": "PROVE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1754413200000
+    },
+    {
+      "symbol": "PTBUSDT",
+      "baseAsset": "PTB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756902600000
+    },
+    {
+      "symbol": "PUMPBTCUSDT",
+      "baseAsset": "PUMPBTC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749808800000
+    },
+    {
+      "symbol": "PUMPUSDT",
+      "baseAsset": "PUMP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752132600000
+    },
+    {
+      "symbol": "PUNDIXUSDT",
+      "baseAsset": "PUNDIX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746007200000
+    },
+    {
+      "symbol": "PYTHUSDT",
+      "baseAsset": "PYTH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1700663400000
+    },
+    {
+      "symbol": "QNTUSDT",
+      "baseAsset": "QNT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1666076400000
+    },
+    {
+      "symbol": "QTUMUSDT",
+      "baseAsset": "QTUM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1582185900000
+    },
+    {
+      "symbol": "QUSDT",
+      "baseAsset": "Q",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756798200000
+    },
+    {
+      "symbol": "RAREUSDT",
+      "baseAsset": "RARE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1723726800000
+    },
+    {
+      "symbol": "RAVEUSDT",
+      "baseAsset": "RAVE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765726200000
+    },
+    {
+      "symbol": "RAYSOLUSDT",
+      "baseAsset": "RAYSOL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733832000000
+    },
+    {
+      "symbol": "RECALLUSDT",
+      "baseAsset": "RECALL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760531400000
+    },
+    {
+      "symbol": "REDUSDT",
+      "baseAsset": "RED",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1741276800000
+    },
+    {
+      "symbol": "RENDERUSDT",
+      "baseAsset": "RENDER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1721988000000
+    },
+    {
+      "symbol": "RESOLVUSDT",
+      "baseAsset": "RESOLV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749562200000
+    },
+    {
+      "symbol": "REUSDT",
+      "baseAsset": "RE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1781791200000
+    },
+    {
+      "symbol": "REZUSDT",
+      "baseAsset": "REZ",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1714485600000
+    },
+    {
+      "symbol": "RIFUSDT",
+      "baseAsset": "RIF",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1697891400000
+    },
+    {
+      "symbol": "RIVERUSDT",
+      "baseAsset": "RIVER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760712300000
+    },
+    {
+      "symbol": "RLCUSDT",
+      "baseAsset": "RLC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1596178800000
+    },
+    {
+      "symbol": "ROBOUSDT",
+      "baseAsset": "ROBO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1772181900000
+    },
+    {
+      "symbol": "RONINUSDT",
+      "baseAsset": "RONIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1707193800000
+    },
+    {
+      "symbol": "ROSEUSDT",
+      "baseAsset": "ROSE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1640934000000
+    },
+    {
+      "symbol": "RPLUSDT",
+      "baseAsset": "RPL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1725885000000
+    },
+    {
+      "symbol": "RSRUSDT",
+      "baseAsset": "RSR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1603091100000
+    },
+    {
+      "symbol": "RUNEUSDT",
+      "baseAsset": "RUNE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1599203400000
+    },
+    {
+      "symbol": "RVNUSDT",
+      "baseAsset": "RVN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1614063600000
+    },
+    {
+      "symbol": "SAFEUSDT",
+      "baseAsset": "SAFE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1729859400000
+    },
+    {
+      "symbol": "SAGAUSDT",
+      "baseAsset": "SAGA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1712658600000
+    },
+    {
+      "symbol": "SAHARAUSDT",
+      "baseAsset": "SAHARA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750939200000
+    },
+    {
+      "symbol": "SANDUSDT",
+      "baseAsset": "SAND",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1610953200000
+    },
+    {
+      "symbol": "SANTOSUSDT",
+      "baseAsset": "SANTOS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1730124000000
+    },
+    {
+      "symbol": "SAPIENUSDT",
+      "baseAsset": "SAPIEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755711000000
+    },
+    {
+      "symbol": "SCRUSDT",
+      "baseAsset": "SCR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1729591200000
+    },
+    {
+      "symbol": "SEIUSDT",
+      "baseAsset": "SEI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1692239400000
+    },
+    {
+      "symbol": "SENTUSDT",
+      "baseAsset": "SENT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1763124300000
+    },
+    {
+      "symbol": "SFPUSDT",
+      "baseAsset": "SFP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1614150000000
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "baseAsset": "SHELL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1739812500000
+    },
+    {
+      "symbol": "SIGNUSDT",
+      "baseAsset": "SIGN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1745838000000
+    },
+    {
+      "symbol": "SIRENUSDT",
+      "baseAsset": "SIREN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742634000000
+    },
+    {
+      "symbol": "SKLUSDT",
+      "baseAsset": "SKL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1598252400000
+    },
+    {
+      "symbol": "SKRUSDT",
+      "baseAsset": "SKR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769078700000
+    },
+    {
+      "symbol": "SKYAIUSDT",
+      "baseAsset": "SKYAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747129500000
+    },
+    {
+      "symbol": "SKYUSDT",
+      "baseAsset": "SKY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757401200000
+    },
+    {
+      "symbol": "SLPUSDT",
+      "baseAsset": "SLP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753271100000
+    },
+    {
+      "symbol": "SLXUSDT",
+      "baseAsset": "SLX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1780299000000
+    },
+    {
+      "symbol": "SNXUSDT",
+      "baseAsset": "SNX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1597388400000
+    },
+    {
+      "symbol": "SOLUSDT",
+      "baseAsset": "SOL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1600066800000
+    },
+    {
+      "symbol": "SOLVUSDT",
+      "baseAsset": "SOLV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737116100000
+    },
+    {
+      "symbol": "SOMIUSDT",
+      "baseAsset": "SOMI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756114200000
+    },
+    {
+      "symbol": "SONICUSDT",
+      "baseAsset": "SONIC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1736319600000
+    },
+    {
+      "symbol": "SOONUSDT",
+      "baseAsset": "SOON",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1747989000000
+    },
+    {
+      "symbol": "SOPHUSDT",
+      "baseAsset": "SOPH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1748437200000
+    },
+    {
+      "symbol": "SPACEUSDT",
+      "baseAsset": "SPACE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769168700000
+    },
+    {
+      "symbol": "SPELLUSDT",
+      "baseAsset": "SPELL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1662361200000
+    },
+    {
+      "symbol": "SPKUSDT",
+      "baseAsset": "SPK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1750150800000
+    },
+    {
+      "symbol": "SPORTFUNUSDT",
+      "baseAsset": "SPORTFUN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1768571100000
+    },
+    {
+      "symbol": "SPXUSDT",
+      "baseAsset": "SPX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733834700000
+    },
+    {
+      "symbol": "SQDUSDT",
+      "baseAsset": "SQD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749645900000
+    },
+    {
+      "symbol": "SSVUSDT",
+      "baseAsset": "SSV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1677135600000
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "baseAsset": "STABLE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762430400000
+    },
+    {
+      "symbol": "STARUSDT",
+      "baseAsset": "STAR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1778736600000
+    },
+    {
+      "symbol": "STBLUSDT",
+      "baseAsset": "STBL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758087900000
+    },
+    {
+      "symbol": "STEEMUSDT",
+      "baseAsset": "STEEM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1699453800000
+    },
+    {
+      "symbol": "STOUSDT",
+      "baseAsset": "STO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744469100000
+    },
+    {
+      "symbol": "STRKUSDT",
+      "baseAsset": "STRK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1708448400000
+    },
+    {
+      "symbol": "STXUSDT",
+      "baseAsset": "STX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1676876400000
+    },
+    {
+      "symbol": "SUIUSDT",
+      "baseAsset": "SUI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1683072000000
+    },
+    {
+      "symbol": "SUNUSDT",
+      "baseAsset": "SUN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1724331900000
+    },
+    {
+      "symbol": "SUPERUSDT",
+      "baseAsset": "SUPER",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1701003600000
+    },
+    {
+      "symbol": "SUSDT",
+      "baseAsset": "S",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737021600000
+    },
+    {
+      "symbol": "SUSHIUSDT",
+      "baseAsset": "SUSHI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1599202800000
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "baseAsset": "SWARMS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1736252100000
+    },
+    {
+      "symbol": "SXTUSDT",
+      "baseAsset": "SXT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746174600000
+    },
+    {
+      "symbol": "SYNUSDT",
+      "baseAsset": "SYN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1723811400000
+    },
+    {
+      "symbol": "SYRUPUSDT",
+      "baseAsset": "SYRUP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1746606600000
+    },
+    {
+      "symbol": "TACUSDT",
+      "baseAsset": "TAC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752575400000
+    },
+    {
+      "symbol": "TAGUSDT",
+      "baseAsset": "TAG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753442100000
+    },
+    {
+      "symbol": "TAIKOUSDT",
+      "baseAsset": "TAIKO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1749645000000
+    },
+    {
+      "symbol": "TAKEUSDT",
+      "baseAsset": "TAKE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1756898100000
+    },
+    {
+      "symbol": "TAOUSDT",
+      "baseAsset": "TAO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1712845800000
+    },
+    {
+      "symbol": "TAUSDT",
+      "baseAsset": "TA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753083000000
+    },
+    {
+      "symbol": "THETAUSDT",
+      "baseAsset": "THETA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1590566400000
+    },
+    {
+      "symbol": "THEUSDT",
+      "baseAsset": "THE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1732709700000
+    },
+    {
+      "symbol": "TIAUSDT",
+      "baseAsset": "TIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1698769800000
+    },
+    {
+      "symbol": "TLMUSDT",
+      "baseAsset": "TLM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1680048000000
+    },
+    {
+      "symbol": "TNSRUSDT",
+      "baseAsset": "TNSR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1712595600000
+    },
+    {
+      "symbol": "TOSHIUSDT",
+      "baseAsset": "TOSHI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758087000000
+    },
+    {
+      "symbol": "TOWNSUSDT",
+      "baseAsset": "TOWNS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1754404200000
+    },
+    {
+      "symbol": "TRADOORUSDT",
+      "baseAsset": "TRADOOR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1758285000000
+    },
+    {
+      "symbol": "TRBUSDT",
+      "baseAsset": "TRB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1599116400000
+    },
+    {
+      "symbol": "TREEUSDT",
+      "baseAsset": "TREE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753797600000
+    },
+    {
+      "symbol": "TRIAUSDT",
+      "baseAsset": "TRIA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1770380100000
+    },
+    {
+      "symbol": "TRUMPUSDT",
+      "baseAsset": "TRUMP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737205200000
+    },
+    {
+      "symbol": "TRUSTUSDT",
+      "baseAsset": "TRUST",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762335000000
+    },
+    {
+      "symbol": "TRUTHUSDT",
+      "baseAsset": "TRUTH",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759320000000
+    },
+    {
+      "symbol": "TRXUSDT",
+      "baseAsset": "TRX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1579075500000
+    },
+    {
+      "symbol": "TSTUSDT",
+      "baseAsset": "TST",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1739106000000
+    },
+    {
+      "symbol": "TURBOUSDT",
+      "baseAsset": "TURBO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1717083000000
+    },
+    {
+      "symbol": "TURTLEUSDT",
+      "baseAsset": "TURTLE",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1761145200000
+    },
+    {
+      "symbol": "TUSDT",
+      "baseAsset": "T",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1675148400000
+    },
+    {
+      "symbol": "TUTUSDT",
+      "baseAsset": "TUT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1742461200000
+    },
+    {
+      "symbol": "TWTUSDT",
+      "baseAsset": "TWT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1699021800000
+    },
+    {
+      "symbol": "UAIUSDT",
+      "baseAsset": "UAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1762428600000
+    },
+    {
+      "symbol": "UBUSDT",
+      "baseAsset": "UB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757673000000
+    },
+    {
+      "symbol": "UMAUSDT",
+      "baseAsset": "UMA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1683590400000
+    },
+    {
+      "symbol": "UNIUSDT",
+      "baseAsset": "UNI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1600412400000
+    },
+    {
+      "symbol": "USDCUSDT",
+      "baseAsset": "USDC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1678579200000
+    },
+    {
+      "symbol": "USELESSUSDT",
+      "baseAsset": "USELESS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755260100000
+    },
+    {
+      "symbol": "USTCUSDT",
+      "baseAsset": "USTC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1701088200000
+    },
+    {
+      "symbol": "USUALUSDT",
+      "baseAsset": "USUAL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734526800000
+    },
+    {
+      "symbol": "USUSDT",
+      "baseAsset": "US",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765536300000
+    },
+    {
+      "symbol": "VANAUSDT",
+      "baseAsset": "VANA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734355800000
+    },
+    {
+      "symbol": "VELODROMEUSDT",
+      "baseAsset": "VELODROME",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1734106500000
+    },
+    {
+      "symbol": "VELVETUSDT",
+      "baseAsset": "VELVET",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1752570900000
+    },
+    {
+      "symbol": "VETUSDT",
+      "baseAsset": "VET",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1581667200000
+    },
+    {
+      "symbol": "VIRTUALUSDT",
+      "baseAsset": "VIRTUAL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1733833800000
+    },
+    {
+      "symbol": "VTHOUSDT",
+      "baseAsset": "VTHO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1737538200000
+    },
+    {
+      "symbol": "VVVUSDT",
+      "baseAsset": "VVV",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1738138500000
+    },
+    {
+      "symbol": "WALUSDT",
+      "baseAsset": "WAL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1743089400000
+    },
+    {
+      "symbol": "WAXPUSDT",
+      "baseAsset": "WAXP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1697640300000
+    },
+    {
+      "symbol": "WCTUSDT",
+      "baseAsset": "WCT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1744714800000
+    },
+    {
+      "symbol": "WETUSDT",
+      "baseAsset": "WET",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1765350000000
+    },
+    {
+      "symbol": "WIFUSDT",
+      "baseAsset": "WIF",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1705587300000
+    },
+    {
+      "symbol": "WLDUSDT",
+      "baseAsset": "WLD",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1690200000000
+    },
+    {
+      "symbol": "WLFIUSDT",
+      "baseAsset": "WLFI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755937800000
+    },
+    {
+      "symbol": "WOOUSDT",
+      "baseAsset": "WOO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1649314800000
+    },
+    {
+      "symbol": "WUSDT",
+      "baseAsset": "W",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1712158200000
+    },
+    {
+      "symbol": "XAIUSDT",
+      "baseAsset": "XAI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1704808800000
+    },
+    {
+      "symbol": "XANUSDT",
+      "baseAsset": "XAN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1759141800000
+    },
+    {
+      "symbol": "XAUTUSDT",
+      "baseAsset": "XAUT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1774533600000
+    },
+    {
+      "symbol": "XLMUSDT",
+      "baseAsset": "XLM",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1579507200000
+    },
+    {
+      "symbol": "XMRUSDT",
+      "baseAsset": "XMR",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1580716800000
+    },
+    {
+      "symbol": "XNYUSDT",
+      "baseAsset": "XNY",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755085500000
+    },
+    {
+      "symbol": "XPINUSDT",
+      "baseAsset": "XPIN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757664000000
+    },
+    {
+      "symbol": "XPLUSDT",
+      "baseAsset": "XPL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1755855000000
+    },
+    {
+      "symbol": "XRPUSDT",
+      "baseAsset": "XRP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1578298800000
+    },
+    {
+      "symbol": "XTZUSDT",
+      "baseAsset": "XTZ",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1580976000000
+    },
+    {
+      "symbol": "XVGUSDT",
+      "baseAsset": "XVG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1688558400000
+    },
+    {
+      "symbol": "XVSUSDT",
+      "baseAsset": "XVS",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1681257600000
+    },
+    {
+      "symbol": "YBUSDT",
+      "baseAsset": "YB",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760107500000
+    },
+    {
+      "symbol": "YFIUSDT",
+      "baseAsset": "YFI",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1598857200000
+    },
+    {
+      "symbol": "YGGUSDT",
+      "baseAsset": "YGG",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1691206200000
+    },
+    {
+      "symbol": "ZAMAUSDT",
+      "baseAsset": "ZAMA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1767949200000
+    },
+    {
+      "symbol": "ZBTUSDT",
+      "baseAsset": "ZBT",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760700600000
+    },
+    {
+      "symbol": "ZECUSDT",
+      "baseAsset": "ZEC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1580889600000
+    },
+    {
+      "symbol": "ZENUSDT",
+      "baseAsset": "ZEN",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1606201200000
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "baseAsset": "ZEREBRO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1735826400000
+    },
+    {
+      "symbol": "ZESTUSDT",
+      "baseAsset": "ZEST",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1780581600000
+    },
+    {
+      "symbol": "ZETAUSDT",
+      "baseAsset": "ZETA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1706862600000
+    },
+    {
+      "symbol": "ZILUSDT",
+      "baseAsset": "ZIL",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1592470800000
+    },
+    {
+      "symbol": "ZKCUSDT",
+      "baseAsset": "ZKC",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1757944800000
+    },
+    {
+      "symbol": "ZKPUSDT",
+      "baseAsset": "ZKP",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1766311200000
+    },
+    {
+      "symbol": "ZKUSDT",
+      "baseAsset": "ZK",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1718622000000
+    },
+    {
+      "symbol": "ZORAUSDT",
+      "baseAsset": "ZORA",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1753441200000
+    },
+    {
+      "symbol": "ZROUSDT",
+      "baseAsset": "ZRO",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1718893800000
+    },
+    {
+      "symbol": "ZRXUSDT",
+      "baseAsset": "ZRX",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1592989200000
+    },
+    {
+      "symbol": "哈基米USDT",
+      "baseAsset": "哈基米",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1788678900000
+    },
+    {
+      "symbol": "币安人生USDT",
+      "baseAsset": "币安人生",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1760958000000
+    },
+    {
+      "symbol": "我踏马来了USDT",
+      "baseAsset": "我踏马来了",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1769005800000
+    },
+    {
+      "symbol": "牛来USDT",
+      "baseAsset": "牛来",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1788089400000
+    },
+    {
+      "symbol": "龙虾USDT",
+      "baseAsset": "龙虾",
+      "quoteAsset": "USDT",
+      "status": "TRADING",
+      "contractType": "PERPETUAL",
+      "onboardDate": 1773228600000
+    }
+  ]
+}
