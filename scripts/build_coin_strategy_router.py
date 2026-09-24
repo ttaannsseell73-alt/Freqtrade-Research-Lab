@@ -65,7 +65,8 @@ def main() -> int:
             "worst_15bps_expectancy": float(row.worst_15bps_expectancy),
             "worst_holdout_profit_factor": float(row.worst_holdout_profit_factor),
             "confidence_score": float(row.confidence_score),
-            "status": "ROBUST",
+            "robust_tier": str(row.robust_tier),
+            "status": "ROBUST_TIER_" + str(row.robust_tier),
         }
 
     for row in best_primary.itertuples():
@@ -78,6 +79,7 @@ def main() -> int:
             "worst_15bps_expectancy": float(row.worst_15bps_expectancy),
             "worst_holdout_profit_factor": float(row.worst_holdout_profit_factor),
             "confidence_score": float(row.confidence_score),
+            "robust_tier": str(row.robust_tier),
         }
 
     router = {
@@ -97,7 +99,11 @@ def main() -> int:
         "coins_with_assignment": int(best_primary["symbol"].nunique()) if not best_primary.empty else 0,
         "coin_timeframe_assignments": int(len(best_tf)),
         "default": "NO_TRADE",
-        "selection_metric": "confidence_score",
+        "selection_metric": "robust_tier_then_confidence_score",
+        "tier_definition": {
+            "A": "Passed all canonical windows for the timeframe",
+            "B": "Passed at least the minimum windows but not all canonical windows"
+        },
     }
     (out / "ROUTER_SUMMARY.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False),
