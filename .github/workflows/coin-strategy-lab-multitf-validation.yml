@@ -1,4 +1,5 @@
 name: coin-strategy-lab-multitf-validation
+# matrix-schema: timeframe-aware-v3
 # canonical-strategy-set: qqe-pine-cross-v2
 
 on:
