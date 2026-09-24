@@ -119,7 +119,12 @@ def build_robust_assignments(
             total_trades=("trades_full","sum"),
         )
     )
+    grouped["expected_windows"] = grouped["timeframe"].map(EXPECTED_WINDOWS_BY_TIMEFRAME).fillna(2).astype(int)
+    grouped["window_coverage"] = grouped["windows_passed"] / grouped["expected_windows"]
     grouped["robust"] = grouped["windows_passed"] >= policy.min_windows
+    grouped["robust_tier"] = "RESEARCH"
+    grouped.loc[grouped["robust"], "robust_tier"] = "B"
+    grouped.loc[grouped["robust"] & (grouped["window_coverage"] >= 1.0), "robust_tier"] = "A"
     grouped = add_confidence_score(grouped)
     grouped = grouped.sort_values(
         [
@@ -147,18 +152,25 @@ def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
     eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
+    eligible["_tier_rank"] = eligible["robust_tier"].map({"A": 2, "B": 1}).fillna(0)
     eligible = eligible.sort_values(
         [
             "symbol",
             "timeframe",
+            "_tier_rank",
             "confidence_score",
             "windows_passed",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
         ],
-        ascending=[True, True, False, False, False, False],
+        ascending=[True, True, False, False, False, False, False],
     )
-    return eligible.groupby(["symbol","timeframe"], as_index=False).head(1).reset_index(drop=True)
+    return (
+        eligible.groupby(["symbol","timeframe"], as_index=False)
+        .head(1)
+        .drop(columns=["_tier_rank"])
+        .reset_index(drop=True)
+    )
 
 
 def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
@@ -168,17 +180,24 @@ def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
     eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
+    eligible["_tier_rank"] = eligible["robust_tier"].map({"A": 2, "B": 1}).fillna(0)
     eligible = eligible.sort_values(
         [
             "symbol",
+            "_tier_rank",
             "confidence_score",
             "windows_passed",
             "worst_oos_floor_bps",
             "worst_15bps_expectancy",
         ],
-        ascending=[True, False, False, False, False],
+        ascending=[True, False, False, False, False, False],
     )
-    return eligible.groupby("symbol", as_index=False).head(1).reset_index(drop=True)
+    return (
+        eligible.groupby("symbol", as_index=False)
+        .head(1)
+        .drop(columns=["_tier_rank"])
+        .reset_index(drop=True)
+    )
 
 
 # Backward-compatible name; semantically this returns one strategy per coin+timeframe.
