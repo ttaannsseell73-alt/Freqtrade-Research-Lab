@@ -28,8 +28,9 @@ jobs:
           python scripts/run_coin_strategy_lab_discovery.py \
             --start 2026-06-24 \
             --end 2026-09-24 \
-            --max-symbols 3 \
-            --request-pause 0.34 \
+            --symbols BTCUSDT,ETHUSDT,SOLUSDT \
+            --data-source vision \
+            --workers 6 \
             --output-dir artifacts/coin_strategy_lab_discovery
       - uses: actions/upload-artifact@v4
         if: always()
