@@ -7,6 +7,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from coin_strategy_lab.intent import (
+    StrategySignal,
+    policy_payload,
+    resolve_active_intent,
+)
 from coin_strategy_lab.paper_state import evaluate_paper_portfolio
 from coin_strategy_lab.runtime import ActiveRouter, PositionState
 
@@ -29,6 +34,29 @@ class AdmitRequest(BaseModel):
 
 
 class PortfolioRequest(BaseModel):
+    open_positions: list[PositionInput] = []
+    daily_pnl: float = 0.0
+    portfolio_drawdown: float = 0.0
+
+
+class StrategySignalInput(BaseModel):
+    strategy_id: str
+    timeframe: str
+    direction: str
+    fresh: bool
+    closed_candle: bool
+    signal_time_ms: int = Field(gt=0)
+    trades: int = Field(ge=0)
+    profit_factor: float = Field(ge=0.0)
+    max_drawdown: float
+    net_return: float = 0.0
+    evidence_consistent: bool = True
+
+
+class IntentRequest(BaseModel):
+    symbol: str
+    signals: list[StrategySignalInput] = Field(min_length=1)
+    liquidity_status: str = "TRADEABLE"
     open_positions: list[PositionInput] = []
     daily_pnl: float = 0.0
     portfolio_drawdown: float = 0.0
@@ -120,6 +148,63 @@ def create_app(
                 "portfolio_drawdown_limit": router.policy.portfolio_drawdown_limit,
                 "reject_duplicate_symbol": router.policy.reject_duplicate_symbol,
             },
+            "intent_gate": policy_payload(),
+        }
+
+    @app.get("/v1/intent/policy")
+    def intent_policy() -> dict:
+        return policy_payload()
+
+    @app.post("/v1/intent/admit")
+    def intent_admit(request: IntentRequest) -> dict:
+        positions = [
+            PositionState(symbol=x.symbol.upper(), weight=x.weight)
+            for x in request.open_positions
+        ]
+        signals = [
+            StrategySignal(
+                strategy_id=x.strategy_id,
+                timeframe=x.timeframe,
+                direction=x.direction,
+                fresh=x.fresh,
+                closed_candle=x.closed_candle,
+                signal_time_ms=x.signal_time_ms,
+                trades=x.trades,
+                profit_factor=x.profit_factor,
+                max_drawdown=x.max_drawdown,
+                net_return=x.net_return,
+                evidence_consistent=x.evidence_consistent,
+            )
+            for x in request.signals
+        ]
+        try:
+            decision = resolve_active_intent(
+                router,
+                symbol=request.symbol,
+                signals=signals,
+                liquidity_status=request.liquidity_status,
+                open_positions=positions,
+                daily_pnl=request.daily_pnl,
+                portfolio_drawdown=request.portfolio_drawdown,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return {
+            "allowed": decision.allowed,
+            "status": decision.status,
+            "reason": decision.reason,
+            "symbol": decision.symbol,
+            "side": decision.side,
+            "weight": decision.weight,
+            "intent_id": decision.intent_id,
+            "support_count": decision.support_count,
+            "supporting_signals": list(decision.supporting_signals),
+            "reviewed_supporters": list(decision.reviewed_supporters),
+            "evidence_flags": list(decision.evidence_flags),
+            "liquidity_status": decision.liquidity_status,
+            "primary_strategy": decision.primary_strategy,
+            "primary_timeframe": decision.primary_timeframe,
+            "primary_signal_time_ms": decision.primary_signal_time_ms,
         }
 
     @app.get("/v1/execution/capabilities")

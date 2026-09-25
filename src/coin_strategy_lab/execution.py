@@ -5,6 +5,7 @@ import hashlib
 import time
 from typing import Protocol
 
+from coin_strategy_lab.intent import IntentDecision
 from coin_strategy_lab.paper_state import evaluate_paper_portfolio
 from coin_strategy_lab.runtime import ActiveRouter, PositionState
 
@@ -281,6 +282,37 @@ class ExecutionCoordinator:
             decision.weight,
             client_order_id=client_order_id,
             order=order,
+        )
+
+    def submit_intent(
+        self,
+        intent: IntentDecision,
+        *,
+        daily_pnl: float = 0.0,
+        portfolio_drawdown: float = 0.0,
+    ) -> ExecutionResult:
+        """Submit only a resolved symbol-level production intent.
+
+        Same-direction strategy support has already been collapsed into one
+        intent before this boundary. Exchange reconciliation and runtime risk
+        checks are repeated here immediately before order placement.
+        """
+        if not intent.allowed or intent.status != "TRADE" or not intent.intent_id:
+            return ExecutionResult(
+                False,
+                intent.status,
+                intent.reason,
+                intent.symbol,
+                intent.side,
+                0.0,
+                actions=tuple(intent.evidence_flags),
+            )
+        return self.submit_signal(
+            signal_id=intent.intent_id,
+            symbol=intent.symbol,
+            side=intent.side,
+            daily_pnl=daily_pnl,
+            portfolio_drawdown=portfolio_drawdown,
         )
 
     def cleanup_stale_orders(
