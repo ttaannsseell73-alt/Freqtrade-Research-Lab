@@ -26,6 +26,7 @@ class CoinStrategyLabExecutionBase(IStrategy):
     plugin_id = ""
     timeframe = "1h"
     startup_candle_count = 180
+    direction_mode = "BOTH"
 
     @classmethod
     def _plugin(cls):
@@ -40,14 +41,16 @@ class CoinStrategyLabExecutionBase(IStrategy):
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         liquid = dataframe["volume"] > 0
-        dataframe.loc[
-            liquid & dataframe["_csl_long"],
-            ["enter_long", "enter_tag"],
-        ] = (1, f"{self.plugin_id}_long")
-        dataframe.loc[
-            liquid & dataframe["_csl_short"],
-            ["enter_short", "enter_tag"],
-        ] = (1, f"{self.plugin_id}_short")
+        if self.direction_mode != "SHORT_ONLY":
+            dataframe.loc[
+                liquid & dataframe["_csl_long"],
+                ["enter_long", "enter_tag"],
+            ] = (1, f"{self.plugin_id}_long")
+        if self.direction_mode != "LONG_ONLY":
+            dataframe.loc[
+                liquid & dataframe["_csl_short"],
+                ["enter_short", "enter_tag"],
+            ] = (1, f"{self.plugin_id}_short")
         return dataframe
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -181,3 +184,19 @@ class CSL1dUTBot(CoinStrategyLabExecutionBase):
     plugin_id = "utbot"
     timeframe = "1d"
     startup_candle_count = 60
+
+
+class CSL1hMavilimWShort(CSL1hMavilimW):
+    direction_mode = "SHORT_ONLY"
+
+
+class CSL4hMavilimWShort(CSL4hMavilimW):
+    direction_mode = "SHORT_ONLY"
+
+
+class CSL4hQQESSLWAEShort(CSL4hQQESSLWAE):
+    direction_mode = "SHORT_ONLY"
+
+
+class CSL1hQQESSLWAELong(CSL1hQQESSLWAE):
+    direction_mode = "LONG_ONLY"
