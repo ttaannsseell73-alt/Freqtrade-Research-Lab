@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": "TradingView-Research-Lab/research/tradability_policy.json",
+  "principle": "Tradability is an execution gate, not a low-risk investment selector.",
+  "strong": {
+    "min_quote_volume_24h": 20000000,
+    "max_spread_bps": 3,
+    "min_side_depth_10bps": 10000,
+    "min_open_interest_notional": 10000000
+  },
+  "tradeable": {
+    "min_quote_volume_24h": 3000000,
+    "max_spread_bps": 8,
+    "min_side_depth_10bps": 1000,
+    "min_open_interest_notional": 2000000
+  },
+  "hard_block": {
+    "max_spread_bps": 25,
+    "min_quote_volume_24h": 500000,
+    "min_side_depth_10bps": 250,
+    "min_open_interest_notional": 500000
+  }
+}
