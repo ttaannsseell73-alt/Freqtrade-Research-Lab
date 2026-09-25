@@ -18,6 +18,7 @@ Default bind: `127.0.0.1:8787`.
 - `GET /v1/system` - active/core counts and portfolio risk policy.
 - `GET /v1/routes` - all 30 frozen routes.
 - `GET /v1/routes/{symbol}` - one route.
+- `POST /v1/portfolio/evaluate` - paper portfolio state, remaining risk budget and kill-switch status.
 - `POST /v1/admit` - pure paper admission decision.
 
 `POST /v1/admit` does not place an order. It returns one of:

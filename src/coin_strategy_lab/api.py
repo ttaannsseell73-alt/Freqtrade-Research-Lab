@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from coin_strategy_lab.paper_state import evaluate_paper_portfolio
 from coin_strategy_lab.runtime import ActiveRouter, PositionState
 
 
@@ -20,6 +21,12 @@ class PositionInput(BaseModel):
 class AdmitRequest(BaseModel):
     symbol: str
     side: str
+    open_positions: list[PositionInput] = []
+    daily_pnl: float = 0.0
+    portfolio_drawdown: float = 0.0
+
+
+class PortfolioRequest(BaseModel):
     open_positions: list[PositionInput] = []
     daily_pnl: float = 0.0
     portfolio_drawdown: float = 0.0
@@ -92,6 +99,34 @@ def create_app(
         if setup is None:
             raise HTTPException(status_code=404, detail="symbol_not_in_active_pool")
         return _setup_payload(setup)
+
+    @app.post("/v1/portfolio/evaluate")
+    def portfolio_evaluate(request: PortfolioRequest) -> dict:
+        positions = [
+            PositionState(symbol=x.symbol.upper(), weight=x.weight)
+            for x in request.open_positions
+        ]
+        state = evaluate_paper_portfolio(
+            router,
+            positions=positions,
+            daily_pnl=request.daily_pnl,
+            portfolio_drawdown=request.portfolio_drawdown,
+        )
+        return {
+            "status": state.status,
+            "kill_switch": state.kill_switch,
+            "kill_reason": state.kill_reason,
+            "open_positions": state.open_positions,
+            "gross_exposure": state.gross_exposure,
+            "remaining_exposure": state.remaining_exposure,
+            "max_gross_exposure": state.max_gross_exposure,
+            "max_open_positions": state.max_open_positions,
+            "daily_pnl": state.daily_pnl,
+            "daily_loss_limit": state.daily_loss_limit,
+            "portfolio_drawdown": state.portfolio_drawdown,
+            "portfolio_drawdown_limit": state.portfolio_drawdown_limit,
+            "violations": list(state.violations),
+        }
 
     @app.post("/v1/admit")
     def admit(request: AdmitRequest) -> dict:

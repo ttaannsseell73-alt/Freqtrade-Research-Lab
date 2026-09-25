@@ -6,8 +6,10 @@ on:
       - foundation/coin-strategy-lab-v1
     paths:
       - src/coin_strategy_lab/api.py
+      - src/coin_strategy_lab/paper_state.py
       - scripts/run_active_api.py
       - tests/test_active_api.py
+      - tests/test_paper_state_api.py
       - pyproject.toml
       - docs/ACTIVE_API_V1.md
       - .github/workflows/coin-strategy-lab-active-api.yml
@@ -28,7 +30,7 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev,api]"
-      - run: pytest tests/test_active_api.py
+      - run: pytest tests/test_active_api.py tests/test_paper_state_api.py
       - name: API import smoke
         run: |
           python - <<'PY'
