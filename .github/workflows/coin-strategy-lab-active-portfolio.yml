@@ -1,0 +1,77 @@
+name: coin-strategy-lab-active-portfolio
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-active-portfolio.yml
+      - src/coin_strategy_lab/active_pool.py
+      - scripts/build_active_portfolio.py
+      - tests/test_active_pool.py
+      - config/active_portfolio_trigger.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  active-portfolio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: pytest tests/test_active_pool.py
+
+      - name: Download latest successful full Tier-A execution artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list \
+            --workflow coin-strategy-lab-freqtrade-tier-a-full.yml \
+            --branch foundation/coin-strategy-lab-v1 \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          test -n "$RUN_ID"
+          mkdir -p source
+          gh run download "$RUN_ID" \
+            --name coin-strategy-lab-freqtrade-tier-a-full \
+            --dir source
+
+      - name: Build 30-setup active pool and portfolio diagnostic
+        run: |
+          python scripts/build_active_portfolio.py \
+            --execution-results source/execution-results/execution_pair_results.csv \
+            --artifact-root source \
+            --output-dir active-portfolio
+          cat active-portfolio/HISTORICAL_PORTFOLIO_SUMMARY.json
+          python - <<'PY'
+          import pandas as pd
+          x = pd.read_csv("active-portfolio/ACTIVE_POOL.csv")
+          print("\nPOOL TIERS")
+          print(x["pool_tier"].value_counts().to_string())
+          print("\nDIRECTIONS")
+          print(x["paper_direction"].value_counts().to_string())
+          print("\nTOP 30")
+          print(x[[
+              "symbol","timeframe","strategy_id","pool_tier","paper_direction",
+              "paper_weight","active_score","expectancy_bps","profit_factor",
+              "drawdown_abs"
+          ]].to_string(index=False))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-active-portfolio
+          path: active-portfolio
+          if-no-files-found: error
+          retention-days: 30
