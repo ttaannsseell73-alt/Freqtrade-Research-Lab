@@ -1,0 +1,73 @@
+name: coin-strategy-lab-risk-filter
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-risk-filter.yml
+      - scripts/build_paper_core.py
+      - tests/test_paper_core.py
+      - config/risk_filter_trigger.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Run risk-filter tests
+        run: pytest tests/test_paper_core.py
+
+      - name: Download latest successful Tier-A Freqtrade result
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list \
+            --workflow coin-strategy-lab-freqtrade-tier-a-full.yml \
+            --branch foundation/coin-strategy-lab-v1 \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          test -n "$RUN_ID"
+          mkdir -p execution
+          gh run download "$RUN_ID" \
+            --name coin-strategy-lab-freqtrade-tier-a-full \
+            --dir execution
+
+      - name: Build paper core
+        run: |
+          python scripts/build_paper_core.py \
+            --execution-results execution/execution-results/execution_pair_results.csv \
+            --output-dir paper-core
+          cat paper-core/RISK_SUMMARY.json
+          echo
+          echo "TOP PAPER CORE"
+          python - <<'PY'
+          import pandas as pd
+          x = pd.read_csv("paper-core/PAPER_CORE.csv")
+          print(x[[
+              "symbol","timeframe","strategy_id","paper_direction",
+              "risk_score","trades","expectancy_bps","profit_factor",
+              "max_drawdown_compounded"
+          ]].head(25).to_string(index=False))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-paper-core
+          path: paper-core
+          if-no-files-found: error
+          retention-days: 30
