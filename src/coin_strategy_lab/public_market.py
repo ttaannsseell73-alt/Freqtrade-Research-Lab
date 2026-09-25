@@ -8,6 +8,11 @@ import pandas as pd
 
 
 PUBLIC_FUTURES_BASE_URL = "https://fapi.binance.com"
+TESTNET_FUTURES_BASE_URL = "https://testnet.binancefuture.com"
+ALLOWED_PUBLIC_BASE_URLS = {
+    PUBLIC_FUTURES_BASE_URL,
+    TESTNET_FUTURES_BASE_URL,
+}
 
 
 @dataclass(frozen=True)
@@ -36,8 +41,8 @@ class BinanceFuturesPublicMarket:
         client: httpx.Client | None = None,
     ):
         normalized = base_url.rstrip("/")
-        if normalized != PUBLIC_FUTURES_BASE_URL:
-            raise ValueError("Only the fixed Binance public Futures market endpoint is permitted")
+        if normalized not in ALLOWED_PUBLIC_BASE_URLS:
+            raise ValueError("Unsupported Binance Futures public market endpoint")
         self.base_url = normalized
         self.client = client or httpx.Client(timeout=timeout_seconds)
 
