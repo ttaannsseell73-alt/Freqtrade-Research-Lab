@@ -1,0 +1,41 @@
+name: coin-strategy-lab-active-runtime
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - src/coin_strategy_lab/runtime.py
+      - config/active_system_v1.json
+      - scripts/build_active_runtime_snapshot.py
+      - tests/test_active_runtime.py
+      - docs/ACTIVE_RUNTIME_V1.md
+      - .github/workflows/coin-strategy-lab-active-runtime.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: pytest tests/test_active_runtime.py
+      - name: Build canonical runtime snapshot
+        run: |
+          python scripts/build_active_runtime_snapshot.py             --cohort config/active_pool_v1.json             --runtime-config config/active_system_v1.json             --output-dir active-runtime
+          cat active-runtime/ACTIVE_RUNTIME_SUMMARY.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-active-runtime
+          path: active-runtime
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "runtime_id": "active-runtime-v1",
+  "source_cohort": "active-pool-v1-2026-09-25",
+  "expected_setup_count": 30,
+  "expected_core_count": 10,
+  "mode": "paper_only",
+  "default": "NO_TRADE",
+  "policy": {
+    "max_gross_exposure": 0.7,
+    "max_open_positions": 20,
+    "daily_loss_limit": 0.03,
+    "portfolio_drawdown_limit": 0.1,
+    "reject_duplicate_symbol": true
+  }
+}
