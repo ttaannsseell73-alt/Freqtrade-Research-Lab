@@ -99,3 +99,5 @@ jobs:
 # rerun: validation-window-coverage-fix
 
 # rerun: create-freqtrade-userdir
+
+# rerun: offline-binance-market-metadata
