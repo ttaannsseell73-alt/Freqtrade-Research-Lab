@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 from coin_strategy_lab.binance_testnet import BinanceFuturesTestnet
@@ -36,6 +37,17 @@ def main():
         allow_orders=True if args.exercise_order else False
     )
     engine = ExecutionCoordinator(router, gateway)
+
+    one_way = gateway.position_mode_is_one_way()
+    print(json.dumps({
+        "phase": "account_mode_preflight",
+        "one_way_mode": one_way,
+        "required": True,
+    }, indent=2))
+    if not one_way:
+        raise SystemExit(
+            "Hedge Mode detected; switch Binance Futures TESTNET to One-way Mode."
+        )
 
     report = engine.reconcile()
     print(json.dumps({
@@ -99,6 +111,25 @@ def main():
         "actions": list(actions),
         "live_trading": False,
     }, indent=2))
+
+    final_violations = ()
+    for _ in range(20):
+        final_violations = engine.flat_state_violations()
+        if not final_violations:
+            break
+        time.sleep(0.25)
+
+    print(json.dumps({
+        "phase": "final_flat_verification",
+        "status": "FLAT" if not final_violations else "RESIDUE",
+        "violations": list(final_violations),
+        "live_trading": False,
+    }, indent=2))
+    if final_violations:
+        raise SystemExit(
+            "Testnet cleanup did not reach verified flat state: "
+            + ", ".join(final_violations)
+        )
 
 
 if __name__ == "__main__":

@@ -259,3 +259,71 @@ def test_binance_adapter_rejects_live_endpoint():
 def test_quantity_rounds_down_to_exchange_step():
     assert BinanceFuturesTestnet._floor_step(1.239, 0.01) == 1.23
     assert BinanceFuturesTestnet._floor_step(0.0099, 0.001) == 0.009
+
+
+def test_flat_state_verification_detects_active_position_and_system_order():
+    gateway = FakeGateway()
+    gateway.snap = ExchangeSnapshot(
+        1000.0,
+        (
+            ExchangePosition(
+                "AAAUSDT",
+                "LONG",
+                1.5,
+                0.03,
+            ),
+        ),
+        (
+            ExchangeOrder(
+                "AAAUSDT",
+                "42",
+                "csl-ent-remains",
+                "BUY",
+                "NEW",
+                1.0,
+                0.0,
+                False,
+                1000,
+            ),
+            ExchangeOrder(
+                "AAAUSDT",
+                "43",
+                "manual-order",
+                "BUY",
+                "NEW",
+                1.0,
+                0.0,
+                False,
+                1000,
+            ),
+        ),
+    )
+
+    violations = ExecutionCoordinator(router(setup()), gateway).flat_state_violations()
+
+    assert "active_position_not_flat:AAAUSDT:1.5" in violations
+    assert "system_open_order_remains:AAAUSDT:42" in violations
+    assert not any("43" in item for item in violations)
+
+
+def test_flat_state_verification_passes_when_no_system_residue():
+    gateway = FakeGateway()
+    gateway.snap = ExchangeSnapshot(
+        1000.0,
+        (),
+        (
+            ExchangeOrder(
+                "AAAUSDT",
+                "43",
+                "manual-order",
+                "BUY",
+                "NEW",
+                1.0,
+                0.0,
+                False,
+                1000,
+            ),
+        ),
+    )
+
+    assert ExecutionCoordinator(router(setup()), gateway).flat_state_violations() == ()

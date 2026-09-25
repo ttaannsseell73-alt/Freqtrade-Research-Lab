@@ -176,6 +176,26 @@ class ExecutionCoordinator:
             gross_exposure=paper.gross_exposure,
         )
 
+    def flat_state_violations(self) -> tuple[str, ...]:
+        """Return exchange residue that prevents a verified flat state."""
+        snap = self.gateway.snapshot()
+        violations: list[str] = []
+
+        for position in snap.positions:
+            symbol = position.symbol.upper()
+            if symbol in self.active_symbols and position.quantity != 0.0:
+                violations.append(
+                    f"active_position_not_flat:{symbol}:{position.quantity}"
+                )
+
+        for order in snap.open_orders:
+            if order.client_order_id.startswith(SYSTEM_CLIENT_PREFIX):
+                violations.append(
+                    f"system_open_order_remains:{order.symbol}:{order.order_id}"
+                )
+
+        return tuple(violations)
+
     def submit_signal(
         self,
         *,
