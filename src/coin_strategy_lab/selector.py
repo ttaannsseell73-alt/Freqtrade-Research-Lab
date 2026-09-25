@@ -193,7 +193,7 @@ def select_best_per_coin_timeframe(robust: pd.DataFrame) -> pd.DataFrame:
 def select_best_setup_per_coin(robust: pd.DataFrame) -> pd.DataFrame:
     if robust.empty:
         return robust.copy()
-    eligible = _ensure_score(robust)
+    eligible = _ensure_routing_columns(robust)
     eligible = eligible[eligible["robust"]].copy()
     if eligible.empty:
         return eligible
