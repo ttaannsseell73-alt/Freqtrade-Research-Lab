@@ -30,6 +30,31 @@ def test_system_reports_10_core_20_active():
     assert round(payload["configured_weight"], 6) == 0.68
 
 
+def test_execution_capabilities_fail_closed_without_credentials(monkeypatch):
+    monkeypatch.delenv("BINANCE_TESTNET_API_KEY", raising=False)
+    monkeypatch.delenv("BINANCE_TESTNET_API_SECRET", raising=False)
+    monkeypatch.delenv("CSL_ALLOW_TESTNET_ORDERS", raising=False)
+    payload = client().get("/v1/execution/capabilities").json()
+    assert payload["testnet_only"] is True
+    assert payload["live_endpoint_blocked"] is True
+    assert payload["credentials_present"] is False
+    assert payload["orders_armed"] is False
+    assert payload["status"] == "WAITING_FOR_TESTNET_CREDENTIALS"
+
+
+def test_execution_capabilities_never_expose_secret_values(monkeypatch):
+    monkeypatch.setenv("BINANCE_TESTNET_API_KEY", "test-key-value")
+    monkeypatch.setenv("BINANCE_TESTNET_API_SECRET", "test-secret-value")
+    monkeypatch.setenv("CSL_ALLOW_TESTNET_ORDERS", "YES")
+    response = client().get("/v1/execution/capabilities")
+    assert "test-key-value" not in response.text
+    assert "test-secret-value" not in response.text
+    payload = response.json()
+    assert payload["credentials_present"] is True
+    assert payload["orders_armed"] is True
+    assert payload["status"] == "ARMED_NOT_VERIFIED"
+
+
 def test_unknown_symbol_defaults_to_no_route():
     response = client().get("/v1/routes/NOTREALUSDT")
     assert response.status_code == 404

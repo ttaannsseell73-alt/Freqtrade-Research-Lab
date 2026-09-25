@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - foundation/coin-strategy-lab-v1
+      - forward-active
     paths:
       - src/coin_strategy_lab/api.py
       - src/coin_strategy_lab/paper_state.py

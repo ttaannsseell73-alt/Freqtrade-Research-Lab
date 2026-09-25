@@ -37,6 +37,15 @@ h1 { margin: 0; font-size: 30px; letter-spacing: -.035em; font-weight: 720; }
 .card strong { font-size: 26px; letter-spacing: -.035em; }
 .card small { color: #6d7c8b; font-size: 11px; }
 
+.execution-panel { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: rgba(12, 17, 23, .92); border: 1px solid #26323d; border-radius: 12px; padding: 15px 18px; margin-bottom: 14px; }
+.execution-panel strong { display: block; font-size: 16px; }
+.execution-panel small { display: block; margin-top: 5px; color: #718090; font-size: 11px; }
+.exec-flags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.exec-flag { display: inline-flex; padding: 7px 9px; border-radius: 7px; font-size: 10px; font-weight: 800; letter-spacing: .04em; border: 1px solid #2a3743; }
+.exec-flag.neutral { color: #9cabb9; background: #151d25; }
+.exec-flag.warn { color: #e7c66e; background: #302817; border-color: #54451f; }
+.exec-flag.safe { color: #7cd7b1; background: #142a22; border-color: #24503e; }
+
 .risk-panel { background: rgba(13, 18, 24, .90); border: 1px solid #202a35; border-radius: 12px; padding: 17px 18px; margin-bottom: 28px; }
 .risk-head, .risk-foot { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .risk-head span { color: #8493a2; font-size: 12px; }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -43,6 +44,30 @@ def _setup_payload(setup) -> dict:
         "direction": setup.direction,
         "paper_weight": setup.paper_weight,
         "active_score": setup.active_score,
+    }
+
+
+def _execution_capabilities() -> dict:
+    key_present = bool(os.getenv("BINANCE_TESTNET_API_KEY", "").strip())
+    secret_present = bool(os.getenv("BINANCE_TESTNET_API_SECRET", "").strip())
+    credentials_present = key_present and secret_present
+    order_arm = os.getenv("CSL_ALLOW_TESTNET_ORDERS", "").upper() == "YES"
+    return {
+        "adapter": "binance_usdm_testnet",
+        "testnet_only": True,
+        "live_endpoint_blocked": True,
+        "one_way_mode_required": True,
+        "credentials_present": credentials_present,
+        "orders_armed": credentials_present and order_arm,
+        "authenticated_reconcile_verified": False,
+        "full_order_smoke_verified": False,
+        "status": (
+            "ARMED_NOT_VERIFIED"
+            if credentials_present and order_arm
+            else "CREDENTIALS_READY_NOT_VERIFIED"
+            if credentials_present
+            else "WAITING_FOR_TESTNET_CREDENTIALS"
+        ),
     }
 
 
@@ -96,6 +121,10 @@ def create_app(
                 "reject_duplicate_symbol": router.policy.reject_duplicate_symbol,
             },
         }
+
+    @app.get("/v1/execution/capabilities")
+    def execution_capabilities() -> dict:
+        return _execution_capabilities()
 
     @app.get("/v1/routes")
     def routes() -> dict:

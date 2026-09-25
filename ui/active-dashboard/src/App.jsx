@@ -35,6 +35,7 @@ export default function App() {
   const [system, setSystem] = useState(null)
   const [routes, setRoutes] = useState([])
   const [portfolio, setPortfolio] = useState(null)
+  const [execution, setExecution] = useState(null)
   const [health, setHealth] = useState(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -47,7 +48,7 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const [h, s, r, p] = await Promise.all([
+      const [h, s, r, p, x] = await Promise.all([
         fetch(`${API}/health`),
         fetch(`${API}/v1/system`),
         fetch(`${API}/v1/routes`),
@@ -56,14 +57,16 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         }),
+        fetch(`${API}/v1/execution/capabilities`),
       ])
-      if (![h, s, r, p].every((x) => x.ok)) {
+      if (![h, s, r, p, x].every((item) => item.ok)) {
         throw new Error('API yanıtlarından biri başarısız.')
       }
       setHealth(await h.json())
       setSystem(await s.json())
       setRoutes((await r.json()).routes)
       setPortfolio(await p.json())
+      setExecution(await x.json())
     } catch (e) {
       setError(e.message || 'API bağlantısı kurulamadı.')
     } finally {
@@ -97,7 +100,7 @@ export default function App() {
         <div>
           <p className="eyebrow">COIN STRATEGY LAB</p>
           <h1>Aktif Futures Sistemi</h1>
-          <p className="subtitle">30 setup · frozen router · paper çalışma modu</p>
+          <p className="subtitle">30 setup · frozen router · forward paper + Binance testnet gate</p>
         </div>
         <div className="top-actions">
           <span className={`status-pill ${health?.status === 'ok' ? 'ok' : 'bad'}`}>
@@ -147,6 +150,23 @@ export default function App() {
           <strong>{system ? `-${pct(system.policy.portfolio_drawdown_limit, 0)}` : '—'}</strong>
           <small>Drawdown kill-switch</small>
         </article>
+      </section>
+
+      <section className="execution-panel">
+        <div>
+          <p className="eyebrow">EXECUTION GATE</p>
+          <strong>Binance USDⓈ-M Testnet</strong>
+          <small>Production endpoint engelli · One-way mode zorunlu</small>
+        </div>
+        <div className="exec-flags">
+          <span className={`exec-flag ${execution?.credentials_present ? 'warn' : 'neutral'}`}>
+            {execution?.credentials_present ? 'KİMLİK HAZIR · DOĞRULAMA BEKLİYOR' : 'TESTNET KİMLİĞİ BEKLENİYOR'}
+          </span>
+          <span className={`exec-flag ${execution?.orders_armed ? 'warn' : 'safe'}`}>
+            Emir: {execution?.orders_armed ? 'ARMED' : 'DISARMED'}
+          </span>
+          <span className="exec-flag safe">LIVE BLOCKED</span>
+        </div>
       </section>
 
       <section className="risk-panel">
