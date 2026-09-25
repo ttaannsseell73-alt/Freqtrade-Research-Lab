@@ -1,0 +1,55 @@
+name: coin-strategy-lab-shadow-schedule
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: coin-strategy-lab-shadow-schedule
+  cancel-in-progress: false
+
+jobs:
+  shadow-paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: forward-active
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install canonical active system
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[testnet]"
+      - name: Restore previous shadow state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p previous
+          RUN_ID=$(gh run list             --workflow coin-strategy-lab-shadow-schedule.yml             --branch main             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID"               --name coin-strategy-lab-shadow-paper               --dir previous || true
+          fi
+      - name: Run persistent frozen-30 shadow cycle
+        run: |
+          PREV=$(find previous -name SHADOW_STATE.json -print -quit || true)
+          ARGS=()
+          if [ -n "$PREV" ]; then
+            ARGS+=(--previous-state "$PREV")
+          fi
+          python scripts/run_active_shadow.py             "${ARGS[@]}"             --output-dir shadow-paper
+          cat shadow-paper/SHADOW_REPORT.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-shadow-paper
+          path: shadow-paper
+          if-no-files-found: error
+          retention-days: 90
