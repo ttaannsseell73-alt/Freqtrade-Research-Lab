@@ -1,6 +1,6 @@
 import pandas as pd
 
-from scripts.build_paper_core import classify_risk
+from coin_strategy_lab.risk_filter import classify_risk
 
 
 def _row(**overrides):
