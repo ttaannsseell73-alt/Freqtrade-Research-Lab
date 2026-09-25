@@ -83,21 +83,16 @@ def main() -> int:
         backtest_dir.mkdir(parents=True, exist_ok=True)
 
         command = [
-            "freqtrade",
-            "backtesting",
+            sys.executable,
+            "scripts/freqtrade_offline_backtest.py",
             "--config", str(args.config),
             "--data-dir", str(args.data_dir),
             "--strategy-path", str(args.strategy_path),
             "--strategy", str(strategy_class),
             "--timeframe", str(timeframe),
             "--timerange", _timerange(start, end),
-            "--cache", "none",
+            "--output-dir", str(backtest_dir),
             "--fee", str(args.fee_per_side),
-            "--max-open-trades", str(max(1, len(pairs))),
-            "--stake-amount", "1000",
-            "--dry-run-wallet", "1000000000",
-            "--export", "trades",
-            "--backtest-directory", str(backtest_dir),
             "--pairs", *pairs,
         ]
         (group_dir / "command.json").write_text(
