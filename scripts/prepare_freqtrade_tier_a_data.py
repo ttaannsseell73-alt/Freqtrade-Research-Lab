@@ -189,12 +189,25 @@ def main() -> int:
             symbol = str(row["symbol"])
             pair = str(row["freqtrade_pair"])
             timeframe = str(row["timeframe"])
+            validation_start = pd.Timestamp(
+                str(row["validation_start"]),
+                tz="UTC",
+            )
             expected = int(
-                (end - start).total_seconds() // TIMEFRAME_SECONDS[timeframe]
+                (end - validation_start).total_seconds()
+                // TIMEFRAME_SECONDS[timeframe]
             )
             try:
                 frame = future.result()
-                coverage = len(frame) / expected if expected else 0.0
+                validation_frame = frame[
+                    (frame["date"] >= validation_start)
+                    & (frame["date"] < end)
+                ]
+                coverage = (
+                    len(validation_frame) / expected
+                    if expected
+                    else 0.0
+                )
                 status = "READY" if coverage >= args.minimum_coverage else "INSUFFICIENT"
                 if status == "READY":
                     handler.ohlcv_store(
@@ -209,6 +222,7 @@ def main() -> int:
                         "pair": pair,
                         "timeframe": timeframe,
                         "candles": len(frame),
+                        "validation_candles": len(validation_frame),
                         "expected": expected,
                         "coverage": coverage,
                         "status": status,
