@@ -27,7 +27,13 @@ def _request_json(url: str, token: str) -> dict:
         return json.load(response)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _request_bytes(url: str, token: str) -> bytes:
+    """Download a GitHub artifact without leaking auth to the signed storage host."""
     request = urllib.request.Request(
         url,
         headers={
@@ -37,7 +43,22 @@ def _request_bytes(url: str, token: str) -> bytes:
             "User-Agent": "CoinStrategyLab-Router/1.0",
         },
     )
-    with urllib.request.urlopen(request, timeout=180) as response:
+    opener = urllib.request.build_opener(_NoRedirect())
+    try:
+        with opener.open(request, timeout=60) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {301, 302, 303, 307, 308}:
+            raise
+        location = exc.headers.get("Location")
+        if not location:
+            raise RuntimeError("Artifact download redirect did not include Location") from exc
+
+    signed_request = urllib.request.Request(
+        location,
+        headers={"User-Agent": "CoinStrategyLab-Router/1.0"},
+    )
+    with urllib.request.urlopen(signed_request, timeout=180) as response:
         return response.read()
 
 
