@@ -1,0 +1,38 @@
+name: coin-strategy-lab-active-dashboard
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - ui/active-dashboard/**
+      - src/coin_strategy_lab/api.py
+      - .github/workflows/coin-strategy-lab-active-dashboard.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/active-dashboard/package.json
+      - name: Install frontend dependencies
+        working-directory: ui/active-dashboard
+        run: npm install --no-audit --no-fund
+      - name: Build dashboard
+        working-directory: ui/active-dashboard
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coin-strategy-lab-active-dashboard
+          path: ui/active-dashboard/dist
+          if-no-files-found: error
+          retention-days: 30
