@@ -192,6 +192,15 @@ def main() -> int:
             }
         )
 
+    kline_success = sum(
+        1 for x in report_rows if x["market_status"] != "KLINES_ERROR"
+    )
+    if kline_success < max(1, int(len(router.setups) * 0.80)):
+        raise SystemExit(
+            f"Insufficient public Futures candle coverage: "
+            f"{kline_success}/{len(router.setups)}"
+        )
+
     state = apply_shadow_scan(
         router,
         previous,
