@@ -75,8 +75,10 @@ def test_primary_setup_can_choose_across_timeframes():
     ])
     best = select_best_setup_per_coin(rows)
     assert len(best) == 1
-    assert best.iloc[0]["timeframe"] == "1h"
-    assert best.iloc[0]["strategy_id"] == "mavilimw"
+    # 15m has completed its full 2/2 canonical window set (Tier A),
+    # while 1h has only 2/3 windows (Tier B), so Tier A must win.
+    assert best.iloc[0]["timeframe"] == "15m"
+    assert best.iloc[0]["strategy_id"] == "pmax"
 
 
 def test_confidence_score_caps_raw_bps_across_timeframes():
