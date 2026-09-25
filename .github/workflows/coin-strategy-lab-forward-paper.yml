@@ -1,0 +1,90 @@
+name: coin-strategy-lab-forward-paper
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-forward-paper.yml
+      - config/paper_core_v1.json
+      - scripts/build_forward_paper_plan.py
+
+permissions:
+  contents: read
+
+jobs:
+  forward-paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "freqtrade==2026.8"
+          freqtrade create-userdir --userdir user_data
+
+      - name: Build frozen forward plan
+        id: plan
+        run: |
+          END_DATE=$(date -u +%F)
+          python scripts/build_forward_paper_plan.py \
+            --cohort config/paper_core_v1.json \
+            --end "$END_DATE" \
+            --min-forward-days 1 \
+            --output-dir forward-plan
+          READY=$(python - <<'PY'
+          import json
+          print(str(json.load(open("forward-plan/FORWARD_PLAN_MANIFEST.json"))["ready"]).lower())
+          PY
+          )
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare unseen Binance Vision candles
+        if: steps.plan.outputs.ready == 'true'
+        run: |
+          cp forward-plan/forward_plan.csv forward-plan/execution_plan.csv
+          python scripts/prepare_freqtrade_tier_a_data.py \
+            --plan forward-plan/execution_plan.csv \
+            --data-dir forward-data/binance \
+            --workers 10
+
+      - name: Run frozen-core forward execution
+        if: steps.plan.outputs.ready == 'true'
+        run: |
+          python scripts/run_tier_a_freqtrade_validation.py \
+            --plan forward-plan/execution_plan.csv \
+            --config config/freqtrade_coin_strategy_execution.json \
+            --data-dir forward-data/binance \
+            --strategy-path strategies \
+            --fee-per-side 0.0005 \
+            --slippage-bps-round-trip 5.0 \
+            --output-dir forward-results
+
+      - name: Write forward state
+        if: always()
+        run: |
+          cat forward-plan/FORWARD_PLAN_MANIFEST.json
+          if [ -f forward-results/execution_manifest.json ]; then
+            cat forward-results/execution_manifest.json
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-strategy-lab-forward-paper
+          path: |
+            forward-plan
+            forward-data/FREQTRADE_DATA_AUDIT.csv
+            forward-results
+          if-no-files-found: warn
+          retention-days: 30
