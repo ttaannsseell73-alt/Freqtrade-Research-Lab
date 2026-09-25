@@ -7,6 +7,7 @@ from pathlib import Path
 
 from coin_strategy_lab.public_market import (
     BinanceFuturesPublicMarket,
+    TESTNET_FUTURES_BASE_URL,
     classify_tradability,
 )
 from coin_strategy_lab.runtime import ActiveRouter
@@ -89,10 +90,17 @@ def main() -> int:
     market = BinanceFuturesPublicMarket()
     try:
         now_ms = market.server_time_ms()
-        clock_source = "binance_public"
+        clock_source = "binance_mainnet_public"
+        market_mode = "MAINNET_PUBLIC"
     except Exception:
-        now_ms = int(time.time() * 1000)
-        clock_source = "local_fallback"
+        market = BinanceFuturesPublicMarket(base_url=TESTNET_FUTURES_BASE_URL)
+        try:
+            now_ms = market.server_time_ms()
+            clock_source = "binance_testnet_public"
+        except Exception:
+            now_ms = int(time.time() * 1000)
+            clock_source = "local_fallback"
+        market_mode = "TESTNET_PRICE_FALLBACK"
 
     previous_positions = {
         str(x["symbol"]) for x in (previous or {}).get("positions", [])
@@ -119,11 +127,21 @@ def main() -> int:
                 limit=300,
                 server_time_ms=now_ms,
             )
-            events, latest_closed = extract_signal_events(
-                setup,
-                frame,
-                last_closed_bar_ms=checkpoints.get(symbol),
-            )
+            if market_mode == "TESTNET_PRICE_FALLBACK" and setup.strategy_id == "alphatrend":
+                # AlphaTrend uses MFI volume. Binance TESTNET volume is not a
+                # faithful mainnet proxy, so these setups are observe-only
+                # until a mainnet public feed is available.
+                events = ()
+                closed = frame[frame["is_closed"].astype(bool)]
+                if not closed.empty:
+                    latest_closed = int(closed.iloc[-1]["open_time_ms"])
+                market_status = "DEMO_VOLUME_UNSAFE"
+            else:
+                events, latest_closed = extract_signal_events(
+                    setup,
+                    frame,
+                    last_closed_bar_ms=checkpoints.get(symbol),
+                )
             if not frame.empty:
                 mark_price = float(frame.iloc[-1]["close"])
         except Exception as exc:
@@ -131,7 +149,11 @@ def main() -> int:
             error = f"{type(exc).__name__}: {exc}"
 
         needs_execution_snapshot = bool(events) or symbol in previous_positions
-        if needs_execution_snapshot and market_status == "OK":
+        if (
+            needs_execution_snapshot
+            and market_mode == "MAINNET_PUBLIC"
+            and market_status == "OK"
+        ):
             try:
                 snap = market.tradability_snapshot(symbol)
                 liquidity_status = classify_tradability(snap, policy)
@@ -144,11 +166,22 @@ def main() -> int:
                     "min_side_depth_10bps": snap.min_side_depth_10bps,
                     "open_interest_notional": snap.open_interest_notional,
                     "mark_price": snap.mark_price,
+                    "tradability_source": "BINANCE_MAINNET_PUBLIC",
                 }
             except Exception as exc:
                 liquidity_status = "NO_MARKET_SNAPSHOT"
                 market_status = "TRADABILITY_ERROR"
                 error = f"{type(exc).__name__}: {exc}"
+        elif market_mode == "TESTNET_PRICE_FALLBACK":
+            if market_status == "DEMO_VOLUME_UNSAFE":
+                liquidity_status = "NO_MARKET_SNAPSHOT"
+            else:
+                # The frozen 30 already passed the research/execution gate.
+                # TESTNET order-book volume is not used as a live-liquidity
+                # proxy; near-real-time shadow uses price/candle continuity
+                # only while daily Binance Vision remains the mainnet proof.
+                liquidity_status = "TRADEABLE"
+                market_payload["tradability_source"] = "FROZEN_COHORT_FALLBACK"
         elif market_status == "OK":
             liquidity_status = "TRADEABLE"
 
@@ -212,6 +245,11 @@ def main() -> int:
         "cohort_id": router.cohort_id,
         "snapshot_at_ms": now_ms,
         "clock_source": clock_source,
+        "market_mode": market_mode,
+        "mainnet_forward_proof": (
+            "Daily Binance Vision forward-active workflow remains canonical "
+            "for unseen mainnet performance evidence."
+        ),
         "setup_count": len(router.setups),
         "fresh_event_count": sum(x["event_count"] for x in report_rows),
         "open_positions": len(state["positions"]),
