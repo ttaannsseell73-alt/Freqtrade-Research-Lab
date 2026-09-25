@@ -147,6 +147,54 @@ def _pair_start(row: pd.Series) -> pd.Timestamp:
     return start - warmup
 
 
+def synthetic_zero_funding_aux(
+    frame: pd.DataFrame,
+    validation_start: pd.Timestamp,
+    end: pd.Timestamp,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build 1h mark/funding placeholders for zero-funding execution stress.
+
+    Mark prices are forward-filled from the already downloaded Binance Vision
+    futures candles. Since funding_rate is exactly zero, mark values cannot
+    change PnL; they only satisfy Freqtrade's futures-data contract.
+    """
+    base = frame[
+        (frame["date"] >= validation_start)
+        & (frame["date"] < end)
+    ][["date", "close"]].copy()
+    if base.empty:
+        return (
+            pd.DataFrame(columns=["date","open","high","low","close","volume"]),
+            pd.DataFrame(columns=["date","funding_rate"]),
+        )
+
+    hourly = (
+        base.set_index("date")["close"]
+        .resample("1h")
+        .ffill()
+        .dropna()
+        .rename("close")
+        .reset_index()
+    )
+    mark = pd.DataFrame(
+        {
+            "date": hourly["date"],
+            "open": hourly["close"].astype(float),
+            "high": hourly["close"].astype(float),
+            "low": hourly["close"].astype(float),
+            "close": hourly["close"].astype(float),
+            "volume": 0.0,
+        }
+    )
+    funding = pd.DataFrame(
+        {
+            "date": hourly["date"],
+            "funding_rate": 0.0,
+        }
+    )
+    return mark, funding
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--plan", type=Path, required=True)
@@ -215,6 +263,27 @@ def main() -> int:
                         timeframe,
                         frame,
                         candle_type=CandleType.FUTURES,
+                    )
+                    mark_frame, funding_frame = synthetic_zero_funding_aux(
+                        frame,
+                        validation_start,
+                        end,
+                    )
+                    if mark_frame.empty or funding_frame.empty:
+                        raise RuntimeError(
+                            "Unable to create futures mark/funding auxiliary data"
+                        )
+                    handler.ohlcv_store(
+                        pair,
+                        "1h",
+                        mark_frame,
+                        candle_type=CandleType.MARK,
+                    )
+                    handler.ohlcv_store(
+                        pair,
+                        "1h",
+                        funding_frame,
+                        candle_type=CandleType.FUNDING_RATE,
                     )
                 audit.append(
                     {
