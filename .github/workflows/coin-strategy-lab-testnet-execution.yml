@@ -1,0 +1,45 @@
+name: coin-strategy-lab-testnet-execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      exercise_order:
+        description: "Place one TESTNET entry and immediately reduce-only flatten it"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  testnet-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: binance-testnet
+    env:
+      BINANCE_TESTNET_API_KEY: \${{ secrets.BINANCE_TESTNET_API_KEY }}
+      BINANCE_TESTNET_API_SECRET: \${{ secrets.BINANCE_TESTNET_API_SECRET }}
+      CSL_ALLOW_TESTNET_ORDERS: \${{ inputs.exercise_order && 'YES' || 'NO' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: forward-active
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[testnet]"
+      - name: Verify credentials are configured
+        run: |
+          test -n "$BINANCE_TESTNET_API_KEY"
+          test -n "$BINANCE_TESTNET_API_SECRET"
+      - name: Authenticated testnet reconcile
+        if: \${{ !inputs.exercise_order }}
+        run: python scripts/testnet_execution_smoke.py
+      - name: Full testnet order/fill/reconcile/reduce-only smoke
+        if: \${{ inputs.exercise_order }}
+        run: python scripts/testnet_execution_smoke.py --exercise-order

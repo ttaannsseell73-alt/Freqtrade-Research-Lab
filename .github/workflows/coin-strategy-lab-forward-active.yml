@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - foundation/coin-strategy-lab-v1
+      - forward-active
     paths:
       - .github/workflows/coin-strategy-lab-forward-active.yml
       - config/active_pool_v1.json
@@ -45,7 +46,11 @@ jobs:
         id: plan
         run: |
           END_DATE=$(date -u +%F)
-          python scripts/build_forward_paper_plan.py             --cohort config/active_pool_v1.json             --end "$END_DATE"             --min-forward-days 1             --output-dir forward-active-plan
+          python scripts/build_forward_paper_plan.py \
+            --cohort config/active_pool_v1.json \
+            --end "$END_DATE" \
+            --min-forward-days 1 \
+            --output-dir forward-active-plan
           READY=$(python - <<'PY'
           import json
           print(str(json.load(open("forward-active-plan/FORWARD_PLAN_MANIFEST.json"))["ready"]).lower())
@@ -57,12 +62,22 @@ jobs:
         if: steps.plan.outputs.ready == 'true'
         run: |
           cp forward-active-plan/forward_plan.csv forward-active-plan/execution_plan.csv
-          python scripts/prepare_freqtrade_tier_a_data.py             --plan forward-active-plan/execution_plan.csv             --data-dir forward-active-data/binance             --workers 12
+          python scripts/prepare_freqtrade_tier_a_data.py \
+            --plan forward-active-plan/execution_plan.csv \
+            --data-dir forward-active-data/binance \
+            --workers 12
 
       - name: Run frozen 30-setup forward execution
         if: steps.plan.outputs.ready == 'true'
         run: |
-          python scripts/run_tier_a_freqtrade_validation.py             --plan forward-active-plan/execution_plan.csv             --config config/freqtrade_coin_strategy_execution.json             --data-dir forward-active-data/binance             --strategy-path strategies             --fee-per-side 0.0005             --slippage-bps-round-trip 5.0             --output-dir forward-active-results
+          python scripts/run_tier_a_freqtrade_validation.py \
+            --plan forward-active-plan/execution_plan.csv \
+            --config config/freqtrade_coin_strategy_execution.json \
+            --data-dir forward-active-data/binance \
+            --strategy-path strategies \
+            --fee-per-side 0.0005 \
+            --slippage-bps-round-trip 5.0 \
+            --output-dir forward-active-results
 
       - name: Print forward-active state
         if: always()

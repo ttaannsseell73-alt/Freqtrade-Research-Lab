@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from coin_strategy_lab.binance_testnet import BinanceFuturesTestnet
+from coin_strategy_lab.execution import ExecutionCoordinator
+from coin_strategy_lab.runtime import ActiveRouter
+
+
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument(
+        "--cohort",
+        type=Path,
+        default=Path("config/active_pool_v1.json"),
+    )
+    p.add_argument(
+        "--runtime",
+        type=Path,
+        default=Path("config/active_system_v1.json"),
+    )
+    p.add_argument(
+        "--exercise-order",
+        action="store_true",
+        help="Place one TESTNET market entry and immediately kill-switch flatten it.",
+    )
+    return p.parse_args()
+
+
+def main():
+    args = parse_args()
+    router = ActiveRouter.from_files(args.cohort, args.runtime)
+    gateway = BinanceFuturesTestnet.from_env(
+        allow_orders=True if args.exercise_order else False
+    )
+    engine = ExecutionCoordinator(router, gateway)
+
+    report = engine.reconcile()
+    print(json.dumps({
+        "phase": "reconcile",
+        "status": report.status,
+        "violations": list(report.violations),
+        "partial_fills": list(report.partial_fills),
+        "gross_exposure": report.gross_exposure,
+    }, indent=2))
+
+    if report.status != "READY":
+        raise SystemExit("Exchange state is not clean; refusing smoke execution.")
+
+    if not args.exercise_order:
+        print(json.dumps({
+            "status": "TESTNET_AUTH_RECONCILE_OK",
+            "live_trading": False,
+            "orders_armed": False,
+        }, indent=2))
+        return
+
+    tradable = gateway.tradable_symbols()
+    candidate = next(
+        (
+            x for x in router.setups
+            if x.symbol in tradable and x.direction in {"BOTH", "LONG_ONLY"}
+        ),
+        None,
+    )
+    if candidate is None:
+        raise SystemExit(
+            "No frozen active LONG-capable setup is tradable on Binance testnet."
+        )
+
+    result = engine.submit_signal(
+        signal_id="manual-testnet-smoke-v1",
+        symbol=candidate.symbol,
+        side="LONG",
+    )
+    print(json.dumps({
+        "phase": "entry",
+        "symbol": candidate.symbol,
+        "status": result.status,
+        "reason": result.reason,
+        "client_order_id": result.client_order_id,
+    }, indent=2))
+    if not result.allowed:
+        raise SystemExit("Testnet entry was not admitted.")
+
+    post = engine.reconcile()
+    print(json.dumps({
+        "phase": "post_entry_reconcile",
+        "status": post.status,
+        "positions": [x.symbol for x in post.exchange_positions],
+        "partial_fills": list(post.partial_fills),
+    }, indent=2))
+
+    actions = engine.trigger_kill_switch("testnet_smoke_cleanup")
+    print(json.dumps({
+        "phase": "cleanup",
+        "actions": list(actions),
+        "live_trading": False,
+    }, indent=2))
+
+
+if __name__ == "__main__":
+    main()
