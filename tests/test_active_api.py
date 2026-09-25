@@ -90,3 +90,86 @@ def test_kill_switch_is_visible_through_api():
     assert payload["allowed"] is False
     assert payload["status"] == "KILL_SWITCH"
     assert payload["reason"] == "daily_loss_limit"
+
+
+
+def _clean_primary(direction="LONG", strategy_id="squeeze_momentum", timeframe="4h"):
+    return {
+        "strategy_id": strategy_id,
+        "timeframe": timeframe,
+        "direction": direction,
+        "fresh": True,
+        "closed_candle": True,
+        "signal_time_ms": 1790347200000,
+        "trades": 30,
+        "profit_factor": 1.8,
+        "max_drawdown": 0.20,
+        "net_return": 0.50,
+        "evidence_consistent": True,
+    }
+
+
+def test_intent_api_collapses_same_direction_support_to_one_trade():
+    payload = client().post(
+        "/v1/intent/admit",
+        json={
+            "symbol": "SFPUSDT",
+            "signals": [
+                _clean_primary(),
+                _clean_primary(
+                    strategy_id="mavilimw",
+                    timeframe="1h",
+                ),
+            ],
+            "liquidity_status": "TRADEABLE",
+        },
+    ).json()
+    assert payload["allowed"] is True
+    assert payload["status"] == "TRADE"
+    assert payload["support_count"] == 2
+    assert payload["side"] == "LONG"
+    assert payload["intent_id"]
+
+
+def test_intent_api_blocks_direction_conflict():
+    payload = client().post(
+        "/v1/intent/admit",
+        json={
+            "symbol": "SFPUSDT",
+            "signals": [
+                _clean_primary(direction="LONG"),
+                _clean_primary(
+                    direction="SHORT",
+                    strategy_id="mavilimw",
+                    timeframe="1h",
+                ),
+            ],
+        },
+    ).json()
+    assert payload["allowed"] is False
+    assert payload["status"] == "DIRECTION_CONFLICT"
+
+
+def test_intent_api_support_cannot_replace_frozen_primary():
+    payload = client().post(
+        "/v1/intent/admit",
+        json={
+            "symbol": "SFPUSDT",
+            "signals": [
+                _clean_primary(
+                    strategy_id="mavilimw",
+                    timeframe="1h",
+                ),
+            ],
+        },
+    ).json()
+    assert payload["allowed"] is False
+    assert payload["reason"] == "primary_setup_not_fresh"
+
+
+def test_system_exposes_intent_gate_policy():
+    payload = client().get("/v1/system").json()
+    gate = payload["intent_gate"]
+    assert gate["require_fresh_signal"] is True
+    assert gate["require_closed_candle"] is True
+    assert gate["same_direction_multi_strategy"] == "SINGLE_INTENT_WITH_SUPPORT"

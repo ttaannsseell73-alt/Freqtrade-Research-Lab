@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "library_id": "candidate-strategy-library-v1",
+  "frozen_active_pool_mutable": false,
+  "auto_promotion": false,
+  "purpose": "Preserve validated TradingView/Kivanc strategy families as support/research candidates without changing the frozen 30-setup production cohort.",
+  "rules": [
+    "Candidate strategies cannot open a production intent unless the frozen primary setup is fresh on a confirmed closed candle.",
+    "Same-direction candidate signals may increase support_count only.",
+    "Opposing fresh candidate signals cause DIRECTION_CONFLICT and block entry.",
+    "Promotion into active_pool_v1.json requires an explicit future re-selection decision; never automatic."
+  ],
+  "strategies": [
+    {
+      "strategy_id": "mavilimw",
+      "name": "MavilimW",
+      "source": "Kivanc",
+      "role": "ACTIVE_OR_SUPPORT",
+      "implemented_in_active_repo": true
+    },
+    {
+      "strategy_id": "alphatrend",
+      "name": "AlphaTrend",
+      "source": "Kivanc",
+      "role": "ACTIVE_OR_SUPPORT",
+      "implemented_in_active_repo": true
+    },
+    {
+      "strategy_id": "pmax",
+      "name": "PMax",
+      "source": "Kivanc",
+      "role": "ACTIVE_OR_SUPPORT",
+      "implemented_in_active_repo": true
+    },
+    {
+      "strategy_id": "ott",
+      "name": "Optimized Trend Tracker",
+      "source": "Kivanc",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    },
+    {
+      "strategy_id": "tott",
+      "name": "Twin Optimized Trend Tracker",
+      "source": "Kivanc",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    },
+    {
+      "strategy_id": "ssl_hybrid_flip",
+      "name": "SSL Hybrid Flip",
+      "source": "TradingView",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    },
+    {
+      "strategy_id": "ssl_hybrid_qqe_flip",
+      "name": "SSL Hybrid + QQE Flip",
+      "source": "TradingView",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    },
+    {
+      "strategy_id": "ut_bot_quantnomad",
+      "name": "UT Bot QuantNomad",
+      "source": "TradingView",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    },
+    {
+      "strategy_id": "chandelier_zlsma",
+      "name": "Chandelier Exit + ZLSMA",
+      "source": "TradingView",
+      "role": "CANDIDATE_SUPPORT_ONLY",
+      "implemented_in_active_repo": false
+    }
+  ]
+}

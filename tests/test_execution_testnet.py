@@ -9,6 +9,7 @@ from coin_strategy_lab.execution import (
     ExchangeSnapshot,
     ExecutionCoordinator,
 )
+from coin_strategy_lab.intent import StrategySignal, resolve_active_intent
 from coin_strategy_lab.runtime import ActiveRouter, ActiveSetup, RuntimePolicy
 
 
@@ -327,3 +328,52 @@ def test_flat_state_verification_passes_when_no_system_residue():
     )
 
     assert ExecutionCoordinator(router(setup()), gateway).flat_state_violations() == ()
+
+
+
+def test_resolved_multi_strategy_intent_reaches_exchange_once():
+    gateway = FakeGateway()
+    active_router = router(setup())
+    intent = resolve_active_intent(
+        active_router,
+        symbol="AAAUSDT",
+        signals=[
+            StrategySignal(
+                "squeeze_momentum", "4h", "LONG", True, True,
+                1000, 30, 1.8, 0.20, 0.50, True,
+            ),
+            StrategySignal(
+                "mavilimw", "1h", "LONG", True, True,
+                1100, 25, 1.6, 0.18, 0.40, True,
+            ),
+        ],
+    )
+    assert intent.support_count == 2
+    engine = ExecutionCoordinator(active_router, gateway)
+    result = engine.submit_intent(intent)
+    assert result.allowed is True
+    assert len(gateway.placed) == 1
+    assert gateway.placed[0][0] == "AAAUSDT"
+
+
+def test_conflicted_intent_never_reaches_exchange():
+    gateway = FakeGateway()
+    active_router = router(setup())
+    intent = resolve_active_intent(
+        active_router,
+        symbol="AAAUSDT",
+        signals=[
+            StrategySignal(
+                "squeeze_momentum", "4h", "LONG", True, True,
+                1000, 30, 1.8, 0.20, 0.50, True,
+            ),
+            StrategySignal(
+                "mavilimw", "1h", "SHORT", True, True,
+                1100, 25, 1.6, 0.18, 0.40, True,
+            ),
+        ],
+    )
+    result = ExecutionCoordinator(active_router, gateway).submit_intent(intent)
+    assert result.allowed is False
+    assert result.status == "DIRECTION_CONFLICT"
+    assert gateway.placed == []

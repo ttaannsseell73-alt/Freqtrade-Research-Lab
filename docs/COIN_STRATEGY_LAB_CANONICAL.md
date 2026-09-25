@@ -79,3 +79,21 @@ A positive backtest is not automatically a router assignment.
 ## Router
 
 The router may return NO_TRADE. Strategy switching must use hysteresis and must not chase the latest winner.
+
+
+## 2026-09-26 — TradingView/Kivanc lane absorbed and frozen
+
+The former TradingView/Kivanc selector is no longer a separate production lane.
+Only its production-safe signal-management mechanics are retained here:
+
+- confirmed closed-candle fresh signals only;
+- one symbol-level intent for multiple same-direction strategy signals;
+- supporting strategies increase support_count, never position count;
+- opposing fresh directions fail closed as DIRECTION_CONFLICT;
+- suspicious statistical evidence becomes EVIDENCE_REVIEW;
+- weak/unavailable liquidity becomes OBSERVE_ONLY;
+- candidate strategies cannot replace the frozen primary setup or mutate the
+  30-setup cohort automatically.
+
+The frozen 10 CORE + 20 ACTIVE cohort, 0.70 gross cap, 20-position cap,
+single-position-per-symbol rule and both kill-switches remain canonical.
