@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/coin-strategy-lab-shadow-schedule.yml
 
 permissions:
   contents: read
@@ -36,7 +41,14 @@ jobs:
           mkdir -p previous
           RUN_ID=$(gh run list             --workflow coin-strategy-lab-shadow-schedule.yml             --branch main             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')
           if [ -n "$RUN_ID" ]; then
-            gh run download "$RUN_ID"               --name coin-strategy-lab-shadow-paper               --dir previous || true
+            gh run download "$RUN_ID" \
+              --name coin-strategy-lab-shadow-paper \
+              --dir previous || true
+          else
+            # Seed the first persistent run from the validated shadow smoke.
+            gh run download 36199069777 \
+              --name coin-strategy-lab-shadow-smoke \
+              --dir previous || true
           fi
       - name: Run persistent frozen-30 shadow cycle
         run: |
