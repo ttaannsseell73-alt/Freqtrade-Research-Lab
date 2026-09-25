@@ -1,0 +1,120 @@
+name: coin-strategy-lab-freqtrade-tier-a-full
+
+on:
+  push:
+    branches:
+      - foundation/coin-strategy-lab-v1
+    paths:
+      - .github/workflows/coin-strategy-lab-freqtrade-tier-a-full.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  tier-a-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install CoinStrategyLab and Freqtrade
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "freqtrade==2026.8"
+          freqtrade --version
+          freqtrade create-userdir --userdir user_data
+
+      - name: Download canonical router
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ROUTER_RUN=$(gh run list \
+            --workflow coin-strategy-lab-router-refresh.yml \
+            --branch foundation/coin-strategy-lab-v1 \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          test -n "$ROUTER_RUN"
+          echo "router_run=$ROUTER_RUN"
+          mkdir -p router
+          gh run download "$ROUTER_RUN" \
+            --name coin-strategy-lab-router \
+            --dir router
+
+      - name: Build all Tier-A execution plan
+        run: |
+          python scripts/build_tier_a_execution_plan.py \
+            --router-csv router/BEST_ROBUST_SETUP_BY_COIN.csv \
+            --mode all \
+            --output-dir execution-plan
+          cat execution-plan/execution_plan.json
+
+      - name: Prepare all Tier-A Binance Vision data
+        run: |
+          python scripts/prepare_freqtrade_tier_a_data.py \
+            --plan execution-plan/execution_plan.csv \
+            --data-dir execution-data/binance \
+            --workers 16
+          python - <<'PY'
+          import pandas as pd
+          x = pd.read_csv("execution-data/FREQTRADE_DATA_AUDIT.csv")
+          print(x["status"].value_counts(dropna=False).to_string())
+          print("rows=", len(x))
+          PY
+
+      - name: Run all Tier-A through offline Freqtrade
+        run: |
+          python scripts/run_tier_a_freqtrade_validation.py \
+            --plan execution-plan/execution_plan.csv \
+            --config config/freqtrade_coin_strategy_execution.json \
+            --data-dir execution-data/binance \
+            --strategy-path strategies \
+            --fee-per-side 0.0005 \
+            --slippage-bps-round-trip 5.0 \
+            --output-dir execution-results
+
+      - name: Print final Tier-A execution summary
+        if: always()
+        run: |
+          cat execution-results/execution_manifest.json 2>/dev/null || true
+          if [ -f execution-results/execution_pair_results.csv ]; then
+            python - <<'PY'
+          import pandas as pd
+          x = pd.read_csv("execution-results/execution_pair_results.csv")
+          print("\nSTATUS")
+          print(x["status"].value_counts(dropna=False).to_string())
+          print("\nBY TIMEFRAME")
+          print(pd.crosstab(x["timeframe"], x["status"]).to_string())
+          print("\nBY STRATEGY")
+          print(pd.crosstab(x["strategy_id"], x["status"]).to_string())
+          print("\nTOP EXECUTION PASS")
+          y = x[x["status"].eq("EXECUTION_PASS")].sort_values(
+              ["expectancy_bps", "profit_factor"], ascending=False
+          )
+          print(y[[
+              "symbol","timeframe","strategy_id","trades",
+              "expectancy_bps","profit_factor","max_drawdown_compounded",
+              "long_expectancy","short_expectancy"
+          ]].head(30).to_string(index=False))
+          PY
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-strategy-lab-freqtrade-tier-a-full
+          path: |
+            execution-plan
+            execution-data/FREQTRADE_DATA_AUDIT.csv
+            execution-results
+          if-no-files-found: warn
+          retention-days: 30
