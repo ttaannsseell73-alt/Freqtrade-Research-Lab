@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "cohort_id": "paper-core-v1-2026-09-25",
+  "frozen_at": "2026-09-25",
+  "forward_cutoff": "2026-09-25",
+  "source": {
+    "router_run_id": 36120612952,
+    "freqtrade_tier_a_run_id": 36125698776,
+    "risk_filter_run_id": 36127602501
+  },
+  "policy": {
+    "max_drawdown_abs": 0.45,
+    "min_profit_factor": 1.5,
+    "min_expectancy_bps": 20,
+    "require_both_directions_positive": true,
+    "leverage": 1,
+    "default": "NO_TRADE"
+  },
+  "setups": [
+    {
+      "symbol": "SFPUSDT",
+      "timeframe": "4h",
+      "strategy_id": "squeeze_momentum",
+      "freqtrade_strategy_class": "CSL4hSqueezeMomentum",
+      "direction": "BOTH",
+      "risk_score": 79.3828959067
+    },
+    {
+      "symbol": "ROSEUSDT",
+      "timeframe": "1d",
+      "strategy_id": "qqe_ssl_wae",
+      "freqtrade_strategy_class": "CSL1dQQESSLWAE",
+      "direction": "BOTH",
+      "risk_score": 68.8090536807
+    },
+    {
+      "symbol": "XLMUSDT",
+      "timeframe": "4h",
+      "strategy_id": "qqe_ssl_wae",
+      "freqtrade_strategy_class": "CSL4hQQESSLWAE",
+      "direction": "BOTH",
+      "risk_score": 67.2171356397
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timeframe": "4h",
+      "strategy_id": "squeeze_momentum",
+      "freqtrade_strategy_class": "CSL4hSqueezeMomentum",
+      "direction": "BOTH",
+      "risk_score": 63.7960510837
+    },
+    {
+      "symbol": "ONGUSDT",
+      "timeframe": "4h",
+      "strategy_id": "mavilimw",
+      "freqtrade_strategy_class": "CSL4hMavilimW",
+      "direction": "BOTH",
+      "risk_score": 62.4250843239
+    },
+    {
+      "symbol": "STXUSDT",
+      "timeframe": "4h",
+      "strategy_id": "squeeze_momentum",
+      "freqtrade_strategy_class": "CSL4hSqueezeMomentum",
+      "direction": "BOTH",
+      "risk_score": 61.341354101
+    },
+    {
+      "symbol": "TAIKOUSDT",
+      "timeframe": "1h",
+      "strategy_id": "mavilimw",
+      "freqtrade_strategy_class": "CSL1hMavilimW",
+      "direction": "BOTH",
+      "risk_score": 47.3997090008
+    },
+    {
+      "symbol": "1000000BOBUSDT",
+      "timeframe": "15m",
+      "strategy_id": "pmax",
+      "freqtrade_strategy_class": "CSL15mPMax",
+      "direction": "BOTH",
+      "risk_score": 44.6941402889
+    },
+    {
+      "symbol": "YFIUSDT",
+      "timeframe": "4h",
+      "strategy_id": "mavilimw",
+      "freqtrade_strategy_class": "CSL4hMavilimW",
+      "direction": "BOTH",
+      "risk_score": 44.5385421361
+    },
+    {
+      "symbol": "1000CHEEMSUSDT",
+      "timeframe": "1h",
+      "strategy_id": "qqe_ssl_wae",
+      "freqtrade_strategy_class": "CSL1hQQESSLWAE",
+      "direction": "BOTH",
+      "risk_score": 34.8683810087
+    }
+  ]
+}
