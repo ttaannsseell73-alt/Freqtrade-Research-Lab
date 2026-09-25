@@ -39,13 +39,18 @@ def main() -> int:
                 "strategy_id": item["strategy_id"],
                 "freqtrade_strategy_class": item["freqtrade_strategy_class"],
                 "robust_tier": "A",
-                "confidence_score": float(item["risk_score"]),
+                "confidence_score": float(
+                    item.get("risk_score", item.get("active_score", 0.0))
+                ),
                 "worst_oos_floor_bps": 0.0,
                 "worst_15bps_expectancy": 0.0,
                 "worst_holdout_profit_factor": 0.0,
                 "validation_start": start.date().isoformat(),
                 "validation_end": end.date().isoformat(),
                 "forward_cohort": cohort["cohort_id"],
+                "pool_tier": str(item.get("pool_tier", "CORE")),
+                "paper_direction": str(item.get("direction", "BOTH")),
+                "paper_weight": float(item.get("paper_weight", 0.0)),
             })
 
     pd.DataFrame(rows).to_csv(args.output_dir / "forward_plan.csv", index=False)
