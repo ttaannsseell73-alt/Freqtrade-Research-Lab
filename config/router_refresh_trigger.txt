@@ -1,1 +1,1 @@
-router-refresh: 2026-09-25-final-r3
+router-refresh: 2026-09-25-final-r4-fast
