@@ -90,9 +90,17 @@ def main() -> int:
     parser.add_argument("--router-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--mode", choices=["smoke", "all"], default="smoke")
+    parser.add_argument("--max-groups", type=int, default=0)
     args = parser.parse_args()
 
     plan = build_plan(args.router_csv, args.mode)
+    if args.max_groups > 0:
+        group_keys = (
+            plan[["timeframe", "strategy_id"]]
+            .drop_duplicates()
+            .head(args.max_groups)
+        )
+        plan = plan.merge(group_keys, on=["timeframe", "strategy_id"], how="inner")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     plan.to_csv(args.output_dir / "execution_plan.csv", index=False)
 
