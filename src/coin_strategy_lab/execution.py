@@ -315,6 +315,87 @@ class ExecutionCoordinator:
             portfolio_drawdown=portfolio_drawdown,
         )
 
+    def submit_exit(
+        self,
+        *,
+        signal_id: str,
+        symbol: str,
+        reason: str = "opposite_signal",
+    ) -> ExecutionResult:
+        """Close one active symbol through an idempotent reduce-only order."""
+        symbol = symbol.upper()
+        report = self.reconcile()
+        if report.status != "READY":
+            return ExecutionResult(
+                False,
+                "NO_TRADE",
+                "exchange_state_invalid",
+                symbol,
+                "FLAT",
+                0.0,
+                actions=report.violations,
+            )
+
+        position = next(
+            (
+                p for p in report.exchange_positions
+                if p.symbol.upper() == symbol and p.quantity != 0.0
+            ),
+            None,
+        )
+        if position is None:
+            return ExecutionResult(
+                False,
+                "NO_POSITION",
+                "no_open_position",
+                symbol,
+                "FLAT",
+                0.0,
+            )
+
+        client_order_id = self._client_order_id(
+            "exit", symbol, "FLAT", signal_id
+        )
+        existing = self.gateway.get_order_by_client_id(
+            symbol, client_order_id
+        )
+        if existing is not None:
+            return ExecutionResult(
+                True,
+                "DUPLICATE_SUPPRESSED",
+                "existing_exchange_order",
+                symbol,
+                "FLAT",
+                0.0,
+                client_order_id=client_order_id,
+                order=existing,
+            )
+
+        order = self.gateway.close_position_reduce_only(
+            position,
+            client_order_id,
+        )
+        if order is None:
+            return ExecutionResult(
+                False,
+                "NO_POSITION",
+                "position_already_flat",
+                symbol,
+                "FLAT",
+                0.0,
+                client_order_id=client_order_id,
+            )
+        return ExecutionResult(
+            True,
+            order.status.upper(),
+            reason,
+            symbol,
+            "FLAT",
+            0.0,
+            client_order_id=client_order_id,
+            order=order,
+        )
+
     def cleanup_stale_orders(
         self,
         *,

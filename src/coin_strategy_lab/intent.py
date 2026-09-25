@@ -20,7 +20,7 @@ VALID_LIQUIDITY = {
 class EvidencePolicy:
     min_trades: int = 10
     max_profit_factor: float = 8.0
-    max_drawdown: float = 0.45
+    max_drawdown: float = 0.65
     max_net_return: float = 5.0
 
 

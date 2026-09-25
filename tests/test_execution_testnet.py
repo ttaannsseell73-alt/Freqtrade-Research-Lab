@@ -75,7 +75,7 @@ class FakeGateway:
 
     def close_position_reduce_only(self, position, client_order_id):
         self.closed.append((position, client_order_id))
-        return ExchangeOrder(
+        order = ExchangeOrder(
             symbol=position.symbol,
             order_id="close-1",
             client_order_id=client_order_id,
@@ -86,6 +86,8 @@ class FakeGateway:
             reduce_only=True,
             update_time_ms=2000,
         )
+        self.orders_by_client[(position.symbol, client_order_id)] = order
+        return order
 
 
 def test_admitted_signal_submits_market_entry_once():
@@ -377,3 +379,50 @@ def test_conflicted_intent_never_reaches_exchange():
     assert result.allowed is False
     assert result.status == "DIRECTION_CONFLICT"
     assert gateway.placed == []
+
+
+
+def test_normal_exit_is_reduce_only_and_idempotent():
+    gateway = FakeGateway()
+    gateway.snap = ExchangeSnapshot(
+        1000.0,
+        (
+            ExchangePosition(
+                "AAAUSDT",
+                "LONG",
+                2.0,
+                0.03,
+            ),
+        ),
+        (),
+    )
+    engine = ExecutionCoordinator(router(setup()), gateway)
+    first = engine.submit_exit(
+        signal_id="exit-bar-1",
+        symbol="AAAUSDT",
+    )
+    second = engine.submit_exit(
+        signal_id="exit-bar-1",
+        symbol="AAAUSDT",
+    )
+
+    assert first.allowed is True
+    assert first.status == "FILLED"
+    assert first.order is not None
+    assert first.order.reduce_only is True
+    assert first.side == "FLAT"
+    assert second.status == "DUPLICATE_SUPPRESSED"
+    assert first.client_order_id == second.client_order_id
+    assert len(gateway.closed) == 1
+
+
+def test_normal_exit_without_position_is_noop():
+    gateway = FakeGateway()
+    result = ExecutionCoordinator(router(setup()), gateway).submit_exit(
+        signal_id="exit-bar-2",
+        symbol="AAAUSDT",
+    )
+    assert result.allowed is False
+    assert result.status == "NO_POSITION"
+    assert result.reason == "no_open_position"
+    assert gateway.closed == []
