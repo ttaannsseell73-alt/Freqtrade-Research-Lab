@@ -1,6 +1,18 @@
 name: coin-strategy-lab-testnet-execution
 
 on:
+  push:
+    branches:
+      - forward-active
+    paths:
+      - src/coin_strategy_lab/intent.py
+      - src/coin_strategy_lab/runtime.py
+      - src/coin_strategy_lab/execution.py
+      - src/coin_strategy_lab/binance_testnet.py
+      - scripts/testnet_execution_smoke.py
+      - config/active_pool_v1.json
+      - config/active_system_v1.json
+      - .github/workflows/coin-strategy-lab-testnet-execution.yml
   workflow_dispatch:
     inputs:
       exercise_order:
