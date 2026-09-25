@@ -43,11 +43,12 @@ jobs:
           do
             args+=(--artifact "$name")
           done
-          for tf in 1m 5m; do
-            for shard in 0 1 2 3 4 5 6 7; do
-              args+=(--artifact "coin-strategy-lab-${tf}-shard-${shard}")
-              args+=(--artifact "coin-strategy-lab-${tf}-180d-shard-${shard}")
-            done
+          # 1m is intentionally excluded from router artifact download:
+          # the 90d canonical gate produced zero candidates, so no 1m pair can
+          # satisfy the required two-window robustness condition.
+          for shard in 0 1 2 3 4 5 6 7; do
+            args+=(--artifact "coin-strategy-lab-5m-shard-${shard}")
+            args+=(--artifact "coin-strategy-lab-5m-180d-shard-${shard}")
           done
           python scripts/download_latest_coin_strategy_artifacts.py \
             "${args[@]}" \
@@ -56,22 +57,18 @@ jobs:
 
       - name: Merge high-frequency shards
         run: |
-          for tf in 1m 5m; do
-            args90=()
-            args180=()
-            for shard in 0 1 2 3 4 5 6 7; do
-              args90+=(--input-dir "collected/coin-strategy-lab-${tf}-shard-${shard}")
-              args180+=(--input-dir "collected/coin-strategy-lab-${tf}-180d-shard-${shard}")
-            done
-            python scripts/merge_coin_strategy_shards.py "${args90[@]}" --output-dir "merged/${tf}-90d"
-            python scripts/merge_coin_strategy_shards.py "${args180[@]}" --output-dir "merged/${tf}-180d"
+          args90=()
+          args180=()
+          for shard in 0 1 2 3 4 5 6 7; do
+            args90+=(--input-dir "collected/coin-strategy-lab-5m-shard-${shard}")
+            args180+=(--input-dir "collected/coin-strategy-lab-5m-180d-shard-${shard}")
           done
+          python scripts/merge_coin_strategy_shards.py "${args90[@]}" --output-dir "merged/5m-90d"
+          python scripts/merge_coin_strategy_shards.py "${args180[@]}" --output-dir "merged/5m-180d"
 
       - name: Build full robust router
         run: |
           python scripts/build_coin_strategy_router.py \
-            --matrix 1m-90d=merged/1m-90d/MASTER_COIN_STRATEGY_MATRIX.csv \
-            --matrix 1m-180d=merged/1m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
             --matrix 5m-90d=merged/5m-90d/MASTER_COIN_STRATEGY_MATRIX.csv \
             --matrix 5m-180d=merged/5m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
             --matrix 15m-180d=collected/coin-strategy-lab-15m-180d/MASTER_COIN_STRATEGY_MATRIX.csv \
