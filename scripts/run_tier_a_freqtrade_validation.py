@@ -12,6 +12,15 @@ import pandas as pd
 from freqtrade_research_lab.execution_metrics import write_backtest_summary
 
 
+MIN_TRADES_BY_TIMEFRAME = {
+    "5m": 100,
+    "15m": 50,
+    "1h": 30,
+    "4h": 20,
+    "1d": 15,
+}
+
+
 def _timerange(start: str, end: str) -> str:
     return f"{start.replace('-', '')}-{end.replace('-', '')}"
 
@@ -64,6 +73,8 @@ def main() -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict] = []
+    pair_rows: list[dict] = []
+    direction_rows: list[dict] = []
     failures: list[dict] = []
 
     grouped = plan.groupby(
@@ -165,8 +176,105 @@ def main() -> int:
             }
         )
 
+        pair_metrics = pd.read_csv(metrics_dir / "pair_metrics.csv")
+        directions = pd.read_csv(metrics_dir / "direction_metrics.csv")
+        plan_lookup = group.set_index("freqtrade_pair")
+
+        direction_pair = directions[directions["pair"] != "__ALL__"].copy()
+        direction_pivot: dict[str, dict[str, float]] = {}
+        for _, drow in direction_pair.iterrows():
+            pair_key = str(drow["pair"])
+            direction = str(drow["direction"])
+            direction_pivot.setdefault(pair_key, {})
+            direction_pivot[pair_key][f"{direction}_trades"] = int(drow["trades"])
+            direction_pivot[pair_key][f"{direction}_expectancy"] = float(drow["expectancy"])
+            direction_pivot[pair_key][f"{direction}_profit_factor"] = float(drow["profit_factor"])
+            direction_rows.append(
+                {
+                    "pair": pair_key,
+                    "timeframe": timeframe,
+                    "strategy_id": strategy_id,
+                    "direction": direction,
+                    "trades": int(drow["trades"]),
+                    "expectancy": float(drow["expectancy"]),
+                    "profit_factor": float(drow["profit_factor"]),
+                    "win_rate": float(drow["win_rate"]),
+                    "max_drawdown_compounded": float(drow["max_drawdown_compounded"]),
+                }
+            )
+
+        for _, prow in pair_metrics.iterrows():
+            pair_key = str(prow["pair"])
+            if pair_key not in plan_lookup.index:
+                continue
+            plan_row = plan_lookup.loc[pair_key]
+            min_trades = MIN_TRADES_BY_TIMEFRAME[str(timeframe)]
+            trades = int(prow["trades"])
+            expectancy = float(prow["expectancy"])
+            profit_factor = float(prow["profit_factor"])
+            max_dd = float(prow["max_drawdown_compounded"])
+            dvals = direction_pivot.get(pair_key, {})
+            long_exp = dvals.get("long_expectancy")
+            short_exp = dvals.get("short_expectancy")
+
+            sample_ok = trades >= min_trades
+            edge_ok = expectancy > 0.0 and profit_factor > 1.0
+            both_directions_positive = (
+                long_exp is not None
+                and short_exp is not None
+                and long_exp > 0.0
+                and short_exp > 0.0
+            )
+            drawdown_warning = max_dd < -0.35
+            pair_status = (
+                "EXECUTION_PASS"
+                if sample_ok and edge_ok
+                else "EXECUTION_REJECT"
+            )
+
+            pair_rows.append(
+                {
+                    "symbol": str(plan_row["symbol"]),
+                    "pair": pair_key,
+                    "timeframe": timeframe,
+                    "strategy_id": strategy_id,
+                    "strategy_class": strategy_class,
+                    "robust_tier": str(plan_row["robust_tier"]),
+                    "research_confidence_score": float(plan_row["confidence_score"]),
+                    "research_worst_oos_floor_bps": float(plan_row["worst_oos_floor_bps"]),
+                    "research_worst_15bps_expectancy": float(plan_row["worst_15bps_expectancy"]),
+                    "research_worst_holdout_profit_factor": float(
+                        plan_row["worst_holdout_profit_factor"]
+                    ),
+                    "trades": trades,
+                    "min_trades_required": min_trades,
+                    "sample_ok": sample_ok,
+                    "win_rate": float(prow["win_rate"]),
+                    "expectancy": expectancy,
+                    "expectancy_bps": expectancy * 10_000.0,
+                    "profit_factor": profit_factor,
+                    "sum_adjusted_returns": float(prow["sum_adjusted_returns"]),
+                    "max_drawdown_compounded": max_dd,
+                    "drawdown_warning_gt_35pct": drawdown_warning,
+                    "avg_duration_minutes": float(prow["avg_duration_minutes"]),
+                    "long_trades": int(prow["long_trades"]),
+                    "short_trades": int(prow["short_trades"]),
+                    "long_expectancy": long_exp,
+                    "short_expectancy": short_exp,
+                    "both_directions_positive": both_directions_positive,
+                    "funding_fees_sum": float(prow["funding_fees_sum"]),
+                    "fee_round_trip_bps": args.fee_per_side * 2 * 10_000,
+                    "post_slippage_bps_round_trip": args.slippage_bps_round_trip,
+                    "status": pair_status,
+                }
+            )
+
     summary = pd.DataFrame(rows)
+    pair_summary = pd.DataFrame(pair_rows)
+    direction_summary = pd.DataFrame(direction_rows)
     summary.to_csv(args.output_dir / "execution_summary.csv", index=False)
+    pair_summary.to_csv(args.output_dir / "execution_pair_results.csv", index=False)
+    direction_summary.to_csv(args.output_dir / "execution_direction_results.csv", index=False)
     (args.output_dir / "failures.json").write_text(
         json.dumps(failures, indent=2),
         encoding="utf-8",
@@ -184,6 +292,19 @@ def main() -> int:
         "positive_groups": int(
             (summary["status"] == "EXECUTION_POSITIVE").sum()
         ) if not summary.empty else 0,
+        "pair_count": int(len(pair_summary)),
+        "execution_pass_pairs": int(
+            (pair_summary["status"] == "EXECUTION_PASS").sum()
+        ) if not pair_summary.empty else 0,
+        "execution_reject_pairs": int(
+            (pair_summary["status"] == "EXECUTION_REJECT").sum()
+        ) if not pair_summary.empty else 0,
+        "both_directions_positive_pairs": int(
+            pair_summary["both_directions_positive"].sum()
+        ) if not pair_summary.empty else 0,
+        "drawdown_warning_pairs": int(
+            pair_summary["drawdown_warning_gt_35pct"].sum()
+        ) if not pair_summary.empty else 0,
     }
     (args.output_dir / "execution_manifest.json").write_text(
         json.dumps(manifest, indent=2),
