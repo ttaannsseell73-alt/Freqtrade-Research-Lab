@@ -30,6 +30,7 @@ jobs:
           python -m pip install -e .
           python -m pip install "freqtrade==2026.8"
           freqtrade --version
+          freqtrade create-userdir --userdir user_data
 
       - name: Download latest successful canonical router
         env:
@@ -96,3 +97,5 @@ jobs:
           retention-days: 30
 
 # rerun: validation-window-coverage-fix
+
+# rerun: create-freqtrade-userdir
