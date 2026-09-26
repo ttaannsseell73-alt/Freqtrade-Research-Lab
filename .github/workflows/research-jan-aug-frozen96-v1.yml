@@ -1,0 +1,114 @@
+name: research-jan-aug-frozen96-v1
+
+on:
+  push:
+    branches:
+      - research/sep26-month-replay-v1
+    paths:
+      - .github/workflows/research-jan-aug-frozen96-v1.yml
+      - scripts/replay_frozen96_period.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay_month:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        month: [1,2,3,4,5,6,7,8]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep26-month-replay-v1
+          fetch-depth: 0
+      - name: Verify core strategy code frozen
+        run: |
+          git diff --exit-code b620587b955bf05c9f8e028bba563fb97ab5706b --             scripts/one_shot_yesterday_96.py             src/coin_strategy_lab
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download exact frozen 96 PASS artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+          test -f source-artifact/execution-results/execution_pair_results.csv
+      - name: Replay month
+        run: |
+          mkdir -p "historical-2026/m${{ matrix.month }}"
+          python scripts/replay_frozen96_period.py             --plan source-artifact/execution-plan/execution_plan.csv             --metrics source-artifact/execution-results/execution_pair_results.csv             --year 2026             --month "${{ matrix.month }}"             --out "historical-2026/m${{ matrix.month }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen96-2026-m${{ matrix.month }}
+          path: historical-2026/m${{ matrix.month }}
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    needs: replay_month
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frozen96-2026-m*
+          path: months
+      - name: Aggregate Jan-Aug
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          rows=[]
+          for p in sorted(Path("months").glob("frozen96-2026-m*/MONTH_SUMMARY.json")):
+              x=json.loads(p.read_text())
+              q=x["portfolio_1x"]
+              rows.append({
+                  "month":int(x["month"]),
+                  "pnl":float(q["sum_pnl_fixed_10k"]),
+                  "avg_daily":float(q["avg_daily_pnl"]),
+                  "positive_days":int(q["positive_days"]),
+                  "negative_days":int(q["negative_days"]),
+                  "trades":int(q["trades"]),
+                  "wins":int(q["wins"]),
+                  "losses":int(q["losses"]),
+                  "best_day":q["best_day"],
+                  "worst_day":q["worst_day"],
+              })
+          rows.sort(key=lambda r:r["month"])
+          if len(rows)!=8:
+              raise SystemExit(f"expected 8 months, got {len(rows)}")
+          report={
+              "period":"2026-01-01..2026-08-31",
+              "method":"same frozen 96 PASS portfolio logic as September; each day resets to 10,000 USDT; month PnL is daily PnL sum; no compounding",
+              "lookahead_note":"retrospective robustness only; frozen 96 plan was selected later and therefore this is not forward/out-of-sample proof",
+              "months":rows,
+              "total_pnl_fixed_10k":sum(r["pnl"] for r in rows),
+              "positive_months":sum(r["pnl"]>0 for r in rows),
+              "negative_months":sum(r["pnl"]<0 for r in rows),
+              "total_trades":sum(r["trades"] for r in rows),
+              "total_wins":sum(r["wins"] for r in rows),
+              "total_losses":sum(r["losses"] for r in rows),
+          }
+          Path("jan-aug-summary").mkdir(exist_ok=True)
+          Path("jan-aug-summary/SUMMARY.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen96-2026-jan-aug-summary
+          path: jan-aug-summary
+          if-no-files-found: error
+          retention-days: 30
