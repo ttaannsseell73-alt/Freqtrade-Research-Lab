@@ -1,0 +1,272 @@
+name: external-5-untouched-offline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/sep25-96-hybrid-exit-v1
+    paths:
+      - .github/workflows/external-5-untouched-offline.yml
+
+permissions:
+  contents: read
+
+jobs:
+  v0nog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ["2026-09-08","2026-09-25"]
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Clone untouched
+        run: git clone --depth 1 https://github.com/V0NOG/trading-bot-v2.git project
+      - name: Get official Binance spot archive and convert
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p project/data out
+          curl -fsSL "https://data.binance.vision/data/spot/daily/klines/BTCUSDT/15m/BTCUSDT-15m-${DAY}.zip" -o /tmp/d.zip
+          unzip -p /tmp/d.zip > /tmp/raw.csv
+          python - <<'PY'
+          import csv, os, datetime
+          day=os.environ["DAY"]
+          rows=[]
+          with open("/tmp/raw.csv",newline="") as f:
+              for r in csv.reader(f):
+                  try: t=int(r[0])
+                  except: continue
+                  if t>100_000_000_000_000: t//=1000
+                  ts=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                  rows.append([ts,r[1],r[2],r[3],r[4],r[5]])
+          with open("project/data/BTCUSDT_15m.csv","w",newline="") as f:
+              w=csv.writer(f); w.writerow(["timestamp","open","high","low","close","volume"]); w.writerows(rows)
+          print("bars",len(rows))
+          PY
+      - name: Run untouched default strategy
+        working-directory: project
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          NEXT=$(date -u -d "$DAY +1 day" +%F)
+          python scripts/run_backtest.py --data data/BTCUSDT_15m.csv --start "$DAY" --end "$NEXT" --output-dir "../out/$DAY" 2>&1 | tee "../out/$DAY.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0nog-${{ matrix.day }}
+          path: out
+          if-no-files-found: warn
+
+  theta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ["2026-09-08","2026-09-25"]
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Clone untouched
+        run: git clone --depth 1 https://github.com/DavJ/theta-bot.git project
+      - name: Install
+        working-directory: project
+        run: pip install -r requirements.txt
+      - name: Get official Binance spot archive and convert
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p project/data out
+          curl -fsSL "https://data.binance.vision/data/spot/daily/klines/BTCUSDT/1h/BTCUSDT-1h-${DAY}.zip" -o /tmp/d.zip
+          unzip -p /tmp/d.zip > /tmp/raw.csv
+          python - <<'PY'
+          import csv, os, datetime
+          rows=[]
+          with open("/tmp/raw.csv",newline="") as f:
+              for r in csv.reader(f):
+                  try:t=int(r[0])
+                  except:continue
+                  if t>100_000_000_000_000:t//=1000
+                  ts=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).isoformat()
+                  rows.append([ts,r[1],r[2],r[3],r[4],r[5]])
+          with open("project/data/BTCUSDT_1h.csv","w",newline="") as f:
+              w=csv.writer(f);w.writerow(["timestamp","open","high","low","close","volume"]);w.writerows(rows)
+          print("bars",len(rows))
+          PY
+      - name: Run untouched defaults
+        working-directory: project
+        env: {MPLBACKEND: Agg, DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p "../out/$DAY"
+          python -m spot_bot.run_backtest --csv data/BTCUSDT_1h.csv --output "../out/$DAY/equity.png" 2>&1 | tee "../out/$DAY.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: theta-${{ matrix.day }}
+          path: out
+          if-no-files-found: warn
+
+  cryptobot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ["2026-09-08","2026-09-25"]
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Clone untouched
+        run: git clone --depth 1 https://github.com/yemajj/crypto-bot.git project
+      - name: Install
+        working-directory: project
+        run: pip install -e .
+      - name: Get official Binance spot archive and convert
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p project/data out
+          curl -fsSL "https://data.binance.vision/data/spot/daily/klines/BTCUSDT/1h/BTCUSDT-1h-${DAY}.zip" -o /tmp/d.zip
+          unzip -p /tmp/d.zip > /tmp/raw.csv
+          python - <<'PY'
+          import csv
+          rows=[]
+          with open("/tmp/raw.csv",newline="") as f:
+              for r in csv.reader(f):
+                  try:t=int(r[0])
+                  except:continue
+                  if t>100_000_000_000_000:t//=1000
+                  rows.append([t,r[1],r[2],r[3],r[4],r[5]])
+          with open("project/data/BTCUSDT_1h.csv","w",newline="") as f:
+              w=csv.writer(f);w.writerow(["open_time","open","high","low","close","volume"]);w.writerows(rows)
+          print("bars",len(rows))
+          PY
+      - name: Run untouched config
+        working-directory: project
+        env:
+          CRYPTOBOT_DB_URL: sqlite:///../out/cryptobot.db
+          DAY: "${{ matrix.day }}"
+        run: |
+          mkdir -p "../out/$DAY"
+          cryptobot backtest --config config/backtest.yaml --data data/BTCUSDT_1h.csv --out-dir "../out/$DAY" 2>&1 | tee "../out/$DAY.log"
+          find "../out/$DAY" -maxdepth 2 -type f -print -exec sh -c 'echo "--- {}"; cat "{}" 2>/dev/null || true' \;
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cryptobot-${{ matrix.day }}
+          path: out
+          if-no-files-found: warn
+
+  rsi_bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ["2026-09-08","2026-09-25"]
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - name: Clone untouched
+        run: git clone --depth 1 https://github.com/heavendragon-17/rsi_bot.git project
+      - name: Install
+        working-directory: project
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Get official Binance USD-M archive and convert
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p project/app/backtest/data out
+          curl -fsSL "https://data.binance.vision/data/futures/um/daily/klines/PYTHUSDT/15m/PYTHUSDT-15m-${DAY}.zip" -o /tmp/d.zip
+          unzip -p /tmp/d.zip > /tmp/raw.csv
+          python - <<'PY'
+          import csv, datetime
+          rows=[]
+          with open("/tmp/raw.csv",newline="") as f:
+              for r in csv.reader(f):
+                  try:t=int(r[0])
+                  except:continue
+                  if t>100_000_000_000_000:t//=1000
+                  ts=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).isoformat()
+                  rows.append([ts,r[1],r[2],r[3],r[4],r[5]])
+          p="project/app/backtest/data/PYTHUSDT_15m.csv"
+          with open(p,"w",newline="") as f:
+              w=csv.writer(f);w.writerow(["timestamp","open","high","low","close","volume"]);w.writerows(rows)
+          print("bars",len(rows))
+          PY
+      - name: Run untouched config strategy
+        working-directory: project
+        env: {MPLBACKEND: Agg, DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p "../out/$DAY"
+          python app/backtest/backtest.py --data app/backtest/data/PYTHUSDT_15m.csv --output "../out/$DAY" 2>&1 | tee "../out/$DAY.log"
+          find "../out/$DAY" -maxdepth 2 -type f -print
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rsi-bot-${{ matrix.day }}
+          path: out
+          if-no-files-found: warn
+
+  bino282:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ["2026-09-08","2026-09-25"]
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Clone untouched
+        run: git clone --depth 1 https://github.com/bino282/binance-trading-bot.git project
+      - name: Install runtime deps
+        working-directory: project
+        run: |
+          pip install --upgrade pip
+          pip install python-binance==1.0.19 ccxt==4.2.25 pandas==2.1.4 numpy==1.26.3 pyyaml==6.0.1 matplotlib==3.8.2 plotly==5.18.0 seaborn==0.13.1 aiohttp==3.9.1 asyncio==3.4.3 python-dateutil==2.8.2 pytz==2023.3 requests==2.31.0 colorlog==6.8.0 jsonschema==4.20.0
+      - name: Get official Binance USD-M archive and convert
+        env: {DAY: "${{ matrix.day }}"}
+        run: |
+          mkdir -p project/data/historical out shim
+          curl -fsSL "https://data.binance.vision/data/futures/um/daily/klines/ZECUSDT/5m/ZECUSDT-5m-${DAY}.zip" -o /tmp/d.zip
+          unzip -p /tmp/d.zip > /tmp/raw.csv
+          python - <<'PY'
+          import csv,datetime
+          rows=[]
+          with open("/tmp/raw.csv",newline="") as f:
+              for r in csv.reader(f):
+                  try:t=int(r[0])
+                  except:continue
+                  if t>100_000_000_000_000:t//=1000
+                  ts=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).replace(tzinfo=None).isoformat(sep=" ")
+                  rows.append([ts,r[1],r[2],r[3],r[4],r[5]])
+          p="project/data/historical/ZECUSDT_5m.csv"
+          with open(p,"w",newline="") as f:
+              w=csv.writer(f);w.writerow(["timestamp","open","high","low","close","volume"]);w.writerows(rows)
+          print("bars",len(rows))
+          PY
+          cat > shim/sitecustomize.py <<'PY'
+          try:
+              import binance.client
+              binance.client.Client.ping=lambda self: {}
+          except Exception:
+              pass
+          PY
+      - name: Run untouched config and engine
+        working-directory: project
+        env:
+          DAY: "${{ matrix.day }}"
+          PYTHONPATH: "../shim"
+          MPLBACKEND: Agg
+        run: |
+          NEXT=$(date -u -d "$DAY +1 day" +%F)
+          mkdir -p "../out/$DAY"
+          python backtest.py --config config/ZECUSDT_TEMPLATE.yaml --start-date "$DAY" --end-date "$NEXT" --data-file data/historical/ZECUSDT_5m.csv --no-charts --output "../out/$DAY" 2>&1 | tee "../out/$DAY.log"
+          find "../out/$DAY" -maxdepth 2 -type f -print -exec sh -c 'echo "--- {}"; cat "{}" 2>/dev/null || true' \;
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bino282-${{ matrix.day }}
+          path: out
+          if-no-files-found: warn
