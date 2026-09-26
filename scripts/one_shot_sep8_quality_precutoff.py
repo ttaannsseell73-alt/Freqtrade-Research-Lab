@@ -235,11 +235,19 @@ def weighted_portfolio(trades, quality_map, leverage: float, start_equity=10000.
             ow+=w; op+=1; peakw=max(peakw,ow); peakp=max(peakp,op)
     unit=start_equity/peakw if peakw else 0.0
     pnl=0.0; wins=losses=0
+    quality_pnl={"MEDIUM":0.0,"STRONG":0.0}
+    quality_wins={"MEDIUM":0,"STRONG":0}
+    quality_losses={"MEDIUM":0,"STRONG":0}
     for t in accepted:
         p=unit*t["weight"]*leverage*float(t["net"])
         pnl+=p
-        if p>0:wins+=1
-        elif p<0:losses+=1
+        quality_pnl[t["quality"]] += p
+        if p>0:
+            wins+=1
+            quality_wins[t["quality"]] += 1
+        elif p<0:
+            losses+=1
+            quality_losses[t["quality"]] += 1
     return {
         "leverage":leverage,
         "start_equity":start_equity,
@@ -258,6 +266,12 @@ def weighted_portfolio(trades, quality_map, leverage: float, start_equity=10000.
         "unit_margin_usdt":unit,
         "medium_margin_usdt":unit,
         "strong_margin_usdt":unit*2,
+        "medium_pnl":quality_pnl["MEDIUM"],
+        "strong_pnl":quality_pnl["STRONG"],
+        "medium_wins":quality_wins["MEDIUM"],
+        "medium_losses":quality_losses["MEDIUM"],
+        "strong_wins":quality_wins["STRONG"],
+        "strong_losses":quality_losses["STRONG"],
     }
 
 
