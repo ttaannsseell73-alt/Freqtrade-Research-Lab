@@ -1,0 +1,112 @@
+name: one-shot-iotx-4h-testnet-open
+
+on:
+  push:
+    branches:
+      - forward-active
+    paths:
+      - .github/workflows/one-shot-iotx-4h-testnet-open.yml
+
+permissions:
+  contents: read
+
+jobs:
+  open-iotx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: binance-testnet
+    env:
+      BINANCE_TESTNET_API_KEY: ${{ secrets.BINANCE_TESTNET_API_KEY }}
+      BINANCE_TESTNET_API_SECRET: ${{ secrets.BINANCE_TESTNET_API_SECRET }}
+      CSL_ALLOW_TESTNET_ORDERS: "YES"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: forward-active
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[testnet]"
+      - name: Open IOTXUSDT LONG on TESTNET
+        run: |
+          python - <<'PY'
+          import json
+          from coin_strategy_lab.binance_testnet import BinanceFuturesTestnet
+          from coin_strategy_lab.execution import ExecutionCoordinator
+          from coin_strategy_lab.runtime import ActiveRouter
+
+          router = ActiveRouter.from_files(
+              "config/active_pool_v1.json",
+              "config/active_system_v1.json",
+          )
+          gateway = BinanceFuturesTestnet.from_env(allow_orders=True)
+          engine = ExecutionCoordinator(router, gateway)
+
+          one_way = gateway.position_mode_is_one_way()
+          print(json.dumps({
+              "phase":"preflight",
+              "one_way_mode":one_way,
+              "live_trading":False,
+          }))
+          if not one_way:
+              raise SystemExit("TESTNET must be One-way Mode")
+
+          before = engine.reconcile()
+          print(json.dumps({
+              "phase":"before",
+              "status":before.status,
+              "violations":list(before.violations),
+              "positions":[
+                  {"symbol":p.symbol,"side":p.side,"qty":p.quantity,
+                   "entry":p.entry_price,"mark":p.mark_price,
+                   "unrealized_pnl":p.unrealized_pnl}
+                  for p in before.exchange_positions
+              ],
+              "gross_exposure":before.gross_exposure,
+          }))
+          if before.status != "READY":
+              raise SystemExit("Exchange state not READY")
+
+          existing = [p for p in before.exchange_positions if p.symbol == "IOTXUSDT" and p.quantity != 0]
+          if existing:
+              raise SystemExit("IOTXUSDT position already exists; refusing duplicate")
+
+          result = engine.submit_signal(
+              signal_id="iotx-4h-testnet-hold-20260926-v1",
+              symbol="IOTXUSDT",
+              side="LONG",
+          )
+          print(json.dumps({
+              "phase":"entry",
+              "allowed":result.allowed,
+              "status":result.status,
+              "reason":result.reason,
+              "symbol":result.symbol,
+              "side":result.side,
+              "target_weight":result.target_weight,
+              "client_order_id":result.client_order_id,
+          }))
+          if not result.allowed:
+              raise SystemExit("IOTXUSDT entry rejected")
+
+          after = engine.reconcile()
+          iotx = [p for p in after.exchange_positions if p.symbol == "IOTXUSDT" and p.quantity != 0]
+          print(json.dumps({
+              "phase":"after",
+              "status":after.status,
+              "positions":[
+                  {"symbol":p.symbol,"side":p.side,"qty":p.quantity,
+                   "weight":p.weight,"entry":p.entry_price,"mark":p.mark_price,
+                   "unrealized_pnl":p.unrealized_pnl}
+                  for p in after.exchange_positions
+              ],
+              "iotx_open":bool(iotx),
+              "live_trading":False,
+          }))
+          if not iotx:
+              raise SystemExit("IOTXUSDT was not open after entry")
+          PY
