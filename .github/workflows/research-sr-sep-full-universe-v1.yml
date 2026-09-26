@@ -1,0 +1,240 @@
+name: research-sr-sep-full-universe-v1
+
+on:
+  push:
+    branches:
+      - research/support-resistance-only-v1
+    paths:
+      - .github/workflows/research-sr-sep-full-universe-v1.yml
+      - scripts/sr_month_scan.py
+      - research/support_resistance_only/CANDIDATES_V1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/support-resistance-only-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Scan shard
+        run: |
+          python scripts/sr_month_scan.py             --start "2026-09-01T00:00:00+03:00"             --end "2026-09-26T00:00:00+03:00"             --shard "${{ matrix.shard }}"             --shards 12             --out "sr-sep/shard-${{ matrix.shard }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sr-sep-shard-${{ matrix.shard }}
+          path: sr-sep/shard-${{ matrix.shard }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  aggregate:
+    if: always()
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sr-sep-shard-*
+          path: all-shards
+      - name: Aggregate all S/R results
+        run: |
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          import pandas as pd
+
+          files=sorted(Path("all-shards").glob("sr-sep-shard-*/RESULTS.csv"))
+          parts=[]
+          for p in files:
+              try:
+                  q=pd.read_csv(p)
+              except Exception:
+                  continue
+              if not q.empty:
+                  parts.append(q)
+
+          out=Path("sr-sep-summary")
+          out.mkdir(exist_ok=True)
+
+          if not parts:
+              raise SystemExit("No RESULTS.csv rows found")
+
+          df=pd.concat(parts,ignore_index=True)
+          key=["strategy","symbol","timeframe"]
+          df=df.drop_duplicates(key,keep="last").copy()
+
+          claims={
+              "SR_MTF_CONFLUENCE":"CLAIMED 80-90% major S/R; 75-85% intraday",
+              "SR_ORDERBOOK_REJECTION":"SOURCE FAMILY CLAIMED 80-90% L2 / 85-95% snapshots; THIS RUN = OHLCV wick-defense proxy",
+              "SR_ENSEMBLE":"CLAIMED family; source marks empirical validation pending",
+              "SR_STAT_CLUSTER":"CLAIMED 70-80% D/4H; 65-75% intraday",
+              "SR_BREAK_RETEST":"NO TRUSTED PUBLIC WR CLAIM",
+              "SR_ROLE_REVERSAL":"NO TRUSTED PUBLIC WR CLAIM",
+              "SR_MULTI_TOUCH_BOUNCE":"NO TRUSTED PUBLIC WR CLAIM",
+              "SR_PIVOT_REVERSAL":"NO TRUSTED PUBLIC WR CLAIM",
+              "SR_RANGE_EDGE":"NO TRUSTED PUBLIC WR CLAIM",
+              "SR_RANGE_BREAK_RETEST":"NO TRUSTED PUBLIC WR CLAIM",
+          }
+          df["source_claim"]=df["strategy"].map(claims)
+
+          def min_sample(tf):
+              if tf in ("1m","5m","15m"):
+                  return 15
+              if tf=="1h":
+                  return 8
+              return 4
+          df["min_sample_month"]=df["timeframe"].map(min_sample)
+          df["sample_ok"]=df["trades"]>=df["min_sample_month"]
+
+          df["positive_combo"]=df["net_return_sum_pct"]>0
+          df["pf_capped"]=df["profit_factor"].clip(lower=0,upper=5)
+          df["balanced_score"]=(
+              df["expectancy_bps"]
+              * (df["trades"].clip(lower=1)**0.5)
+              * (0.5 + df["target_hit_rate"])
+              * df["pf_capped"].clip(lower=0.25)
+          )
+
+          df.sort_values(
+              ["strategy","timeframe","net_return_sum_pct"],
+              ascending=[True,True,False]
+          ).to_csv(out/"ALL_RESULTS.csv",index=False)
+
+          ranked=df[df["sample_ok"]].copy()
+          if ranked.empty:
+              ranked=df.copy()
+
+          top_net=(ranked.sort_values(
+              ["strategy","net_return_sum_pct","trades"],
+              ascending=[True,False,False]
+          ).groupby("strategy",as_index=False,group_keys=False).head(30))
+          top_net.to_csv(out/"TOP30_NET_PER_STRATEGY.csv",index=False)
+
+          top_hit=(ranked.sort_values(
+              ["strategy","target_hit_rate","trades","expectancy_bps"],
+              ascending=[True,False,False,False]
+          ).groupby("strategy",as_index=False,group_keys=False).head(30))
+          top_hit.to_csv(out/"TOP30_HIT_PER_STRATEGY.csv",index=False)
+
+          top_bal=(ranked.sort_values(
+              ["balanced_score","net_return_sum_pct","trades"],
+              ascending=[False,False,False]
+          ).head(100))
+          top_bal.to_csv(out/"TOP100_BALANCED.csv",index=False)
+
+          summaries=[]
+          for strategy,g in df.groupby("strategy"):
+              trades=int(g["trades"].sum())
+              wins=int(g["wins"].sum())
+              losses=int(g["losses"].sum())
+              targets=float((g["target_hit_rate"]*g["trades"]).sum())
+              gw=float(g["gross_win_sum_pct"].sum())
+              gl=float(g["gross_loss_sum_pct"].sum())
+              pf=gw/gl if gl>0 else (999.0 if gw>0 else 0.0)
+              total_net=float(g["net_return_sum_pct"].sum())
+              summaries.append({
+                  "strategy":strategy,
+                  "source_claim":claims.get(strategy),
+                  "combos":int(len(g)),
+                  "symbols":int(g["symbol"].nunique()),
+                  "trades":trades,
+                  "wins":wins,
+                  "losses":losses,
+                  "aggregate_win_rate":wins/trades if trades else 0.0,
+                  "aggregate_target_hit_rate":targets/trades if trades else 0.0,
+                  "aggregate_profit_factor":pf,
+                  "aggregate_expectancy_bps":(total_net/100.0)/trades*10000 if trades else 0.0,
+                  "sum_trade_returns_pct":total_net,
+                  "positive_combos":int((g["net_return_sum_pct"]>0).sum()),
+                  "sample_ok_combos":int(g["sample_ok"].sum()),
+                  "best_combo":g.sort_values("net_return_sum_pct",ascending=False).iloc[0][
+                      ["symbol","timeframe","trades","win_rate","target_hit_rate","profit_factor","expectancy_bps","net_return_sum_pct","max_drawdown_pct"]
+                  ].to_dict(),
+              })
+          s=pd.DataFrame(summaries).sort_values(
+              ["sum_trade_returns_pct","aggregate_expectancy_bps"],
+              ascending=[False,False]
+          )
+          s.to_csv(out/"STRATEGY_SUMMARY.csv",index=False)
+
+          tf=[]
+          for (strategy,timeframe),g in df.groupby(["strategy","timeframe"]):
+              trades=int(g["trades"].sum())
+              wins=int(g["wins"].sum())
+              targets=float((g["target_hit_rate"]*g["trades"]).sum())
+              total_net=float(g["net_return_sum_pct"].sum())
+              tf.append({
+                  "strategy":strategy,"timeframe":timeframe,
+                  "combos":len(g),"trades":trades,
+                  "win_rate":wins/trades if trades else 0.0,
+                  "target_hit_rate":targets/trades if trades else 0.0,
+                  "expectancy_bps":(total_net/100.0)/trades*10000 if trades else 0.0,
+                  "sum_trade_returns_pct":total_net,
+                  "positive_combos":int((g["net_return_sum_pct"]>0).sum()),
+              })
+          pd.DataFrame(tf).sort_values(
+              ["strategy","sum_trade_returns_pct"],ascending=[True,False]
+          ).to_csv(out/"STRATEGY_TIMEFRAME_SUMMARY.csv",index=False)
+
+          errors=[]
+          universes=[]
+          for p in sorted(Path("all-shards").glob("sr-sep-shard-*/ERRORS.json")):
+              try: errors.extend(json.loads(p.read_text()))
+              except Exception: pass
+          for p in sorted(Path("all-shards").glob("sr-sep-shard-*/UNIVERSE.json")):
+              try: universes.append(json.loads(p.read_text()))
+              except Exception: pass
+
+          report={
+              "period":"2026-09-01T00:00+03:00 .. 2026-09-26T00:00+03:00",
+              "full_completed_days":25,
+              "strategies":sorted(df["strategy"].unique().tolist()),
+              "strategy_count":int(df["strategy"].nunique()),
+              "timeframes":sorted(df["timeframe"].unique().tolist()),
+              "unique_symbols_tested":int(df["symbol"].nunique()),
+              "strategy_symbol_timeframe_rows":int(len(df)),
+              "errors":len(errors),
+              "universe_reported_total":max([x.get("total",0) for x in universes],default=0),
+              "cost_round_trip_bps":15.0,
+              "risk_reward_target":1.5,
+              "important_notes":[
+                  "No S/R candidate was rejected because of an advertised accuracy claim.",
+                  "Ranking tables separate raw profitability, target-hit rate and sample sufficiency.",
+                  "SR_ORDERBOOK_REJECTION in this run is the OHLCV wick-defense proxy, not the historical L2/snapshot implementation.",
+                  "Every signal uses confirmed/closed bars; entry is next-bar open.",
+              ],
+          }
+          (out/"REPORT.json").write_text(json.dumps(report,indent=2,default=str),encoding="utf-8")
+          (out/"ERRORS.json").write_text(json.dumps(errors,indent=2),encoding="utf-8")
+
+          print(json.dumps(report,indent=2))
+          print("\n=== STRATEGY SUMMARY ===")
+          print(s.to_string(index=False))
+          print("\n=== TOP 40 BALANCED ===")
+          print(top_bal.head(40).to_string(index=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sr-september-full-universe-summary
+          path: sr-sep-summary
+          if-no-files-found: error
+          retention-days: 30
