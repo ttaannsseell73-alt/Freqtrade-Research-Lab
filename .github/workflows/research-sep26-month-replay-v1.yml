@@ -13,39 +13,9 @@ permissions:
   actions: read
 
 jobs:
-  replay:
-    strategy:
-      fail-fast: false
-      max-parallel: 6
-      matrix:
-        date:
-          - "2026-09-01"
-          - "2026-09-02"
-          - "2026-09-03"
-          - "2026-09-04"
-          - "2026-09-05"
-          - "2026-09-06"
-          - "2026-09-07"
-          - "2026-09-08"
-          - "2026-09-09"
-          - "2026-09-10"
-          - "2026-09-11"
-          - "2026-09-12"
-          - "2026-09-13"
-          - "2026-09-14"
-          - "2026-09-15"
-          - "2026-09-16"
-          - "2026-09-17"
-          - "2026-09-18"
-          - "2026-09-19"
-          - "2026-09-20"
-          - "2026-09-21"
-          - "2026-09-22"
-          - "2026-09-23"
-          - "2026-09-24"
-          - "2026-09-25"
+  replay_month:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,154 +32,267 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          rm -rf source-artifact
           mkdir -p source-artifact
           gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
           test -f source-artifact/execution-plan/execution_plan.csv
           test -f source-artifact/execution-results/execution_pair_results.csv
-      - name: Replay day
-        run: |
-          mkdir -p "month-replay/${{ matrix.date }}"
-          python scripts/one_shot_yesterday_96.py \
-            --plan source-artifact/execution-plan/execution_plan.csv \
-            --metrics source-artifact/execution-results/execution_pair_results.csv \
-            --date "${{ matrix.date }}" \
-            --out "month-replay/${{ matrix.date }}"
-      - name: Print compact result
-        if: always()
+      - name: Replay Sep 1-25 with cached Binance archives
         run: |
           python - <<'PY'
+          from __future__ import annotations
+          import csv
           import json
-          from pathlib import Path
-          p=Path("month-replay")/"${{ matrix.date }}"/"SUMMARY.json"
-          if p.exists():
-              x=json.loads(p.read_text())
-              print("DATE", x["date_local"], "TRADES", x["candidate_trades"], "SYMBOLS", x["symbols_with_candidate_trades"])
-              for group in ("reports","full_participation_reports","quality_filtered_reports"):
-                  print(group, [(r["leverage"], round(r["pnl"], 6), r["accepted_trades"]) for r in x.get(group,[])])
-          PY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: replay-${{ matrix.date }}
-          path: month-replay/${{ matrix.date }}
-          if-no-files-found: warn
-          retention-days: 30
-
-  aggregate:
-    if: always()
-    needs: replay
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: research/sep26-month-replay-v1
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: replay-*
-          path: all-days
-          merge-multiple: false
-      - name: Aggregate September replay
-        run: |
-          python - <<'PY'
-          import csv, json, math
+          import math
+          import sys
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from functools import lru_cache
           from pathlib import Path
 
-          root=Path("all-days")
-          rows=[]
-          for p in sorted(root.glob("replay-*/SUMMARY.json")):
-              x=json.loads(p.read_text())
+          import pandas as pd
+
+          sys.path.insert(0, "scripts")
+          import one_shot_yesterday_96 as base
+
+          plan = pd.read_csv("source-artifact/execution-plan/execution_plan.csv")
+          metrics = pd.read_csv("source-artifact/execution-results/execution_pair_results.csv")
+
+          original_request_bytes = base.request_bytes
+
+          @lru_cache(maxsize=None)
+          def cached_request_bytes(url: str, attempts: int = 4):
+              return original_request_bytes(url, attempts)
+
+          base.request_bytes = cached_request_bytes
+
+          def replay_day(date_str: str) -> dict:
+              local_start = pd.Timestamp(date_str, tz="Europe/Istanbul")
+              day_start = local_start.tz_convert("UTC")
+              day_end = (local_start + pd.Timedelta(days=1)).tz_convert("UTC")
+
+              jobs = {}
+              native = {}
+              detail = {}
+              with ThreadPoolExecutor(max_workers=16) as pool:
+                  for r in plan.itertuples():
+                      tf = str(r.timeframe)
+                      sid = str(r.strategy_id)
+                      warm = pd.Timedelta(seconds=base.TF_SECONDS[tf] * base.WARMUP.get(sid, 190))
+                      start = day_start - warm
+                      fut = pool.submit(base.download, str(r.symbol), tf, start, day_end)
+                      jobs[fut] = ("native", str(r.symbol), tf)
+                      if tf == "15m":
+                          fut2 = pool.submit(
+                              base.download,
+                              str(r.symbol),
+                              "5m",
+                              day_start - pd.Timedelta(minutes=10),
+                              day_end,
+                          )
+                          jobs[fut2] = ("detail", str(r.symbol), "5m")
+
+                  for i, f in enumerate(as_completed(jobs), 1):
+                      kind, sym, tf = jobs[f]
+                      x = f.result()
+                      if kind == "native":
+                          native[sym] = x
+                      else:
+                          detail[sym] = x
+                      if i % 25 == 0 or i == len(jobs):
+                          print(f"[{date_str}] downloads {i}/{len(jobs)} cache={cached_request_bytes.cache_info()}", flush=True)
+
+              all_trades = []
+              errors = []
+              for r in plan.itertuples():
+                  sym = str(r.symbol)
+                  x = native.get(sym, pd.DataFrame())
+                  if x.empty:
+                      errors.append(f"{sym}:{r.timeframe}:NO_DATA")
+                      continue
+                  try:
+                      ts = base.simulate_symbol(r, x, detail.get(sym), day_start, day_end)
+                      all_trades.extend(ts)
+                  except Exception as e:
+                      errors.append(f"{sym}:{r.timeframe}:{type(e).__name__}:{e}")
+
+              all_trades = [
+                  t for t in all_trades
+                  if day_start <= t["entry_time"] < day_end
+              ]
+
+              reports = [base.portfolio(all_trades, lev) for lev in (1.0, 2.0, 3.0)]
+              full_reports = [base.full_participation(all_trades, lev) for lev in (1.0, 2.0, 3.0)]
+              quality_reports = [
+                  base.quality_filtered_full_participation(all_trades, metrics, lev)
+                  for lev in (1.0, 2.0, 3.0)
+              ]
+
+              return {
+                  "date_local": date_str,
+                  "timezone": "Europe/Istanbul",
+                  "day_start_utc": day_start.isoformat(),
+                  "day_end_utc": day_end.isoformat(),
+                  "setup_count": int(len(plan)),
+                  "symbols_with_candidate_trades": len(set(t["symbol"] for t in all_trades)),
+                  "candidate_trades": len(all_trades),
+                  "exit_rule": {
+                      "5m_15m": "activate +1.5%, trail 0.75%, opposite fallback",
+                      "1h_4h_1d": "opposite-signal runner",
+                      "roundtrip_cost_bps": 15.0,
+                  },
+                  "portfolio": {
+                      "start_usdt": 10000.0,
+                      "margin_per_trade_usdt": 500.0,
+                      "max_positions": 20,
+                      "same_symbol_max": 1,
+                  },
+                  "reports": [
+                      {k: v for k, v in q.items() if k != "accepted"}
+                      for q in reports
+                  ],
+                  "full_participation_reports": full_reports,
+                  "quality_filter": {
+                      "weak": "direction expectancy <= 0 OR confidence < 65 OR PF < 1.20 OR worst holdout PF < 1.15",
+                      "strong": "confidence >= 85 AND PF >= 1.40 AND worst holdout PF >= 1.30 AND worst 15bps expectancy >= 50bps",
+                      "medium": "passes weak filter but not strong threshold",
+                      "capital_weight": {"MEDIUM": 1, "STRONG": 2, "WEAK": 0},
+                  },
+                  "quality_filtered_reports": quality_reports,
+                  "errors": errors,
+              }
+
+          daily = []
+          raw_dir = Path("reports/sep26_month_replay_v1/days")
+          raw_dir.mkdir(parents=True, exist_ok=True)
+
+          for day in range(1, 26):
+              date_str = f"2026-09-{day:02d}"
+              summary = replay_day(date_str)
+              daily.append(summary)
+              (raw_dir / f"{date_str}.json").write_text(
+                  json.dumps(summary, indent=2, default=str),
+                  encoding="utf-8",
+              )
+              p1 = summary["reports"][0]
+              print(
+                  f"DAY_RESULT {date_str} pnl={p1['pnl']:.6f} trades={p1['accepted_trades']} "
+                  f"wins={p1['wins']} losses={p1['losses']} max_open={p1['max_open_positions']}",
+                  flush=True,
+              )
+
+          rows = []
+          for x in daily:
               def bylev(key, lev):
-                  for r in x.get(key,[]):
-                      if float(r.get("leverage",0)) == float(lev):
+                  for r in x.get(key, []):
+                      if float(r.get("leverage", 0)) == float(lev):
                           return r
                   return {}
-              row={
-                  "date":x["date_local"],
-                  "candidate_trades":x.get("candidate_trades",0),
-                  "symbols":x.get("symbols_with_candidate_trades",0),
-                  "errors":len(x.get("errors",[])),
+
+              row = {
+                  "date": x["date_local"],
+                  "candidate_trades": x["candidate_trades"],
+                  "symbols": x["symbols_with_candidate_trades"],
+                  "errors": len(x.get("errors", [])),
               }
-              for key,prefix in [
-                  ("reports","portfolio"),
-                  ("full_participation_reports","full"),
-                  ("quality_filtered_reports","quality"),
+              for key, prefix in [
+                  ("reports", "portfolio"),
+                  ("full_participation_reports", "full"),
+                  ("quality_filtered_reports", "quality"),
               ]:
-                  for lev in (1,2,3):
-                      r=bylev(key,lev)
-                      row[f"{prefix}_{lev}x_pnl"]=r.get("pnl")
-                      row[f"{prefix}_{lev}x_return_pct"]=r.get("return_pct")
-                      row[f"{prefix}_{lev}x_trades"]=r.get("accepted_trades")
-                      row[f"{prefix}_{lev}x_wins"]=r.get("wins")
-                      row[f"{prefix}_{lev}x_losses"]=r.get("losses")
-                      row[f"{prefix}_{lev}x_max_open"]=r.get("max_open_positions", r.get("peak_concurrent_positions"))
+                  for lev in (1, 2, 3):
+                      r = bylev(key, lev)
+                      row[f"{prefix}_{lev}x_pnl"] = r.get("pnl")
+                      row[f"{prefix}_{lev}x_return_pct"] = r.get("return_pct")
+                      row[f"{prefix}_{lev}x_trades"] = r.get("accepted_trades")
+                      row[f"{prefix}_{lev}x_wins"] = r.get("wins")
+                      row[f"{prefix}_{lev}x_losses"] = r.get("losses")
+                      row[f"{prefix}_{lev}x_max_open"] = r.get(
+                          "max_open_positions",
+                          r.get("peak_concurrent_positions"),
+                      )
               rows.append(row)
 
-          rows.sort(key=lambda r:r["date"])
-          out=Path("reports/sep26_month_replay_v1")
-          out.mkdir(parents=True,exist_ok=True)
-          fields=sorted({k for r in rows for k in r.keys()}, key=lambda k:(k!="date",k))
-          with (out/"DAILY.csv").open("w",newline="",encoding="utf-8") as f:
-              w=csv.DictWriter(f,fieldnames=fields)
-              w.writeheader(); w.writerows(rows)
+          out = Path("reports/sep26_month_replay_v1")
+          fields = sorted(
+              {k for r in rows for k in r},
+              key=lambda k: (k != "date", k),
+          )
+          with (out / "DAILY.csv").open("w", newline="", encoding="utf-8") as f:
+              w = csv.DictWriter(f, fieldnames=fields)
+              w.writeheader()
+              w.writerows(rows)
 
-          target=239.77
-          sep8=next((r for r in rows if r["date"]=="2026-09-08"),None)
-          matches=[]
-          if sep8:
-              for key,val in sep8.items():
-                  if key.endswith("_pnl") and isinstance(val,(int,float)) and math.isfinite(val):
-                      matches.append({"field":key,"pnl":val,"abs_diff":abs(val-target)})
-              matches.sort(key=lambda z:z["abs_diff"])
+          target = 239.77
+          sep8 = next(r for r in rows if r["date"] == "2026-09-08")
+          matches = []
+          for key, val in sep8.items():
+              if key.endswith("_pnl") and isinstance(val, (int, float)) and math.isfinite(val):
+                  matches.append({
+                      "field": key,
+                      "pnl": val,
+                      "abs_diff": abs(val - target),
+                  })
+          matches.sort(key=lambda z: z["abs_diff"])
 
-          totals={}
-          for prefix in ("portfolio","full","quality"):
-              for lev in (1,2,3):
-                  k=f"{prefix}_{lev}x_pnl"
-                  vals=[float(r[k]) for r in rows if isinstance(r.get(k),(int,float))]
-                  pairs=[(r["date"],float(r[k])) for r in rows if isinstance(r.get(k),(int,float))]
-                  totals[k]={
-                      "days":len(vals),
-                      "sum_pnl_fixed_10k":sum(vals),
-                      "avg_daily_pnl":sum(vals)/len(vals) if vals else None,
-                      "positive_days":sum(v>0 for v in vals),
-                      "negative_days":sum(v<0 for v in vals),
-                      "flat_days":sum(abs(v)<1e-12 for v in vals),
-                      "best_day":max(pairs,key=lambda z:z[1],default=None),
-                      "worst_day":min(pairs,key=lambda z:z[1],default=None),
+          totals = {}
+          for prefix in ("portfolio", "full", "quality"):
+              for lev in (1, 2, 3):
+                  k = f"{prefix}_{lev}x_pnl"
+                  vals = [float(r[k]) for r in rows if isinstance(r.get(k), (int, float))]
+                  pairs = [
+                      (r["date"], float(r[k]))
+                      for r in rows
+                      if isinstance(r.get(k), (int, float))
+                  ]
+                  totals[k] = {
+                      "days": len(vals),
+                      "sum_pnl_fixed_10k": sum(vals),
+                      "avg_daily_pnl": sum(vals) / len(vals) if vals else None,
+                      "positive_days": sum(v > 0 for v in vals),
+                      "negative_days": sum(v < 0 for v in vals),
+                      "flat_days": sum(abs(v) < 1e-12 for v in vals),
+                      "best_day": max(pairs, key=lambda z: z[1], default=None),
+                      "worst_day": min(pairs, key=lambda z: z[1], default=None),
                   }
 
-          report={
-              "period":"2026-09-01..2026-09-25 Europe/Istanbul",
-              "completed_days_expected":25,
-              "completed_days_found":len(rows),
-              "frozen_source_plan_run_id":36125698776,
-              "strategy_engine":"scripts/one_shot_yesterday_96.py",
-              "source_branch":"research/sep25-96-hybrid-exit-v1@b620587b955bf05c9f8e028bba563fb97ab5706b",
-              "exit_rule":{
-                  "5m_15m":"activate +1.5%, trail 0.75%, opposite fallback",
-                  "1h_4h_1d":"opposite-signal runner",
-                  "roundtrip_cost_bps":15.0
+          report = {
+              "period": "2026-09-01..2026-09-25 Europe/Istanbul",
+              "completed_days_expected": 25,
+              "completed_days_found": len(rows),
+              "frozen_source_plan_run_id": 36125698776,
+              "source_branch": "research/sep25-96-hybrid-exit-v1@b620587b955bf05c9f8e028bba563fb97ab5706b",
+              "strategy_engine": "scripts/one_shot_yesterday_96.py",
+              "network_optimization": "URL payload cache only; strategy/signal/portfolio logic unchanged",
+              "exit_rule": {
+                  "5m_15m": "activate +1.5%, trail 0.75%, opposite fallback",
+                  "1h_4h_1d": "opposite-signal runner",
+                  "roundtrip_cost_bps": 15.0,
               },
-              "portfolio_rule":{
-                  "start_usdt":10000.0,
-                  "margin_per_trade_usdt":500.0,
-                  "max_positions":20,
-                  "same_symbol_max":1
+              "portfolio_rule": {
+                  "start_usdt": 10000.0,
+                  "margin_per_trade_usdt": 500.0,
+                  "max_positions": 20,
+                  "same_symbol_max": 1,
               },
-              "sep8_target_check":{
-                  "claimed_target_pnl":target,
-                  "closest_variants":matches[:5]
+              "sep8_target_check": {
+                  "claimed_target_pnl": target,
+                  "closest_variants": matches[:9],
               },
-              "totals":totals
+              "totals": totals,
           }
-          (out/"MONTH_SUMMARY.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
-          print(json.dumps(report,indent=2))
+          (out / "MONTH_SUMMARY.json").write_text(
+              json.dumps(report, indent=2),
+              encoding="utf-8",
+          )
+
+          print("FINAL_MONTH_SUMMARY")
+          print(json.dumps(report, indent=2))
           PY
       - name: Commit replay results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/sep26_month_replay_v1/DAILY.csv reports/sep26_month_replay_v1/MONTH_SUMMARY.json
+          git add reports/sep26_month_replay_v1
           if git diff --cached --quiet; then
             echo "No result changes to commit"
           else
