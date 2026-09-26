@@ -394,7 +394,8 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--plan",type=Path,required=True)
     ap.add_argument("--date",required=True)
-    ap.add_argument("--out",type=Path,required=True)\n    ap.add_argument("--metrics",type=Path)
+    ap.add_argument("--out",type=Path,required=True)
+    ap.add_argument("--metrics",type=Path)
     args=ap.parse_args()
 
     plan=pd.read_csv(args.plan)
