@@ -35,7 +35,11 @@ jobs:
           test -f source-artifact/execution-plan/execution_plan.csv
       - name: Simulate 25 Sep 2026
         run: |
-          python scripts/one_shot_yesterday_96.py             --plan source-artifact/execution-plan/execution_plan.csv             --date 2026-09-25             --out sep25-96-hybrid
+          python scripts/one_shot_yesterday_96.py \
+            --plan source-artifact/execution-plan/execution_plan.csv \
+            --metrics source-artifact/execution-results/execution_pair_results.csv \
+            --date 2026-09-25 \
+            --out sep25-96-hybrid
       - name: Print result
         if: always()
         run: |
