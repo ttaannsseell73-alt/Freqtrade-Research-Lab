@@ -107,12 +107,22 @@ def confirmed_pivots(f: pd.DataFrame, left: int=4, right: int=4):
     return ph,pl
 
 def price_noise(f: pd.DataFrame) -> np.ndarray:
-    c=f["close"].to_numpy(float)
+    cached=f.attrs.get("price_noise")
+    if cached is not None:
+        return cached
     r=((f["high"]-f["low"])/f["close"]).rolling(20,min_periods=5).median().fillna(0.003).to_numpy(float)
-    return np.clip(r*0.45,0.0015,0.012)
+    cached=np.clip(r*0.45,0.0015,0.012)
+    f.attrs["price_noise"]=cached
+    return cached
 
 def clusters_at(i:int, pivots:list[tuple[int,int,float]], tol:float, now_price:float, min_touches:int=1):
-    pts=[(pidx,price) for known,pidx,price in pivots if known <= i]
+    pts=[]
+    for known,pidx,price in reversed(pivots):
+        if known > i:
+            continue
+        if pidx < i-720:
+            break
+        pts.append((pidx,price))
     if not pts: return []
     pts=sorted(pts,key=lambda x:x[1])
     groups=[]
