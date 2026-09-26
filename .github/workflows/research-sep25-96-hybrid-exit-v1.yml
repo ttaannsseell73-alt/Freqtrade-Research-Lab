@@ -1,0 +1,51 @@
+name: research-sep25-96-hybrid-exit-v1
+
+on:
+  push:
+    branches:
+      - research/sep25-96-hybrid-exit-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep25-96-hybrid-exit-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download canonical 96 PASS plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+      - name: Simulate 25 Sep 2026
+        run: |
+          python scripts/one_shot_yesterday_96.py             --plan source-artifact/execution-plan/execution_plan.csv             --date 2026-09-25             --out sep25-96-hybrid
+      - name: Print result
+        if: always()
+        run: |
+          cat sep25-96-hybrid/SUMMARY.json || true
+          echo "--- trades ---"
+          head -n 80 sep25-96-hybrid/TRADES_1X.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sep25-96-hybrid-exit-v1
+          path: sep25-96-hybrid
+          if-no-files-found: warn
+          retention-days: 30
