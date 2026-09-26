@@ -101,8 +101,8 @@ def run_cryptobot(project,data,day):
     risk=RiskManager(rules)
     strategy=get_strategy(sc.name)(params=sc.params)
     r=BacktestEngine(strategy=strategy,broker=broker,risk=risk,bars=bars).run("bench")
-    # curve[0] is pre-loop, curve[i+1] is equity after bar i
-    idx=[bars[0].ts_open-pd.Timedelta(microseconds=1)]+[b.ts_open for b in bars]
+    # curve[0] is pre-loop, curve[i+1] is after each bar, final item is synthetic final settlement
+    idx=[bars[0].ts_open-pd.Timedelta(microseconds=1)]+[b.ts_open for b in bars]+[bars[-1].ts_open+pd.Timedelta(microseconds=1)]
     ser=pd.Series(r.equity_curve,index=pd.DatetimeIndex(idx))
     s,e=bounds(day)
     events=sum(1 for f in r.fills if s <= pd.Timestamp(f.ts).tz_convert("UTC") < e)
