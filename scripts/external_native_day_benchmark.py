@@ -34,7 +34,7 @@ def stats_from_series(series, day, native_start, event_count=0, extra=None):
     if extra: out.update(extra)
     return out
 
-def run_v0nog(project,data,day):
+def run_v0nog(project,data,day,symbol_override=None):
     sys.path.insert(0,str(project))
     from src.data.loader import DataLoader
     from src.strategy.compression_breakout import CompressionBreakoutStrategy
@@ -58,10 +58,10 @@ def run_v0nog(project,data,day):
       "native_total_trades":len(r.trades),
       "day_trade_wins":sum(1 for t in trs if t.net_pnl>0),
       "day_trade_losses":sum(1 for t in trs if t.net_pnl<=0),
-      "strategy":"CompressionBreakoutStrategy","symbol":"BTCUSDT","timeframe":"15m"
+      "strategy":"CompressionBreakoutStrategy","symbol":symbol_override or "BTCUSDT","timeframe":"15m"
     })
 
-def run_theta(project,data,day):
+def run_theta(project,data,day,symbol_override=None):
     sys.path.insert(0,str(project))
     from spot_bot.backtest.backtest_spot import run_strategy_backtests
     from spot_bot.strategies.mean_reversion import MeanReversionStrategy
@@ -76,10 +76,10 @@ def run_theta(project,data,day):
     ch=pos.diff().abs().fillna(pos.abs())
     events=int(((ch>1e-12)&(ch.index>=s)&(ch.index<e)).sum())
     return stats_from_series(r.equity_curve,day,1000.0,events,{
-      "strategy":"MeanReversionStrategy(gated)","symbol":"BTCUSDT","timeframe":"1h"
+      "strategy":"MeanReversionStrategy(gated)","symbol":symbol_override or "BTCUSDT","timeframe":"1h"
     })
 
-def run_cryptobot(project,data,day):
+def run_cryptobot(project,data,day,symbol_override=None):
     sys.path.insert(0,str(project/"src"))
     from cryptobot.config import load_settings
     from cryptobot.app.run_backtest import load_bars_from_csv
@@ -90,6 +90,10 @@ def run_cryptobot(project,data,day):
     from cryptobot.strategy.registry import get_strategy
     from cryptobot.backtest.engine import BacktestEngine
     settings=load_settings(project/"config/backtest.yaml")
+    if symbol_override:
+        fmt = symbol_override[:-4] + "/USDT" if symbol_override.endswith("USDT") else symbol_override
+        settings.run.market.symbols=[fmt]
+        settings.run.risk.symbol_allow_list=[fmt]
     rc,fc,sc=settings.run.risk,settings.run.fees,settings.run.strategy
     symbol=settings.run.market.symbols[0]; tf=settings.run.market.timeframe
     bars=load_bars_from_csv(data,symbol,tf)
@@ -110,7 +114,7 @@ def run_cryptobot(project,data,day):
       "native_total_trades":int(r.metrics.n_trades),"strategy":sc.name,"symbol":symbol,"timeframe":tf
     })
 
-def run_rsi(project,data,day):
+def run_rsi(project,data,day,symbol_override=None):
     sys.path.insert(0,str(project))
     import yaml
     from app.backtest.config_builder import build_backtest_config
@@ -118,7 +122,7 @@ def run_rsi(project,data,day):
     from app.trading.strategy.loader import STRATEGY_MAP
     base=yaml.safe_load((project/"config.yaml").read_text())
     strategy_name=base.get("strategy","rsi_wma_retest")
-    symbol="PYTH/USDT"; tf="15m"
+    symbol=(symbol_override[:-4] + "/USDT" if symbol_override and symbol_override.endswith("USDT") else (symbol_override or "PYTH/USDT")); tf="15m"
     cfg=build_backtest_config(symbol=symbol,timeframe=tf,strategy_name=strategy_name,initial_balance=float(base.get("backtest",{}).get("initial_balance",10000)))
     class TrackingEngine(BacktestEngine):
         def __init__(self,*a,**k):
@@ -147,14 +151,20 @@ def run_rsi(project,data,day):
       "native_round_trips":len(r.get("round_trips",[])),"strategy":strategy_name,"symbol":symbol,"timeframe":tf
     })
 
-def run_bino(project,data,day):
+def run_bino(project,data,day,symbol_override=None):
     sys.path.insert(0,str(project))
     from src.utils.config_loader import ConfigLoader
     from src.backtest.data_loader import DataLoader
     from src.backtest.engine import BacktestEngine
     cfg=ConfigLoader(str(project/"config/ZECUSDT_TEMPLATE.yaml"))
-    df=DataLoader(cfg.get_symbol(),cfg.get_kline_interval()).load_from_csv(str(data))
-    r=BacktestEngine(cfg.get_all()).run(df)
+    cfg_all=cfg.get_all()
+    active_symbol=symbol_override or cfg.get_symbol()
+    if symbol_override:
+        cfg_all["pair"]["symbol"]=active_symbol
+        cfg_all["pair"]["base"]=active_symbol[:-4] if active_symbol.endswith("USDT") else active_symbol
+        cfg_all["pair"]["quote"]="USDT"
+    df=DataLoader(active_symbol,cfg.get_kline_interval()).load_from_csv(str(data))
+    r=BacktestEngine(cfg_all).run(df)
     eq=r.equity_curve["equity"]
     s,e=bounds(day)
     events=0
@@ -163,9 +173,9 @@ def run_bino(project,data,day):
         if ts.tzinfo is None: ts=ts.tz_localize("UTC")
         else: ts=ts.tz_convert("UTC")
         if s<=ts<e: events+=1
-    start=float(cfg.get_all().get("starting_cash_usdt",3000))
+    start=float(cfg_all.get("starting_cash_usdt",3000))
     return stats_from_series(eq,day,start,events,{
-      "native_total_trade_records":len(r.trades),"strategy":"native score/risk engine","symbol":cfg.get_symbol(),"timeframe":cfg.get_kline_interval()
+      "native_total_trade_records":len(r.trades),"strategy":"native score/risk engine","symbol":active_symbol,"timeframe":cfg.get_kline_interval()
     })
 
 def main():
@@ -174,10 +184,11 @@ def main():
     ap.add_argument("--project",type=Path,required=True)
     ap.add_argument("--data",type=Path,required=True)
     ap.add_argument("--day",required=True)
+    ap.add_argument("--symbol")
     ap.add_argument("--out",type=Path,required=True)
     a=ap.parse_args()
     fn={"v0nog":run_v0nog,"theta":run_theta,"cryptobot":run_cryptobot,"rsi":run_rsi,"bino":run_bino}[a.kind]
-    out=fn(a.project.resolve(),a.data.resolve(),a.day)
+    out=fn(a.project.resolve(),a.data.resolve(),a.day,a.symbol)
     out.update({"project_kind":a.kind,"day_local":a.day,"timezone":"Europe/Istanbul"})
     a.out.parent.mkdir(parents=True,exist_ok=True)
     a.out.write_text(json.dumps(out,indent=2,default=str),encoding="utf-8")
