@@ -1,0 +1,136 @@
+name: native-day-benchmark-5-v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/sep25-96-hybrid-exit-v1
+    paths:
+      - scripts/external_native_day_benchmark.py
+      - scripts/download_binance_vision_range.py
+      - .github/workflows/native-day-benchmark-5-v2.yml
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: v0nog
+            repo: V0NOG/trading-bot-v2
+            market: spot
+            symbol: BTCUSDT
+            tf: 15m
+            py: "3.11"
+          - kind: theta
+            repo: DavJ/theta-bot
+            market: spot
+            symbol: BTCUSDT
+            tf: 1h
+            py: "3.11"
+          - kind: cryptobot
+            repo: yemajj/crypto-bot
+            market: spot
+            symbol: BTCUSDT
+            tf: 1h
+            py: "3.11"
+          - kind: rsi
+            repo: heavendragon-17/rsi_bot
+            market: um
+            symbol: PYTHUSDT
+            tf: 15m
+            py: "3.13"
+          - kind: bino
+            repo: bino282/binance-trading-bot
+            market: um
+            symbol: ZECUSDT
+            tf: 5m
+            py: "3.11"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep25-96-hybrid-exit-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
+      - name: Clone external project untouched
+        run: git clone --depth 1 "https://github.com/${{ matrix.repo }}.git" external
+      - name: Record external commit
+        run: |
+          cd external
+          git rev-parse HEAD | tee ../external_commit.txt
+          git status --porcelain | tee ../external_status_before.txt
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -e
+          case "${{ matrix.kind }}" in
+            v0nog)
+              true
+              ;;
+            theta)
+              pip install -r external/requirements.txt
+              ;;
+            cryptobot)
+              pip install -e external
+              ;;
+            rsi)
+              pip install --upgrade pip
+              pip install -r external/requirements.txt
+              ;;
+            bino)
+              pip install python-binance==1.0.19 ccxt==4.2.25 pandas==2.1.4 numpy==1.26.3 pyyaml==6.0.1 matplotlib==3.8.2 plotly==5.18.0 seaborn==0.13.1 aiohttp==3.9.1 asyncio==3.4.3 python-dateutil==2.8.2 pytz==2023.3 requests==2.31.0 colorlog==6.8.0 jsonschema==4.20.0
+              ;;
+          esac
+      - name: Prepare Binance client no-network init shim for bino
+        if: matrix.kind == 'bino'
+        run: |
+          mkdir -p shim
+          cat > shim/sitecustomize.py <<'PY'
+          try:
+              import binance.client
+              binance.client.Client.ping=lambda self: {}
+          except Exception:
+              pass
+          PY
+      - name: Run 8 September native-state benchmark
+        env:
+          PYTHONPATH: ${{ matrix.kind == 'bino' && format('{0}/shim', github.workspace) || '' }}
+          MPLBACKEND: Agg
+        run: |
+          START=$(date -u -d "2026-09-08 -65 days" +%F)
+          python scripts/download_binance_vision_range.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --timeframe "${{ matrix.tf }}" --start "$START" --end "2026-09-08" --out data/sep08.csv
+          python scripts/external_native_day_benchmark.py --kind "${{ matrix.kind }}" --project external --data data/sep08.csv --day 2026-09-08 --out "results/${{ matrix.kind }}-sep08.json"
+      - name: Run 25 September native-state benchmark
+        env:
+          PYTHONPATH: ${{ matrix.kind == 'bino' && format('{0}/shim', github.workspace) || '' }}
+          MPLBACKEND: Agg
+        run: |
+          START=$(date -u -d "2026-09-25 -65 days" +%F)
+          python scripts/download_binance_vision_range.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --timeframe "${{ matrix.tf }}" --start "$START" --end "2026-09-25" --out data/sep25.csv
+          python scripts/external_native_day_benchmark.py --kind "${{ matrix.kind }}" --project external --data data/sep25.csv --day 2026-09-25 --out "results/${{ matrix.kind }}-sep25.json"
+      - name: Verify external repository remained untouched
+        if: always()
+        run: |
+          cd external
+          git status --porcelain | tee ../external_status_after.txt
+      - name: Print results
+        if: always()
+        run: |
+          cat results/*.json 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-day-${{ matrix.kind }}
+          path: |
+            results
+            external_commit.txt
+            external_status_before.txt
+            external_status_after.txt
+          if-no-files-found: warn
+          retention-days: 30
