@@ -1,0 +1,197 @@
+name: research-sep-repro-2x-v1
+
+on:
+  push:
+    branches:
+      - research/sep26-month-replay-v1
+    paths:
+      - .github/workflows/research-sep-repro-2x-v1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay:
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        repeat: ["R2", "R3"]
+        date:
+          - "2026-09-01"
+          - "2026-09-02"
+          - "2026-09-03"
+          - "2026-09-04"
+          - "2026-09-05"
+          - "2026-09-06"
+          - "2026-09-07"
+          - "2026-09-08"
+          - "2026-09-09"
+          - "2026-09-10"
+          - "2026-09-11"
+          - "2026-09-12"
+          - "2026-09-13"
+          - "2026-09-14"
+          - "2026-09-15"
+          - "2026-09-16"
+          - "2026-09-17"
+          - "2026-09-18"
+          - "2026-09-19"
+          - "2026-09-20"
+          - "2026-09-21"
+          - "2026-09-22"
+          - "2026-09-23"
+          - "2026-09-24"
+          - "2026-09-25"
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep26-month-replay-v1
+          fetch-depth: 0
+      - name: Verify strategy code frozen
+        run: |
+          git diff --exit-code b620587b955bf05c9f8e028bba563fb97ab5706b --             scripts/one_shot_yesterday_96.py             src/coin_strategy_lab
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download exact frozen 96 PASS artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+          test -f source-artifact/execution-results/execution_pair_results.csv
+          sha256sum source-artifact/execution-plan/execution_plan.csv
+          sha256sum source-artifact/execution-results/execution_pair_results.csv
+      - name: Replay exact day
+        run: |
+          mkdir -p "repro/${{ matrix.repeat }}/${{ matrix.date }}"
+          python scripts/one_shot_yesterday_96.py \
+            --plan source-artifact/execution-plan/execution_plan.csv \
+            --metrics source-artifact/execution-results/execution_pair_results.csv \
+            --date "${{ matrix.date }}" \
+            --out "repro/${{ matrix.repeat }}/${{ matrix.date }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repro-${{ matrix.repeat }}-${{ matrix.date }}
+          path: repro/${{ matrix.repeat }}/${{ matrix.date }}
+          if-no-files-found: error
+          retention-days: 30
+
+  compare:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep26-month-replay-v1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: repro-*
+          path: repro-artifacts
+      - name: Build normalized repeat tables and compare
+        run: |
+          python - <<'PY'
+          import csv, hashlib, json, sys
+          from pathlib import Path
+
+          baseline = Path("reports/sep26_month_replay_v1/DAILY.csv")
+          if not baseline.exists():
+              raise SystemExit("baseline DAILY.csv missing")
+
+          def normalized_from_repeat(rep):
+              rows=[]
+              for p in sorted(Path("repro-artifacts").glob(f"repro-{rep}-*/SUMMARY.json")):
+                  x=json.loads(p.read_text())
+                  def bylev(key, lev):
+                      for r in x.get(key, []):
+                          if float(r.get("leverage",0)) == float(lev):
+                              return r
+                      return {}
+                  row={
+                      "date":x["date_local"],
+                      "candidate_trades":x.get("candidate_trades",0),
+                      "symbols":x.get("symbols_with_candidate_trades",0),
+                      "errors":len(x.get("errors",[])),
+                  }
+                  for key,prefix in [
+                      ("reports","portfolio"),
+                      ("full_participation_reports","full"),
+                      ("quality_filtered_reports","quality"),
+                  ]:
+                      for lev in (1,2,3):
+                          r=bylev(key,lev)
+                          row[f"{prefix}_{lev}x_pnl"]=r.get("pnl")
+                          row[f"{prefix}_{lev}x_return_pct"]=r.get("return_pct")
+                          row[f"{prefix}_{lev}x_trades"]=r.get("accepted_trades")
+                          row[f"{prefix}_{lev}x_wins"]=r.get("wins")
+                          row[f"{prefix}_{lev}x_losses"]=r.get("losses")
+                          row[f"{prefix}_{lev}x_max_open"]=r.get("max_open_positions",r.get("peak_concurrent_positions"))
+                  rows.append(row)
+              rows.sort(key=lambda r:r["date"])
+              if len(rows)!=25:
+                  raise SystemExit(f"{rep}: expected 25 rows, got {len(rows)}")
+              fields=sorted({k for r in rows for k in r}, key=lambda k:(k!="date",k))
+              from io import StringIO
+              s=StringIO(newline="")
+              w=csv.DictWriter(s,fieldnames=fields,lineterminator="\n")
+              w.writeheader(); w.writerows(rows)
+              return s.getvalue().encode(), rows
+
+          baseline_bytes=baseline.read_bytes().replace(b"\r\n",b"\n")
+          base_hash=hashlib.sha256(baseline_bytes).hexdigest()
+
+          results={}
+          payloads={}
+          rows_by_rep={}
+          for rep in ("R2","R3"):
+              data,rows=normalized_from_repeat(rep)
+              h=hashlib.sha256(data).hexdigest()
+              payloads[rep]=data
+              rows_by_rep[rep]=rows
+              results[rep]={
+                  "sha256":h,
+                  "matches_baseline":data==baseline_bytes,
+                  "portfolio_1x_sum":sum(float(r["portfolio_1x_pnl"]) for r in rows),
+                  "trades":sum(int(r["portfolio_1x_trades"]) for r in rows),
+                  "wins":sum(int(r["portfolio_1x_wins"]) for r in rows),
+                  "losses":sum(int(r["portfolio_1x_losses"]) for r in rows),
+              }
+
+          report={
+              "baseline_sha256":base_hash,
+              "R2":results["R2"],
+              "R3":results["R3"],
+              "R2_equals_R3":payloads["R2"]==payloads["R3"],
+              "deterministic_pass":(
+                  results["R2"]["matches_baseline"]
+                  and results["R3"]["matches_baseline"]
+                  and payloads["R2"]==payloads["R3"]
+              ),
+          }
+          out=Path("repro-result")
+          out.mkdir(exist_ok=True)
+          (out/"REPRO_RESULT.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          (out/"R2_DAILY.csv").write_bytes(payloads["R2"])
+          (out/"R3_DAILY.csv").write_bytes(payloads["R3"])
+          print(json.dumps(report,indent=2))
+          if not report["deterministic_pass"]:
+              sys.exit(2)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sep-repro-2x-result
+          path: repro-result
+          if-no-files-found: error
+          retention-days: 30
