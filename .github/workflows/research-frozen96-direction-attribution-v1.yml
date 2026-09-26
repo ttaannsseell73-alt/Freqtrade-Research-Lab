@@ -1,0 +1,112 @@
+name: research-frozen96-direction-attribution-v1
+
+on:
+  push:
+    branches:
+      - research/frozen96-direction-attribution-v1
+    paths:
+      - .github/workflows/research-frozen96-direction-attribution-v1.yml
+      - scripts/frozen96_direction_attribution.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  month:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        month: [1,2,3,4,5,6,7,8,9]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/frozen96-direction-attribution-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download frozen plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+          test -f source-artifact/execution-results/execution_pair_results.csv
+      - name: Direction attribution
+        run: |
+          python scripts/frozen96_direction_attribution.py             --plan source-artifact/execution-plan/execution_plan.csv             --metrics source-artifact/execution-results/execution_pair_results.csv             --month "${{ matrix.month }}"             --out "direction/m${{ matrix.month }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: direction-m${{ matrix.month }}
+          path: direction/m${{ matrix.month }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  aggregate:
+    if: always()
+    needs: month
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: direction-m*
+          path: all
+      - name: Aggregate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          bad=[]
+          bytf={}
+          bystrategy={}
+          for p in sorted(Path("all").glob("direction-m*/DIRECTION.json")):
+              x=json.loads(p.read_text())
+              if not x.get("baseline_match"):
+                  bad.append(x["month"])
+              rows.append({
+                  "month":x["month"],
+                  "pnl":x["reproduced_pnl"],
+                  "long_pnl":x["long"]["pnl"],
+                  "short_pnl":x["short"]["pnl"],
+                  "long_trades":x["long"]["trades"],
+                  "short_trades":x["short"]["trades"],
+                  "long_wr":x["long"]["win_rate"],
+                  "short_wr":x["short"]["win_rate"],
+                  "btc_return_pct":x["btc_return_pct"],
+                  "eth_return_pct":x["eth_return_pct"],
+              })
+              for tf,q in x["by_timeframe"].items():
+                  z=bytf.setdefault(tf,{"LONG":{"pnl":0,"trades":0,"wins":0,"losses":0},"SHORT":{"pnl":0,"trades":0,"wins":0,"losses":0}})
+                  for side in ("LONG","SHORT"):
+                      for k in ("pnl","trades","wins","losses"): z[side][k]+=q[side][k]
+              for st,q in x["by_strategy"].items():
+                  z=bystrategy.setdefault(st,{"LONG":{"pnl":0,"trades":0,"wins":0,"losses":0},"SHORT":{"pnl":0,"trades":0,"wins":0,"losses":0}})
+                  for side in ("LONG","SHORT"):
+                      for k in ("pnl","trades","wins","losses"): z[side][k]+=q[side][k]
+          rows.sort(key=lambda r:r["month"])
+          out=Path("direction-summary"); out.mkdir()
+          report={"baseline_mismatch_months":bad,"months":rows,"by_timeframe":bytf,"by_strategy":bystrategy}
+          (out/"SUMMARY.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          print(json.dumps(report,indent=2))
+          if bad or len(rows)!=9:
+              raise SystemExit(2)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frozen96-direction-summary
+          path: direction-summary
+          if-no-files-found: warn
+          retention-days: 30
