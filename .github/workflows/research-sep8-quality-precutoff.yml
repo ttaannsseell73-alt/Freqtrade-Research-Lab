@@ -1,0 +1,54 @@
+name: research-sep8-quality-precutoff
+
+on:
+  push:
+    branches:
+      - research/sep25-96-hybrid-exit-v1
+    paths:
+      - scripts/one_shot_sep8_quality_precutoff.py
+      - .github/workflows/research-sep8-quality-precutoff.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep25-96-hybrid-exit-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download canonical 96 PASS plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+      - name: Simulate 8 Sep 2026 with pre-cutoff quality
+        run: |
+          python scripts/one_shot_sep8_quality_precutoff.py \
+            --plan source-artifact/execution-plan/execution_plan.csv \
+            --date 2026-09-08 \
+            --out sep8-quality-precutoff
+      - name: Print result
+        if: always()
+        run: cat sep8-quality-precutoff/SUMMARY.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sep8-quality-precutoff
+          path: sep8-quality-precutoff
+          if-no-files-found: warn
+          retention-days: 30
