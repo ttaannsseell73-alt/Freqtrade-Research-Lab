@@ -264,11 +264,137 @@ def full_participation(all_trades, leverage: float, start_equity=10000.0):
         "sum_net_trade_returns": total_net,
     }
 
+
+def classify_quality(trade: dict, metric_row: pd.Series) -> tuple[str, int]:
+    side = trade["side"].lower()
+    direction_expectancy = float(metric_row[f"{side}_expectancy"])
+    confidence = float(metric_row["research_confidence_score"])
+    pf = float(metric_row["profit_factor"])
+    holdout_pf = float(metric_row["research_worst_holdout_profit_factor"])
+    worst15 = float(metric_row["research_worst_15bps_expectancy"])
+
+    weak = (
+        direction_expectancy <= 0.0
+        or confidence < 65.0
+        or pf < 1.20
+        or holdout_pf < 1.15
+    )
+    if weak:
+        return "WEAK", 0
+
+    strong = (
+        confidence >= 85.0
+        and pf >= 1.40
+        and holdout_pf >= 1.30
+        and worst15 >= 50.0
+    )
+    return ("STRONG", 2) if strong else ("MEDIUM", 1)
+
+
+def quality_filtered_full_participation(
+    all_trades,
+    metrics: pd.DataFrame,
+    leverage: float,
+    start_equity=10000.0,
+):
+    metric_map = {
+        (str(r.symbol), str(r.timeframe), str(r.strategy_id)): r
+        for _, r in metrics.iterrows()
+    }
+
+    enriched=[]
+    weak_count=0
+    for t in all_trades:
+        m=metric_map.get((str(t["symbol"]), str(t["timeframe"]), str(t["strategy_id"])))
+        if m is None:
+            weak_count += 1
+            continue
+        quality,weight=classify_quality(t,m)
+        q={**t,"quality":quality,"weight":weight}
+        if quality=="WEAK":
+            weak_count += 1
+            continue
+        enriched.append(q)
+
+    # Canonical same-symbol rule: only one concurrent position per symbol.
+    # Later overlapping signals are support/conflict evidence, not a second position.
+    accepted=[]
+    overlap_skipped=0
+    active_by_symbol={}
+    for t in sorted(enriched,key=lambda x:(x["entry_time"], -x["weight"], x["symbol"])):
+        sym=t["symbol"]
+        prev=active_by_symbol.get(sym)
+        if prev is not None and prev["exit_time"] > t["entry_time"]:
+            overlap_skipped += 1
+            continue
+        accepted.append(t)
+        active_by_symbol[sym]=t
+
+    # Weighted capacity: MEDIUM=1, STRONG=2. Size one weight unit so that
+    # every accepted M/S position fits inside $10k at observed peak.
+    events=[]
+    for t in accepted:
+        events.append((t["entry_time"], 1, t["weight"]))
+        events.append((t["exit_time"], -1, t["weight"]))
+    # exits first at identical timestamp
+    events.sort(key=lambda x:(x[0],x[1]))
+    open_weight=0
+    peak_weight=0
+    peak_positions=0
+    open_positions=0
+    for _,kind,w in events:
+        if kind==-1:
+            open_weight -= w
+            open_positions -= 1
+        else:
+            open_weight += w
+            open_positions += 1
+            peak_weight=max(peak_weight,open_weight)
+            peak_positions=max(peak_positions,open_positions)
+
+    unit_margin=start_equity/peak_weight if peak_weight else 0.0
+    pnl=0.0
+    wins=losses=flat=0
+    strong_count=medium_count=0
+    for t in accepted:
+        margin=unit_margin*t["weight"]
+        trade_pnl=margin*leverage*float(t["net"])
+        pnl += trade_pnl
+        if t["quality"]=="STRONG":
+            strong_count += 1
+        else:
+            medium_count += 1
+        if trade_pnl>0: wins += 1
+        elif trade_pnl<0: losses += 1
+        else: flat += 1
+
+    return {
+        "leverage":leverage,
+        "start_equity":start_equity,
+        "end_equity":start_equity+pnl,
+        "pnl":pnl,
+        "return_pct":pnl/start_equity*100.0,
+        "candidate_trades":len(all_trades),
+        "weak_filtered":weak_count,
+        "medium_trades":medium_count,
+        "strong_trades":strong_count,
+        "accepted_trades":len(accepted),
+        "same_symbol_overlap_skipped":overlap_skipped,
+        "wins":wins,
+        "losses":losses,
+        "flat":flat,
+        "peak_concurrent_positions":peak_positions,
+        "peak_weight_units":peak_weight,
+        "unit_margin_usdt":unit_margin,
+        "medium_margin_usdt":unit_margin,
+        "strong_margin_usdt":unit_margin*2.0,
+    }
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--plan",type=Path,required=True)
     ap.add_argument("--date",required=True)
-    ap.add_argument("--out",type=Path,required=True)
+    ap.add_argument("--out",type=Path,required=True)\n    ap.add_argument("--metrics",type=Path)
     args=ap.parse_args()
 
     plan=pd.read_csv(args.plan)
@@ -318,6 +444,10 @@ def main():
 
     reports=[portfolio(all_trades,l) for l in (1.0,2.0,3.0)]
     full_reports=[full_participation(all_trades,l) for l in (1.0,2.0,3.0)]
+    quality_reports=[]
+    if args.metrics:
+        metrics=pd.read_csv(args.metrics)
+        quality_reports=[quality_filtered_full_participation(all_trades,metrics,l) for l in (1.0,2.0,3.0)]
     summary={
         "date_local":args.date,
         "timezone":"Europe/Istanbul",
@@ -330,6 +460,13 @@ def main():
         "portfolio":{"start_usdt":10000.0,"margin_per_trade_usdt":500.0,"max_positions":20,"same_symbol_max":1},
         "reports":[{k:v for k,v in q.items() if k!="accepted"} for q in reports],
         "full_participation_reports":full_reports,
+        "quality_filter":{
+            "weak":"direction expectancy <= 0 OR confidence < 65 OR PF < 1.20 OR worst holdout PF < 1.15",
+            "strong":"confidence >= 85 AND PF >= 1.40 AND worst holdout PF >= 1.30 AND worst 15bps expectancy >= 50bps",
+            "medium":"passes weak filter but not strong threshold",
+            "capital_weight":{"MEDIUM":1,"STRONG":2,"WEAK":0}
+        },
+        "quality_filtered_reports":quality_reports,
         "errors":errors,
     }
     args.out.mkdir(parents=True,exist_ok=True)
