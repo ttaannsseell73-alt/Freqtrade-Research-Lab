@@ -225,6 +225,45 @@ def portfolio(candidate_trades, leverage: float, start_equity=10000.0, margin_pe
         "accepted":accepted,
     }
 
+
+def full_participation(all_trades, leverage: float, start_equity=10000.0):
+    # Retrospective capacity-normalized test: no signal rejection.
+    # Unit margin is start equity divided by observed peak concurrency.
+    # This answers "what if every valid signal was taken?" without a max-position cap.
+    events=[]
+    for t in all_trades:
+        events.append((t["entry_time"], 1))
+        events.append((t["exit_time"], -1))
+    # Exits before entries at identical timestamps to avoid overstating concurrency.
+    events.sort(key=lambda x: (x[0], x[1]))
+    open_n=0
+    peak=0
+    for _,delta in events:
+        open_n += delta
+        peak=max(peak,open_n)
+    unit_margin = start_equity / peak if peak else 0.0
+    total_net = sum(float(t["net"]) for t in all_trades)
+    pnl = unit_margin * leverage * total_net
+    wins=sum(1 for t in all_trades if float(t["net"])>0)
+    losses=sum(1 for t in all_trades if float(t["net"])<0)
+    flat=len(all_trades)-wins-losses
+    return {
+        "leverage": leverage,
+        "start_equity": start_equity,
+        "end_equity": start_equity + pnl,
+        "pnl": pnl,
+        "return_pct": pnl / start_equity * 100.0,
+        "accepted_trades": len(all_trades),
+        "wins": wins,
+        "losses": losses,
+        "flat": flat,
+        "rejected_signals": 0,
+        "peak_concurrent_positions": peak,
+        "unit_margin_usdt": unit_margin,
+        "required_peak_margin_if_500_each": peak * 500.0,
+        "sum_net_trade_returns": total_net,
+    }
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--plan",type=Path,required=True)
@@ -278,6 +317,7 @@ def main():
     all_trades=[t for t in all_trades if day_start <= t["entry_time"] < day_end]
 
     reports=[portfolio(all_trades,l) for l in (1.0,2.0,3.0)]
+    full_reports=[full_participation(all_trades,l) for l in (1.0,2.0,3.0)]
     summary={
         "date_local":args.date,
         "timezone":"Europe/Istanbul",
@@ -289,6 +329,7 @@ def main():
         "exit_rule":{"5m_15m":"activate +1.5%, trail 0.75%, opposite fallback","1h_4h_1d":"opposite-signal runner","roundtrip_cost_bps":15.0},
         "portfolio":{"start_usdt":10000.0,"margin_per_trade_usdt":500.0,"max_positions":20,"same_symbol_max":1},
         "reports":[{k:v for k,v in q.items() if k!="accepted"} for q in reports],
+        "full_participation_reports":full_reports,
         "errors":errors,
     }
     args.out.mkdir(parents=True,exist_ok=True)
