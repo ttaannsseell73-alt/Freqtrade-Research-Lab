@@ -1,0 +1,211 @@
+name: research-sep26-month-replay-v1
+
+on:
+  push:
+    branches:
+      - research/sep26-month-replay-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  replay:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        date:
+          - "2026-09-01"
+          - "2026-09-02"
+          - "2026-09-03"
+          - "2026-09-04"
+          - "2026-09-05"
+          - "2026-09-06"
+          - "2026-09-07"
+          - "2026-09-08"
+          - "2026-09-09"
+          - "2026-09-10"
+          - "2026-09-11"
+          - "2026-09-12"
+          - "2026-09-13"
+          - "2026-09-14"
+          - "2026-09-15"
+          - "2026-09-16"
+          - "2026-09-17"
+          - "2026-09-18"
+          - "2026-09-19"
+          - "2026-09-20"
+          - "2026-09-21"
+          - "2026-09-22"
+          - "2026-09-23"
+          - "2026-09-24"
+          - "2026-09-25"
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep26-month-replay-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+      - name: Download frozen canonical 96 PASS plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+          test -f source-artifact/execution-results/execution_pair_results.csv
+      - name: Replay day
+        run: |
+          mkdir -p "month-replay/${{ matrix.date }}"
+          python scripts/one_shot_yesterday_96.py \
+            --plan source-artifact/execution-plan/execution_plan.csv \
+            --metrics source-artifact/execution-results/execution_pair_results.csv \
+            --date "${{ matrix.date }}" \
+            --out "month-replay/${{ matrix.date }}"
+      - name: Print compact result
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("month-replay")/"${{ matrix.date }}"/"SUMMARY.json"
+          if p.exists():
+              x=json.loads(p.read_text())
+              print("DATE", x["date_local"], "TRADES", x["candidate_trades"], "SYMBOLS", x["symbols_with_candidate_trades"])
+              for group in ("reports","full_participation_reports","quality_filtered_reports"):
+                  print(group, [(r["leverage"], round(r["pnl"], 6), r["accepted_trades"]) for r in x.get(group,[])])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: replay-${{ matrix.date }}
+          path: month-replay/${{ matrix.date }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  aggregate:
+    if: always()
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: replay-*
+          path: all-days
+          merge-multiple: false
+      - name: Aggregate September replay
+        run: |
+          python - <<'PY'
+          import csv, json, math
+          from pathlib import Path
+
+          root=Path("all-days")
+          rows=[]
+          summaries=[]
+          for p in sorted(root.glob("replay-*/SUMMARY.json")):
+              x=json.loads(p.read_text())
+              def bylev(key, lev):
+                  for r in x.get(key,[]):
+                      if float(r.get("leverage",0)) == float(lev):
+                          return r
+                  return {}
+              row={
+                  "date":x["date_local"],
+                  "candidate_trades":x.get("candidate_trades",0),
+                  "symbols":x.get("symbols_with_candidate_trades",0),
+                  "errors":len(x.get("errors",[])),
+              }
+              for key,prefix in [
+                  ("reports","portfolio"),
+                  ("full_participation_reports","full"),
+                  ("quality_filtered_reports","quality"),
+              ]:
+                  for lev in (1,2,3):
+                      r=bylev(key,lev)
+                      row[f"{prefix}_{lev}x_pnl"]=r.get("pnl")
+                      row[f"{prefix}_{lev}x_return_pct"]=r.get("return_pct")
+                      row[f"{prefix}_{lev}x_trades"]=r.get("accepted_trades")
+                      row[f"{prefix}_{lev}x_wins"]=r.get("wins")
+                      row[f"{prefix}_{lev}x_losses"]=r.get("losses")
+              rows.append(row)
+              summaries.append(x)
+
+          rows.sort(key=lambda r:r["date"])
+          out=Path("month-summary")
+          out.mkdir(exist_ok=True)
+          fields=sorted({k for r in rows for k in r.keys()}, key=lambda k:(k!="date",k))
+          with (out/"DAILY.csv").open("w",newline="",encoding="utf-8") as f:
+              w=csv.DictWriter(f,fieldnames=fields)
+              w.writeheader(); w.writerows(rows)
+
+          target=239.77
+          sep8=next((r for r in rows if r["date"]=="2026-09-08"),None)
+          matches=[]
+          if sep8:
+              for key,val in sep8.items():
+                  if key.endswith("_pnl") and isinstance(val,(int,float)) and math.isfinite(val):
+                      matches.append({"field":key,"pnl":val,"abs_diff":abs(val-target)})
+              matches.sort(key=lambda z:z["abs_diff"])
+
+          totals={}
+          for prefix in ("portfolio","full","quality"):
+              for lev in (1,2,3):
+                  k=f"{prefix}_{lev}x_pnl"
+                  vals=[float(r[k]) for r in rows if isinstance(r.get(k),(int,float))]
+                  totals[k]={
+                      "days":len(vals),
+                      "sum_pnl_fixed_10k":sum(vals),
+                      "avg_daily_pnl":sum(vals)/len(vals) if vals else None,
+                      "positive_days":sum(v>0 for v in vals),
+                      "negative_days":sum(v<0 for v in vals),
+                      "flat_days":sum(abs(v)<1e-12 for v in vals),
+                      "best_day":max(((r["date"],float(r[k])) for r in rows if isinstance(r.get(k),(int,float))), key=lambda z:z[1], default=None),
+                      "worst_day":min(((r["date"],float(r[k])) for r in rows if isinstance(r.get(k),(int,float))), key=lambda z:z[1], default=None),
+                  }
+
+          report={
+              "period":"2026-09-01..2026-09-25 Europe/Istanbul",
+              "completed_days_expected":25,
+              "completed_days_found":len(rows),
+              "frozen_source_plan_run_id":36125698776,
+              "strategy_engine":"scripts/one_shot_yesterday_96.py",
+              "exit_rule":{
+                  "5m_15m":"activate +1.5%, trail 0.75%, opposite fallback",
+                  "1h_4h_1d":"opposite-signal runner",
+                  "roundtrip_cost_bps":15.0,
+              },
+              "portfolio_rule":{
+                  "start_usdt":10000.0,
+                  "margin_per_trade_usdt":500.0,
+                  "max_positions":20,
+                  "same_symbol_max":1,
+              },
+              "sep8_target_check":{
+                  "claimed_target_pnl":target,
+                  "closest_variants":matches[:5],
+              },
+              "totals":totals,
+          }
+          (out/"MONTH_SUMMARY.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+
+          print(json.dumps(report,indent=2))
+          print("\nDATE, portfolio_1x_pnl, portfolio_2x_pnl, portfolio_3x_pnl")
+          for r in rows:
+              print(r["date"], r.get("portfolio_1x_pnl"), r.get("portfolio_2x_pnl"), r.get("portfolio_3x_pnl"))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: september-2026-month-replay-summary
+          path: month-summary
+          if-no-files-found: error
+          retention-days: 30
