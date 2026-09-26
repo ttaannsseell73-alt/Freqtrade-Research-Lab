@@ -35,13 +35,14 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from pathlib import Path
           from coin_strategy_lab.binance_testnet import BinanceFuturesTestnet
           from coin_strategy_lab.execution import ExecutionCoordinator
           from coin_strategy_lab.runtime import ActiveRouter
 
           router = ActiveRouter.from_files(
-              "config/active_pool_v1.json",
-              "config/active_system_v1.json",
+              Path("config/active_pool_v1.json"),
+              Path("config/active_system_v1.json"),
           )
           gateway = BinanceFuturesTestnet.from_env(allow_orders=True)
           engine = ExecutionCoordinator(router, gateway)
