@@ -1,0 +1,138 @@
+name: external-96-universe-5bots
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/sep25-96-hybrid-exit-v1
+    paths:
+      - scripts/run_external_96_universe.py
+      - scripts/external_native_day_benchmark.py
+      - .github/workflows/external-96-universe-5bots.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: v0nog
+            repo: V0NOG/trading-bot-v2
+            py: "3.11"
+          - kind: theta
+            repo: DavJ/theta-bot
+            py: "3.11"
+          - kind: cryptobot
+            repo: yemajj/crypto-bot
+            py: "3.11"
+          - kind: rsi
+            repo: heavendragon-17/rsi_bot
+            py: "3.13"
+          - kind: bino
+            repo: bino282/binance-trading-bot
+            py: "3.11"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/sep25-96-hybrid-exit-v1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
+
+      - name: Clone external project untouched
+        run: git clone --depth 1 "https://github.com/${{ matrix.repo }}.git" external
+
+      - name: Record external commit
+        run: |
+          cd external
+          git rev-parse HEAD | tee ../external_commit.txt
+          git status --porcelain | tee ../external_status_before.txt
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip install --upgrade pip
+          case "${{ matrix.kind }}" in
+            v0nog)
+              pip install pandas numpy
+              ;;
+            theta)
+              pip install -r external/requirements.txt
+              ;;
+            cryptobot)
+              pip install -e external
+              ;;
+            rsi)
+              pip install -r external/requirements.txt
+              ;;
+            bino)
+              pip install python-binance==1.0.19 ccxt==4.2.25 pandas==2.1.4 numpy==1.26.3 pyyaml==6.0.1 matplotlib==3.8.2 plotly==5.18.0 seaborn==0.13.1 aiohttp==3.9.1 asyncio==3.4.3 python-dateutil==2.8.2 pytz==2023.3 requests==2.31.0 colorlog==6.8.0 jsonschema==4.20.0
+              ;;
+          esac
+
+      - name: Prepare Binance no-network init shim
+        if: matrix.kind == 'bino'
+        run: |
+          mkdir -p shim
+          cat > shim/sitecustomize.py <<'PY'
+          try:
+              import binance.client
+              binance.client.Client.ping=lambda self: {}
+          except Exception:
+              pass
+          PY
+
+      - name: Download canonical 96 PASS plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p source-artifact
+          gh run download 36125698776 -n coin-strategy-lab-freqtrade-tier-a-full -D source-artifact
+          test -f source-artifact/execution-plan/execution_plan.csv
+          python - <<'PY'
+          import pandas as pd
+          p=pd.read_csv("source-artifact/execution-plan/execution_plan.csv")
+          print("plan_rows",len(p),"unique_symbols",p["symbol"].nunique())
+          PY
+
+      - name: Run all canonical symbols on both dates
+        env:
+          PYTHONPATH: ${{ matrix.kind == 'bino' && format('{0}/shim', github.workspace) || '' }}
+          MPLBACKEND: Agg
+        run: |
+          python scripts/run_external_96_universe.py \
+            --kind "${{ matrix.kind }}" \
+            --project external \
+            --plan source-artifact/execution-plan/execution_plan.csv \
+            --warmup-days 7 \
+            --out "results/${{ matrix.kind }}"
+
+      - name: Verify external repository unchanged
+        if: always()
+        run: |
+          cd external
+          git status --porcelain | tee ../external_status_after.txt
+
+      - name: Print summary
+        if: always()
+        run: cat "results/${{ matrix.kind }}/SUMMARY.json" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: external-96-${{ matrix.kind }}
+          path: |
+            results/${{ matrix.kind }}
+            external_commit.txt
+            external_status_before.txt
+            external_status_after.txt
+          if-no-files-found: warn
+          retention-days: 30
