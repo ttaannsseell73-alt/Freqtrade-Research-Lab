@@ -1,0 +1,195 @@
+{
+  "period": "2026-09-01..2026-09-25 Europe/Istanbul",
+  "completed_days_expected": 25,
+  "completed_days_found": 25,
+  "frozen_source_plan_run_id": 36125698776,
+  "strategy_engine": "scripts/one_shot_yesterday_96.py",
+  "source_branch": "research/sep25-96-hybrid-exit-v1@b620587b955bf05c9f8e028bba563fb97ab5706b",
+  "exit_rule": {
+    "5m_15m": "activate +1.5%, trail 0.75%, opposite fallback",
+    "1h_4h_1d": "opposite-signal runner",
+    "roundtrip_cost_bps": 15.0
+  },
+  "portfolio_rule": {
+    "start_usdt": 10000.0,
+    "margin_per_trade_usdt": 500.0,
+    "max_positions": 20,
+    "same_symbol_max": 1
+  },
+  "sep8_target_check": {
+    "claimed_target_pnl": 239.77,
+    "closest_variants": [
+      {
+        "field": "portfolio_3x_pnl",
+        "pnl": 234.75866447055887,
+        "abs_diff": 5.011335529441141
+      },
+      {
+        "field": "portfolio_2x_pnl",
+        "pnl": 156.5057763137047,
+        "abs_diff": 83.26422368629531
+      },
+      {
+        "field": "full_3x_pnl",
+        "pnl": 99.48828807951085,
+        "abs_diff": 140.28171192048916
+      },
+      {
+        "field": "portfolio_1x_pnl",
+        "pnl": 78.25288815685053,
+        "abs_diff": 161.51711184314948
+      },
+      {
+        "field": "full_2x_pnl",
+        "pnl": 66.32552538634057,
+        "abs_diff": 173.44447461365945
+      }
+    ]
+  },
+  "totals": {
+    "portfolio_1x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 2758.2528912816633,
+      "avg_daily_pnl": 110.33011565126654,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        443.3387891425991
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -296.86206710164515
+      ]
+    },
+    "portfolio_2x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 5516.505782563321,
+      "avg_daily_pnl": 220.66023130253285,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        886.6775782852001
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -593.7241342032885
+      ]
+    },
+    "portfolio_3x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 8274.758673844979,
+      "avg_daily_pnl": 330.9903469537992,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        1330.016367427801
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -890.5862013049318
+      ]
+    },
+    "full_1x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 1557.7133167651812,
+      "avg_daily_pnl": 62.30853267060725,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-10",
+        246.5814941554569
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -195.5222567098775
+      ]
+    },
+    "full_2x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 3115.4266335303623,
+      "avg_daily_pnl": 124.6170653412145,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-10",
+        493.1629883109138
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -391.044513419755
+      ]
+    },
+    "full_3x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 4673.139950295544,
+      "avg_daily_pnl": 186.92559801182176,
+      "positive_days": 20,
+      "negative_days": 5,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-10",
+        739.7444824663706
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -586.5667701296326
+      ]
+    },
+    "quality_1x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 2066.644891374146,
+      "avg_daily_pnl": 82.66579565496585,
+      "positive_days": 16,
+      "negative_days": 9,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        594.2654685741358
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -193.51134885653548
+      ]
+    },
+    "quality_2x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 4133.289782748292,
+      "avg_daily_pnl": 165.3315913099317,
+      "positive_days": 16,
+      "negative_days": 9,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        1188.5309371482715
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -387.02269771307095
+      ]
+    },
+    "quality_3x_pnl": {
+      "days": 25,
+      "sum_pnl_fixed_10k": 6199.934674122438,
+      "avg_daily_pnl": 247.99738696489752,
+      "positive_days": 16,
+      "negative_days": 9,
+      "flat_days": 0,
+      "best_day": [
+        "2026-09-12",
+        1782.7964057224074
+      ],
+      "worst_day": [
+        "2026-09-24",
+        -580.5340465696064
+      ]
+    }
+  }
+}
