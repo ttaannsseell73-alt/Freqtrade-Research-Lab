@@ -16,6 +16,9 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
+import one_shot_yesterday_96 as vision
+from coin_strategy_lab.universe import discover_usdt_perpetuals_from_vision
+
 BASE = "https://fapi.binance.com"
 TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h")
 TF_MS = {"1m":60_000,"5m":300_000,"15m":900_000,"1h":3_600_000,"4h":14_400_000}
@@ -49,6 +52,8 @@ def http_json(url: str, attempts: int = 6):
             with urllib.request.urlopen(req, timeout=40) as r:
                 return json.load(r)
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+            if isinstance(exc, urllib.error.HTTPError) and exc.code == 451:
+                raise
             if isinstance(exc, urllib.error.HTTPError) and exc.code in (418,429):
                 time.sleep(5*(n+1))
             elif n+1 < attempts:
@@ -58,7 +63,12 @@ def http_json(url: str, attempts: int = 6):
     raise RuntimeError(url)
 
 def universe(asof_ms: int) -> list[str]:
-    x = http_json(f"{BASE}/fapi/v1/exchangeInfo")
+    try:
+        x = http_json(f"{BASE}/fapi/v1/exchangeInfo")
+    except Exception as exc:
+        ref = pd.Timestamp(asof_ms, unit="ms", tz="UTC").date()
+        print(f"REST_UNIVERSE_FALLBACK {type(exc).__name__}: {exc}", flush=True)
+        return [x.symbol for x in discover_usdt_perpetuals_from_vision(ref, lookback_days=4, workers=32)]
     out=[]
     for s in x.get("symbols",[]):
         if s.get("status")!="TRADING": continue
@@ -70,30 +80,36 @@ def universe(asof_ms: int) -> list[str]:
     return sorted(out)
 
 def fetch_klines(symbol: str, tf: str, start_ms: int, end_ms: int) -> pd.DataFrame:
-    rows=[]
-    cursor=start_ms
-    interval=TF_MS[tf]
-    while cursor < end_ms:
-        q=urllib.parse.urlencode({
-            "symbol":symbol,"interval":tf,"startTime":cursor,"endTime":end_ms-1,"limit":1500
-        })
-        chunk=http_json(f"{BASE}/fapi/v1/klines?{q}")
-        if not chunk: break
-        rows.extend(chunk)
-        last=int(chunk[-1][0])
-        nxt=last+interval
-        if nxt <= cursor: break
-        cursor=nxt
-        if len(chunk)<1500: break
-        time.sleep(0.025)
-    if not rows:
-        return pd.DataFrame(columns=["date","open","high","low","close","volume"])
-    f=pd.DataFrame(rows,columns=["open_time","open","high","low","close","volume","close_time","qv","n","tb","tq","ignore"])
-    f=f.drop_duplicates("open_time").sort_values("open_time")
-    f["date"]=pd.to_datetime(f["open_time"].astype("int64"),unit="ms",utc=True)
-    for c in ["open","high","low","close","volume"]:
-        f[c]=pd.to_numeric(f[c],errors="coerce")
-    return f[["date","open","high","low","close","volume"]].dropna().reset_index(drop=True)
+    try:
+        rows=[]
+        cursor=start_ms
+        interval=TF_MS[tf]
+        while cursor < end_ms:
+            q=urllib.parse.urlencode({
+                "symbol":symbol,"interval":tf,"startTime":cursor,"endTime":end_ms-1,"limit":1500
+            })
+            chunk=http_json(f"{BASE}/fapi/v1/klines?{q}")
+            if not chunk: break
+            rows.extend(chunk)
+            last=int(chunk[-1][0])
+            nxt=last+interval
+            if nxt <= cursor: break
+            cursor=nxt
+            if len(chunk)<1500: break
+            time.sleep(0.025)
+        if not rows:
+            return pd.DataFrame(columns=["date","open","high","low","close","volume"])
+        f=pd.DataFrame(rows,columns=["open_time","open","high","low","close","volume","close_time","qv","n","tb","tq","ignore"])
+        f=f.drop_duplicates("open_time").sort_values("open_time")
+        f["date"]=pd.to_datetime(f["open_time"].astype("int64"),unit="ms",utc=True)
+        for c in ["open","high","low","close","volume"]:
+            f[c]=pd.to_numeric(f[c],errors="coerce")
+        return f[["date","open","high","low","close","volume"]].dropna().reset_index(drop=True)
+    except Exception as exc:
+        print(f"REST_DATA_FALLBACK {symbol} {tf} {type(exc).__name__}: {exc}", flush=True)
+        start=pd.Timestamp(start_ms,unit="ms",tz="UTC")
+        end=pd.Timestamp(end_ms,unit="ms",tz="UTC")
+        return vision.download(symbol,tf,start,end)
 
 def confirmed_pivots(f: pd.DataFrame, left: int=4, right: int=4):
     h=f["high"].to_numpy(float); l=f["low"].to_numpy(float)
