@@ -71,7 +71,7 @@ jobs:
           set -e
           case "${{ matrix.kind }}" in
             v0nog)
-              true
+              pip install pandas
               ;;
             theta)
               pip install -r external/requirements.txt
